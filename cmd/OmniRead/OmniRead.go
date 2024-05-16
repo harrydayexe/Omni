@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/harrydayexe/Omni/internal/core"
+	"github.com/harrydayexe/Omni/internal/models"
 )
 
 func main() {
