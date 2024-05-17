@@ -6,8 +6,8 @@ type Templates struct {
 	Templates *template.Template
 }
 
-func New() *Templates {
+func New(templateGlob string) *Templates {
 	return &Templates{
-		Templates: template.Must(template.ParseGlob("../../web/template/*.html")),
+		Templates: template.Must(template.ParseGlob(templateGlob)),
 	}
 }
