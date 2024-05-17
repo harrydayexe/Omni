@@ -2,11 +2,13 @@
 // and access.
 package storage
 
+import "github.com/harrydayexe/Omni/internal/snowflake"
+
 // Database is an interface for accessing persisted data.
 // It provides methods for standard CRUD operations.
 //
 // Database has an associated type T which must conform to Identifier.
-type Database[T Identifier] interface {
+type Database[T snowflake.Identifier] interface {
 	// Create adds entity to the database.
 	// The returned error is nil if the operation is successful, otherwise it
 	// contains the error that occurred.
