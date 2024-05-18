@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/harrydayexe/Omni/internal/models"
+	"log/slog"
+	"os"
+
+	"github.com/harrydayexe/Omni/internal/cmd"
+	"github.com/harrydayexe/Omni/internal/omniread/api"
 )
 
 func main() {
-	user := core.User{
-		Name: "John",
-		Age:  25,
-	}
+	ctx := context.Background()
+	logger := slog.Default()
 
-	fmt.Println("Hello, Read!")
-	fmt.Println(user.Name)
+	if err := cmd.Run(ctx, api.NewHandler(logger), os.Stdout, os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }
