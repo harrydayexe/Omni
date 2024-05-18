@@ -5,53 +5,52 @@
 package snowflake
 
 import (
-	"errors"
 	"sync"
 	"time"
 )
 
 const (
-	epoch        int64 = 1288834974657
-	nodeBits           = 10
-	sequenceBits       = 12
-	nodeMax      int16 = -1 ^ (-1 << nodeBits)
-	nodeMask           = int64(nodeMax) << sequenceBits
-	sequenceMask int16 = -1 ^ (-1 << sequenceBits)
-	timeShift          = nodeBits + sequenceBits
-	nodeShift          = sequenceBits
+	epoch        int64  = 1288834974657
+	nodeBits     uint64 = 10
+	sequenceBits uint64 = 12
+	nodeMax      uint16 = -1 ^ (-1 << nodeBits)
+	nodeMask     uint64 = uint64(nodeMax) << sequenceBits
+	sequenceMask uint16 = -1 ^ (-1 << sequenceBits)
+	timeShift    uint64 = nodeBits + sequenceBits
+	nodeShift    uint64 = sequenceBits
 )
 
 // Snowflake is a distributed unique ID.
 type Snowflake struct {
-	timestamp int64
-	nodeId    int64
-	sequence  int64
+	timestamp uint64
+	nodeId    uint16
+	sequence  uint16
 }
 
 func (s Snowflake) Id() int64 {
-	return (s.timestamp << (sequenceBits + nodeBits)) |
-		((s.nodeId << sequenceBits) & nodeMask) |
-		(s.sequence & int64(sequenceMask))
+	return int64((s.timestamp << (timeShift)) |
+		((uint64(s.nodeId) << nodeShift) & nodeMask) |
+		(uint64(s.sequence) & uint64(sequenceMask)))
 }
 
 type SnowflakeGenerator struct {
 	mu        sync.Mutex
-	lastStamp int64
-	sequence  int16
-	nodeId    int16
+	lastStamp uint64
+	sequence  uint16
+	nodeId    uint16
 }
 
-func NewSnowflakeGenerator(nodeId int16) (*SnowflakeGenerator, error) {
+func NewSnowflakeGenerator(nodeId uint16) *SnowflakeGenerator {
 	if nodeId > nodeMax {
-		return nil, errors.New("node id must be less than 10 bits lond")
+		panic("node id must be less than 10 bits long")
 	}
 	return &SnowflakeGenerator{
 		nodeId: nodeId,
-	}, nil
+	}
 }
 
 // NextID generates a new snowflake ID.
-func (s *SnowflakeGenerator) NextID() (Identifier, error) {
+func (s *SnowflakeGenerator) NextID() Identifier {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -63,10 +62,10 @@ func (s *SnowflakeGenerator) getMilliSeconds() int64 {
 	return time.Now().UnixNano() / 1e6
 }
 
-func (s *SnowflakeGenerator) nextID() (Identifier, error) {
-	now := s.getMilliSeconds() - epoch
+func (s *SnowflakeGenerator) nextID() Identifier {
+	now := uint64(s.getMilliSeconds() - epoch)
 	if now < s.lastStamp {
-		return nil, errors.New("time is moving backwards,waiting until")
+		panic("time is moving backwards, current time is before the last time this method was called")
 	}
 
 	if now == s.lastStamp {
@@ -74,7 +73,7 @@ func (s *SnowflakeGenerator) nextID() (Identifier, error) {
 
 		if s.sequence == 0 {
 			for now <= s.lastStamp {
-				now = s.getMilliSeconds() - epoch
+				now = uint64(s.getMilliSeconds() - epoch)
 			}
 		}
 	} else {
@@ -84,7 +83,7 @@ func (s *SnowflakeGenerator) nextID() (Identifier, error) {
 	s.lastStamp = now
 	return Snowflake{
 		timestamp: now,
-		nodeId:    int64(s.nodeId),
-		sequence:  int64(s.sequence),
-	}, nil
+		nodeId:    s.nodeId,
+		sequence:  s.sequence,
+	}
 }

@@ -9,8 +9,8 @@ import (
 )
 
 func TestFirstSnowflakeSequenceIsZero(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
-	id, _ := g.NextID()
+	g := NewSnowflakeGenerator(1)
+	id := g.NextID()
 
 	const mask int64 = 0b1111_1111_1111
 	sequence := id.Id() & mask
@@ -20,10 +20,10 @@ func TestFirstSnowflakeSequenceIsZero(t *testing.T) {
 }
 
 func TestSequenceIsZeroForNewTimestamp(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
-	id1, _ := g.NextID()
+	g := NewSnowflakeGenerator(1)
+	id1 := g.NextID()
 	time.Sleep(1 * time.Second)
-	id2, _ := g.NextID()
+	id2 := g.NextID()
 
 	const mask int64 = 0b1111_1111_1111
 	sequence1 := id1.Id() & mask
@@ -37,7 +37,7 @@ func TestSequenceIsZeroForNewTimestamp(t *testing.T) {
 }
 
 func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
+	g := NewSnowflakeGenerator(1)
 
 	var wg sync.WaitGroup
 	ch := make(chan Identifier, 2)
@@ -45,7 +45,7 @@ func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func() {
 			defer wg.Done()
-			id, _ := g.NextID()
+			id := g.NextID()
 			ch <- id
 		}()
 	}
@@ -72,8 +72,8 @@ func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
 }
 
 func TestNodeIdIsCorrect(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
-	id, _ := g.NextID()
+	g := NewSnowflakeGenerator(1)
+	id := g.NextID()
 
 	const mask int64 = 0b11_1111_1111
 	nodeId := (id.Id() >> 12) & mask
@@ -83,7 +83,7 @@ func TestNodeIdIsCorrect(t *testing.T) {
 }
 
 func TestDuplicates(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
+	g := NewSnowflakeGenerator(1)
 
 	const count = 10000
 	var wg sync.WaitGroup
@@ -94,7 +94,7 @@ func TestDuplicates(t *testing.T) {
 	for i := 0; i < count; i++ {
 		go func() {
 			defer wg.Done()
-			id, _ := g.NextID()
+			id := g.NextID()
 			ch <- id
 		}()
 	}
@@ -115,7 +115,7 @@ func TestDuplicates(t *testing.T) {
 }
 
 func TestSequenceReset(t *testing.T) {
-	g, _ := NewSnowflakeGenerator(1)
+	g := NewSnowflakeGenerator(1)
 
 	var wg sync.WaitGroup
 	ch := make(chan Identifier, 2)
@@ -123,7 +123,7 @@ func TestSequenceReset(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		go func() {
 			defer wg.Done()
-			id, _ := g.NextID()
+			id := g.NextID()
 			ch <- id
 		}()
 	}
@@ -141,7 +141,7 @@ func TestSequenceReset(t *testing.T) {
 
 	const mask int64 = 0b1111_1111_1111
 	time.Sleep(1 * time.Second)
-	id, _ := g.NextID()
+	id := g.NextID()
 	sequence := id.Id() & mask
 	if sequence != 0 {
 		t.Errorf("Sequence is not zero, got %d", sequence)
