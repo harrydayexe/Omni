@@ -18,7 +18,7 @@ func NewUser(id snowflake.Identifier, username string) User {
 }
 
 // Id returns the ID of the user.
-func (u User) Id() int64 {
+func (u User) Id() uint64 {
 	return u.ID.Id()
 }
 

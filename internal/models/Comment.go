@@ -33,6 +33,6 @@ func NewComment(
 }
 
 // Id returns the ID of the comment.
-func (c Comment) Id() int64 {
+func (c Comment) Id() uint64 {
 	return c.ID.Id()
 }

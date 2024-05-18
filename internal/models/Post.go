@@ -46,6 +46,6 @@ func NewPost(
 }
 
 // Id returns the ID of the post.
-func (p Post) Id() int64 {
+func (p Post) Id() uint64 {
 	return p.ID.Id()
 }
