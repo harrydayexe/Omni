@@ -27,8 +27,16 @@ type Snowflake struct {
 	sequence  uint16
 }
 
-func (s Snowflake) Id() int64 {
-	return int64((s.timestamp << (timeShift)) |
+func ParseId(id uint64) Snowflake {
+	return Snowflake{
+		timestamp: id >> timeShift,
+		nodeId:    uint16((id & nodeMask) >> sequenceBits),
+		sequence:  uint16(id & uint64(sequenceMask)),
+	}
+}
+
+func (s Snowflake) Id() uint64 {
+	return uint64((s.timestamp << (timeShift)) |
 		((uint64(s.nodeId) << nodeShift) & nodeMask) |
 		(uint64(s.sequence) & uint64(sequenceMask)))
 }
