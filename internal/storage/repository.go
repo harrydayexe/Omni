@@ -9,6 +9,11 @@ import "github.com/harrydayexe/Omni/internal/snowflake"
 //
 // Repository has an associated type T which must conform to Identifier.
 type Repository[T snowflake.Identifier] interface {
+	// Read retrieves an entity from the database.
+	// The returned error is nil if the operation is successful, otherwise it
+	// contains the error that occurred.
+	Read(id snowflake.Identifier) (T, error)
+
 	// Create adds entity to the database.
 	// The returned error is nil if the operation is successful, otherwise it
 	// contains the error that occurred.
