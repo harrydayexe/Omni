@@ -16,7 +16,8 @@ func (w *WrappedWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 }
 
-func NewLoggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
+// NewLoggingMiddleware returns middleware which logs incoming requests
+func NewLoggingMiddleware(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
