@@ -52,16 +52,21 @@ func (p Post) Id() uint64 {
 }
 
 func (p Post) MarshalJSON() ([]byte, error) {
+	var comments []uint64
+	for _, comment := range p.Comments {
+		comments = append(comments, comment.Id())
+	}
+
 	postAltered := struct {
-		Id          uint64    `json:"id"`
-		AuthorId    uint64    `json:"authorId"`
-		Timestamp   string    `json:"timestamp"`
-		Title       string    `json:"title"`
-		Description string    `json:"description"`
-		ContentFile string    `json:"contentFile"`
-		LikeCount   int       `json:"likeCount"`
-		Comments    []Comment `json:"comments"`
-		Tags        []string  `json:"tags"`
+		Id          uint64   `json:"id"`
+		AuthorId    uint64   `json:"authorId"`
+		Timestamp   string   `json:"timestamp"`
+		Title       string   `json:"title"`
+		Description string   `json:"description"`
+		ContentFile string   `json:"contentFileUrl"`
+		LikeCount   int      `json:"likeCount"`
+		Comments    []uint64 `json:"comments"`
+		Tags        []string `json:"tags"`
 	}{
 		Id:          p.id.Id(),
 		AuthorId:    p.AuthorId.Id(),
@@ -70,7 +75,7 @@ func (p Post) MarshalJSON() ([]byte, error) {
 		Description: p.Description,
 		ContentFile: p.ContentFile.String(),
 		LikeCount:   p.LikeCount,
-		Comments:    p.Comments,
+		Comments:    comments,
 		Tags:        p.Tags,
 	}
 	return json.Marshal(postAltered)

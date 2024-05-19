@@ -10,7 +10,7 @@ import (
 // Comment is a struct that represents a comment on a post.
 type Comment struct {
 	id        snowflake.Identifier // ID is a unique identifier for the comment.
-	Author    User                 // Author is the user who wrote the comment.
+	AuthorId  snowflake.Identifier // AuthorId is the id of the user who wrote the comment.
 	Timestamp time.Time            // Timestamp is the time the comment was created.
 	Content   string               // Content is the content of the comment.
 	LikeCount int                  // LikeCount is the number of likes the comment has.
@@ -19,14 +19,14 @@ type Comment struct {
 // NewComment creates a new Comment with the given ID, author, timestamp, and content.
 func NewComment(
 	id snowflake.Identifier,
-	author User,
+	authorId snowflake.Identifier,
 	timestamp time.Time,
 	content string,
 	likeCount int,
 ) Comment {
 	return Comment{
 		id:        id,
-		Author:    author,
+		AuthorId:  authorId,
 		Timestamp: timestamp,
 		Content:   content,
 		LikeCount: likeCount,
@@ -47,7 +47,7 @@ func (c Comment) MarshalJSON() ([]byte, error) {
 		LikeCount int    `json:"likeCount"`
 	}{
 		Id:        c.Id(),
-		AuthorId:  c.Author.Id(),
+		AuthorId:  c.AuthorId.Id(),
 		Timestamp: c.Timestamp.Format(time.RFC3339),
 		Content:   c.Content,
 		LikeCount: c.LikeCount,
