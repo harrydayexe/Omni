@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"net/url"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 // Post represents a blog post.
 type Post struct {
 	id          snowflake.Identifier // ID is a unique identifier for the post.
-	Author      User                 // Author is the user who wrote the post.
+	AuthorId    snowflake.Identifier // AuthorId is the id of the user who wrote the post.
 	Timestamp   time.Time            // Timestamp is the time the post was created.
 	Title       string               // Title is the title of the post.
 	Description string               // Description is a short description of the post.
@@ -23,7 +24,7 @@ type Post struct {
 // NewPost creates a new Post with the given ID, author, timestamp, title, description, content file URL, like count, comments, and tags.
 func NewPost(
 	id snowflake.Identifier,
-	author User,
+	authorId snowflake.Identifier,
 	timestamp time.Time,
 	title string,
 	description string,
@@ -34,7 +35,7 @@ func NewPost(
 ) Post {
 	return Post{
 		id:          id,
-		Author:      author,
+		AuthorId:    authorId,
 		Timestamp:   timestamp,
 		Title:       title,
 		Description: description,
@@ -48,4 +49,29 @@ func NewPost(
 // Id returns the ID of the post.
 func (p Post) Id() uint64 {
 	return p.id.Id()
+}
+
+func (p Post) MarshalJSON() ([]byte, error) {
+	postAltered := struct {
+		Id          uint64    `json:"id"`
+		AuthorId    uint64    `json:"authorId"`
+		Timestamp   string    `json:"timestamp"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		ContentFile string    `json:"contentFile"`
+		LikeCount   int       `json:"likeCount"`
+		Comments    []Comment `json:"comments"`
+		Tags        []string  `json:"tags"`
+	}{
+		Id:          p.id.Id(),
+		AuthorId:    p.AuthorId.Id(),
+		Timestamp:   p.Timestamp.Format(time.RFC3339),
+		Title:       p.Title,
+		Description: p.Description,
+		ContentFile: p.ContentFile.String(),
+		LikeCount:   p.LikeCount,
+		Comments:    p.Comments,
+		Tags:        p.Tags,
+	}
+	return json.Marshal(postAltered)
 }

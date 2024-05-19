@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -35,4 +36,21 @@ func NewComment(
 // Id returns the ID of the comment.
 func (c Comment) Id() uint64 {
 	return c.id.Id()
+}
+
+func (c Comment) MarshalJSON() ([]byte, error) {
+	commentAltered := struct {
+		Id        uint64 `json:"id"`
+		AuthorId  uint64 `json:"authorId"`
+		Timestamp string `json:"timestamp"`
+		Content   string `json:"content"`
+		LikeCount int    `json:"likeCount"`
+	}{
+		Id:        c.Id(),
+		AuthorId:  c.Author.Id(),
+		Timestamp: c.Timestamp.Format(time.RFC3339),
+		Content:   c.Content,
+		LikeCount: c.LikeCount,
+	}
+	return json.Marshal(commentAltered)
 }

@@ -1,6 +1,10 @@
 package models
 
-import "github.com/harrydayexe/Omni/internal/snowflake"
+import (
+	"encoding/json"
+
+	"github.com/harrydayexe/Omni/internal/snowflake"
+)
 
 // User is a struct that represents a user in the system.
 type User struct {
@@ -25,4 +29,22 @@ func (u User) Id() uint64 {
 // AddPost adds a post to the user's list of posts.
 func (u User) AddPost(post Post) {
 	u.Posts = append(u.Posts, post)
+}
+
+func (u User) MarshalJSON() ([]byte, error) {
+	var posts []uint64
+	for _, post := range u.Posts {
+		posts = append(posts, post.Id())
+	}
+
+	userAltered := struct {
+		Id       uint64   `json:"id"`
+		Username string   `json:"username"`
+		Posts    []uint64 `json:"posts"`
+	}{
+		Id:       u.Id(),
+		Username: u.Username,
+		Posts:    posts,
+	}
+	return json.Marshal(userAltered)
 }
