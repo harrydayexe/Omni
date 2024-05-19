@@ -9,7 +9,7 @@ import (
 
 // Post represents a blog post.
 type Post struct {
-	ID          snowflake.Identifier // ID is a unique identifier for the post.
+	id          snowflake.Identifier // ID is a unique identifier for the post.
 	Author      User                 // Author is the user who wrote the post.
 	Timestamp   time.Time            // Timestamp is the time the post was created.
 	Title       string               // Title is the title of the post.
@@ -33,7 +33,7 @@ func NewPost(
 	tags []string,
 ) Post {
 	return Post{
-		ID:          id,
+		id:          id,
 		Author:      author,
 		Timestamp:   timestamp,
 		Title:       title,
@@ -47,5 +47,5 @@ func NewPost(
 
 // Id returns the ID of the post.
 func (p Post) Id() uint64 {
-	return p.ID.Id()
+	return p.id.Id()
 }

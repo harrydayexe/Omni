@@ -8,7 +8,7 @@ import (
 
 // Comment is a struct that represents a comment on a post.
 type Comment struct {
-	ID        snowflake.Identifier // ID is a unique identifier for the comment.
+	id        snowflake.Identifier // ID is a unique identifier for the comment.
 	Author    User                 // Author is the user who wrote the comment.
 	Timestamp time.Time            // Timestamp is the time the comment was created.
 	Content   string               // Content is the content of the comment.
@@ -24,7 +24,7 @@ func NewComment(
 	likeCount int,
 ) Comment {
 	return Comment{
-		ID:        id,
+		id:        id,
 		Author:    author,
 		Timestamp: timestamp,
 		Content:   content,
@@ -34,5 +34,5 @@ func NewComment(
 
 // Id returns the ID of the comment.
 func (c Comment) Id() uint64 {
-	return c.ID.Id()
+	return c.id.Id()
 }
