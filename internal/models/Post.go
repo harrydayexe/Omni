@@ -10,27 +10,27 @@ import (
 
 // Post represents a blog post.
 type Post struct {
-	id          snowflake.Identifier // ID is a unique identifier for the post.
-	AuthorId    snowflake.Identifier // AuthorId is the id of the user who wrote the post.
-	Timestamp   time.Time            // Timestamp is the time the post was created.
-	Title       string               // Title is the title of the post.
-	Description string               // Description is a short description of the post.
-	ContentFile url.URL              // ContentFile is the URL of the markdown file containing the post's content.
-	LikeCount   int                  // LikeCount is the number of likes the post has.
-	Comments    []Comment            // Comments is a list of comments on the post.
-	Tags        []string             // Tags is a list of tags associated with the post.
+	id          snowflake.Snowflake   // ID is a unique identifier for the post.
+	AuthorId    snowflake.Snowflake   // AuthorId is the id of the user who wrote the post.
+	Timestamp   time.Time             // Timestamp is the time the post was created.
+	Title       string                // Title is the title of the post.
+	Description string                // Description is a short description of the post.
+	ContentFile url.URL               // ContentFile is the URL of the markdown file containing the post's content.
+	LikeCount   int                   // LikeCount is the number of likes the post has.
+	Comments    []snowflake.Snowflake // Comments is a list of comment id's on the post.
+	Tags        []string              // Tags is a list of tags associated with the post.
 }
 
 // NewPost creates a new Post with the given ID, author, timestamp, title, description, content file URL, like count, comments, and tags.
 func NewPost(
-	id snowflake.Identifier,
-	authorId snowflake.Identifier,
+	id snowflake.Snowflake,
+	authorId snowflake.Snowflake,
 	timestamp time.Time,
 	title string,
 	description string,
 	contentFile url.URL,
 	likeCount int,
-	comments []Comment,
+	comments []snowflake.Snowflake,
 	tags []string,
 ) Post {
 	return Post{
@@ -47,14 +47,14 @@ func NewPost(
 }
 
 // Id returns the ID of the post.
-func (p Post) Id() uint64 {
-	return p.id.Id()
+func (p Post) Id() snowflake.Snowflake {
+	return p.id
 }
 
 func (p Post) MarshalJSON() ([]byte, error) {
 	var comments []uint64
 	for _, comment := range p.Comments {
-		comments = append(comments, comment.Id())
+		comments = append(comments, comment.ToInt())
 	}
 
 	postAltered := struct {
@@ -68,8 +68,8 @@ func (p Post) MarshalJSON() ([]byte, error) {
 		Comments    []uint64 `json:"comments"`
 		Tags        []string `json:"tags"`
 	}{
-		Id:          p.id.Id(),
-		AuthorId:    p.AuthorId.Id(),
+		Id:          p.Id().ToInt(),
+		AuthorId:    p.AuthorId.ToInt(),
 		Timestamp:   p.Timestamp.Format(time.RFC3339),
 		Title:       p.Title,
 		Description: p.Description,

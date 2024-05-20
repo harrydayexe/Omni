@@ -40,7 +40,7 @@ func TestMarshalPostJSON(t *testing.T) {
 		Host:   "example.com",
 		Path:   "/example",
 	}
-	comments := []Comment{NewComment(commentId, authorId, timestamp, "Hello, world!", 0)}
+	comments := []snowflake.Identifier{commentId}
 	tags := []string{"tag1", "tag2"}
 
 	p := NewPost(postId, authorId, timestamp, "Hello, world!", "Lorem Ipsum Dolar", url, 10, comments, tags)
@@ -60,21 +60,10 @@ func TestMarshalPostJSON(t *testing.T) {
 func TestMarshallUserJson(t *testing.T) {
 	g := snowflake.NewSnowflakeGenerator(1)
 	postId := g.NextID()
-	authorId := g.NextID()
-	timestamp := time.Now()
-	url := url.URL{
-		Scheme: "https",
-		Host:   "example.com",
-		Path:   "/example",
-	}
-	comments := []Comment{}
-	tags := []string{}
 	userId := g.NextID()
 	username := "testuser"
-	posts := []Post{NewPost(postId, authorId, timestamp, "Hello, world!", "Lorem Ipsum Dolar", url, 10, comments, tags)}
 
-	u := NewUser(userId, username)
-	u.Posts = posts
+	u := NewUser(userId, username, []snowflake.Identifier{postId})
 
 	userJson, err := u.MarshalJSON()
 	if err != nil {

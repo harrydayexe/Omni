@@ -35,7 +35,7 @@ func ParseId(id uint64) Snowflake {
 	}
 }
 
-func (s Snowflake) Id() uint64 {
+func (s Snowflake) ToInt() uint64 {
 	return uint64((s.timestamp << (timeShift)) |
 		((uint64(s.nodeId) << nodeShift) & nodeMask) |
 		(uint64(s.sequence) & uint64(sequenceMask)))
@@ -58,7 +58,7 @@ func NewSnowflakeGenerator(nodeId uint16) *SnowflakeGenerator {
 }
 
 // NextID generates a new snowflake ID.
-func (s *SnowflakeGenerator) NextID() Identifier {
+func (s *SnowflakeGenerator) NextID() Snowflake {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -70,7 +70,7 @@ func (s *SnowflakeGenerator) getMilliSeconds() int64 {
 	return time.Now().UnixNano() / 1e6
 }
 
-func (s *SnowflakeGenerator) nextID() Identifier {
+func (s *SnowflakeGenerator) nextID() Snowflake {
 	now := uint64(s.getMilliSeconds() - epoch)
 	if now < s.lastStamp {
 		panic("time is moving backwards, current time is before the last time this method was called")

@@ -12,7 +12,7 @@ func TestFirstSnowflakeSequenceIsZero(t *testing.T) {
 	g := NewSnowflakeGenerator(1)
 	id := g.NextID()
 
-	const mask int64 = 0b1111_1111_1111
+	const mask uint64 = 0b1111_1111_1111
 	sequence := id.Id() & mask
 	if sequence != 0 {
 		t.Errorf("First snowflake sequence is not zero, got %d", sequence)
@@ -25,7 +25,7 @@ func TestSequenceIsZeroForNewTimestamp(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	id2 := g.NextID()
 
-	const mask int64 = 0b1111_1111_1111
+	const mask uint64 = 0b1111_1111_1111
 	sequence1 := id1.Id() & mask
 	sequence2 := id2.Id() & mask
 	if sequence1 != 0 {
@@ -61,7 +61,7 @@ func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
 		t.SkipNow()
 	}
 
-	const mask int64 = 0b1111_1111_1111
+	const mask uint64 = 0b1111_1111_1111
 	sequence1 := id1.Id() & mask
 	sequence2 := id2.Id() & mask
 	if math.Abs(float64(sequence1-sequence2)) != 1 {
@@ -75,7 +75,7 @@ func TestNodeIdIsCorrect(t *testing.T) {
 	g := NewSnowflakeGenerator(1)
 	id := g.NextID()
 
-	const mask int64 = 0b11_1111_1111
+	const mask uint64 = 0b11_1111_1111
 	nodeId := (id.Id() >> 12) & mask
 	if nodeId != 1 {
 		t.Errorf("Node ID is not 1, got %d", nodeId)
@@ -99,7 +99,7 @@ func TestDuplicates(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	m := make(map[int64]int)
+	m := make(map[uint64]int)
 
 	for i := 0; i < count; i++ {
 		id := <-ch
@@ -139,7 +139,7 @@ func TestSequenceReset(t *testing.T) {
 		t.SkipNow()
 	}
 
-	const mask int64 = 0b1111_1111_1111
+	const mask uint64 = 0b1111_1111_1111
 	time.Sleep(1 * time.Second)
 	id := g.NextID()
 	sequence := id.Id() & mask
