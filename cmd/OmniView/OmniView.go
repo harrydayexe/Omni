@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/harrydayexe/Omni/internal/omniview/api"
-	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	"github.com/harrydayexe/Omni/internal/templates"
 	"io"
 	"log/slog"
 	"net/http"
@@ -29,7 +29,7 @@ func run(ctx context.Context, stdout io.Writer, args []string) error {
 	logger := slog.Default()
 
 	srv := NewServer(
-		templates.New(),
+		templates.New("../../internal/templates"),
 		logger,
 	)
 	httpServer := &http.Server{

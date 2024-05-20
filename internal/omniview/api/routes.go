@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/harrydayexe/Omni/internal/omniview/middleware"
-	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/templates"
 	"log/slog"
 	"net/http"
 )

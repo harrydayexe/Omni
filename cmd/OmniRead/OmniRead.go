@@ -18,7 +18,11 @@ func main() {
 	ctx := context.Background()
 	logger := slog.Default()
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, NewUserRepo(), NewPostRepo()), os.Stdout, os.Args); err != nil {
+	ur := NewUserRepo()
+	pr := NewPostRepo(*ur)
+	cr := NewCommentRepo(*ur, *pr)
+
+	if err := cmd.Run(ctx, api.NewHandler(logger, ur, pr, cr), os.Stdout, os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
@@ -33,19 +37,19 @@ func NewUserRepo() *TestUserRepo {
 	id1 := snowflakeGenerator.NextID()
 	id2 := snowflakeGenerator.NextID()
 
-	fmt.Fprintf(os.Stdout, "user id1: %v\n", id1.Id())
-	fmt.Fprintf(os.Stdout, "user id2: %v\n", id2.Id())
+	fmt.Fprintf(os.Stdout, "user id1: %v\n", id1)
+	fmt.Fprintf(os.Stdout, "user id2: %v\n", id2)
 
 	return &TestUserRepo{
 		users: map[uint64]models.User{
-			id1.Id(): models.NewUser(id1, "Alice"),
-			id2.Id(): models.NewUser(id2, "Bob"),
+			id1.ToInt(): models.NewUser(id1, "Alice", []snowflake.Snowflake{}),
+			id2.ToInt(): models.NewUser(id2, "Bob", []snowflake.Snowflake{}),
 		},
 	}
 }
 
-func (r *TestUserRepo) Read(id snowflake.Identifier) (models.User, error) {
-	user, ok := r.users[id.Id()]
+func (r *TestUserRepo) Read(id snowflake.Snowflake) (models.User, error) {
+	user, ok := r.users[id.ToInt()]
 	if !ok {
 		return models.User{}, fmt.Errorf("user not found")
 	}
@@ -53,17 +57,17 @@ func (r *TestUserRepo) Read(id snowflake.Identifier) (models.User, error) {
 }
 
 func (r *TestUserRepo) Create(entity models.User) error {
-	r.users[entity.Id()] = entity
+	r.users[entity.Id().ToInt()] = entity
 	return nil
 }
 
 func (r *TestUserRepo) Update(entity models.User) error {
-	r.users[entity.Id()] = entity
+	r.users[entity.Id().ToInt()] = entity
 	return nil
 }
 
 func (r *TestUserRepo) Delete(entity models.User) error {
-	delete(r.users, entity.Id())
+	delete(r.users, entity.Id().ToInt())
 	return nil
 }
 
@@ -71,15 +75,14 @@ type TestPostRepo struct {
 	posts map[uint64]models.Post
 }
 
-func NewPostRepo() *TestPostRepo {
+func NewPostRepo(userRepo TestUserRepo) *TestPostRepo {
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(1)
 	id1 := snowflakeGenerator.NextID()
 	id2 := snowflakeGenerator.NextID()
 
-	fmt.Fprintf(os.Stdout, "post id1: %v\n", id1.Id())
-	fmt.Fprintf(os.Stdout, "post id2: %v\n", id2.Id())
+	fmt.Fprintf(os.Stdout, "post id1: %v\n", id1.ToInt())
+	fmt.Fprintf(os.Stdout, "post id2: %v\n", id2.ToInt())
 
-	userRepo := NewUserRepo()
 	v := make([]models.User, 0, len(userRepo.users))
 
 	for _, value := range userRepo.users {
@@ -88,15 +91,15 @@ func NewPostRepo() *TestPostRepo {
 
 	return &TestPostRepo{
 		posts: map[uint64]models.Post{
-			id1.Id(): models.NewPost(id1, v[0], time.Now(), "Title 1", "Hello, World!", url.URL{}, 20, make([]models.Comment, 0), make([]string, 0)),
-			id2.Id(): models.NewPost(id2, v[0], time.Now(), "Title 2", "Hello, World!", url.URL{}, 20, make([]models.Comment, 0), make([]string, 0)),
+			id1.ToInt(): models.NewPost(id1, v[0].Id(), time.Now(), "Title 1", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
+			id2.ToInt(): models.NewPost(id2, v[0].Id(), time.Now(), "Title 2", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
 		},
 	}
 }
 
-func (r *TestPostRepo) Read(id snowflake.Identifier) (models.Post, error) {
+func (r *TestPostRepo) Read(id snowflake.Snowflake) (models.Post, error) {
 	fmt.Fprintf(os.Stdout, "post id: %v\n", id)
-	post, ok := r.posts[id.Id()]
+	post, ok := r.posts[id.ToInt()]
 	if !ok {
 		return models.Post{}, fmt.Errorf("post not found")
 	}
@@ -104,16 +107,64 @@ func (r *TestPostRepo) Read(id snowflake.Identifier) (models.Post, error) {
 }
 
 func (r *TestPostRepo) Create(entity models.Post) error {
-	r.posts[entity.Id()] = entity
+	r.posts[entity.Id().ToInt()] = entity
 	return nil
 }
 
 func (r *TestPostRepo) Update(entity models.Post) error {
-	r.posts[entity.Id()] = entity
+	r.posts[entity.Id().ToInt()] = entity
 	return nil
 }
 
 func (r *TestPostRepo) Delete(entity models.Post) error {
-	delete(r.posts, entity.Id())
+	delete(r.posts, entity.Id().ToInt())
+	return nil
+}
+
+type TestCommentRepo struct {
+	comments map[uint64]models.Comment
+}
+
+func NewCommentRepo(userRepo TestUserRepo, postRepo TestPostRepo) TestCommentRepo {
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(1)
+	id1 := snowflakeGenerator.NextID()
+	id2 := snowflakeGenerator.NextID()
+
+	fmt.Fprintf(os.Stdout, "comment id1: %v\n", id1.ToInt())
+	fmt.Fprintf(os.Stdout, "comment id2: %v\n", id2.ToInt())
+
+	v := make([]models.User, 0, len(userRepo.users))
+	for _, value := range userRepo.users {
+		v = append(v, value)
+	}
+
+	return TestCommentRepo{
+		comments: map[uint64]models.Comment{
+			id1.ToInt(): models.NewComment(id1, v[0].Id(), time.Now(), "Hello, World!", 2),
+			id2.ToInt(): models.NewComment(id2, v[0].Id(), time.Now(), "Hello, World!", 0),
+		},
+	}
+}
+
+func (r TestCommentRepo) Read(id snowflake.Snowflake) (models.Comment, error) {
+	comment, ok := r.comments[id.ToInt()]
+	if !ok {
+		return models.Comment{}, fmt.Errorf("comment not found")
+	}
+	return comment, nil
+}
+
+func (r TestCommentRepo) Create(entity models.Comment) error {
+	r.comments[entity.Id().ToInt()] = entity
+	return nil
+}
+
+func (r TestCommentRepo) Update(entity models.Comment) error {
+	r.comments[entity.Id().ToInt()] = entity
+	return nil
+}
+
+func (r TestCommentRepo) Delete(entity models.Comment) error {
+	delete(r.comments, entity.Id().ToInt())
 	return nil
 }

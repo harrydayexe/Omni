@@ -17,18 +17,65 @@ import (
 func AddRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,
-	postUser storage.Repository[models.Post],
+	postRepo storage.Repository[models.Post],
 	userRepo storage.Repository[models.User],
+	commentRepo storage.Repository[models.Comment],
 ) {
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewSetContentTypeJson(),
 	)
 
-	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, postUser)))
+	// Get the details of a post by id
 	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, userRepo)))
+	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger)))
+	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, postRepo)))
+	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger)))
 }
 
+// route: GET /user/{id}
+// return the details of a user by it's id
+func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User]) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idString := r.PathValue("id")
+		idInt, err := strconv.ParseUint(idString, 10, 64)
+		if err != nil {
+			logger.Error("failed to parse id: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		id := snowflake.ParseId(idInt)
+
+		user, err := userRepo.Read(id)
+		if err != nil {
+			logger.Error("failed to read user: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		b, err := json.Marshal(user)
+		if err != nil {
+			logger.Error("failed to serialize user to json: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(b)
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+// route: GET /user/{id}/posts
+// return the posts of a user by their id
+func handleReadUserPosts(logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement
+	})
+}
+
+// route: GET /post{id}
+// return the details of a post by it's id
 func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
@@ -60,33 +107,10 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 	})
 }
 
-func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User]) http.Handler {
+// route: GET /post/{id}/comments
+// return the comments of a post by it's id
+func handleReadPostComments(logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idString := r.PathValue("id")
-		idInt, err := strconv.ParseUint(idString, 10, 64)
-		if err != nil {
-			logger.Error("failed to parse id: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		id := snowflake.ParseId(idInt)
-
-		user, err := userRepo.Read(id)
-		if err != nil {
-			logger.Error("failed to read user: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		b, err := json.Marshal(user)
-		if err != nil {
-			logger.Error("failed to serialize user to json: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
-		w.WriteHeader(http.StatusOK)
+		// TODO: Implement
 	})
 }
