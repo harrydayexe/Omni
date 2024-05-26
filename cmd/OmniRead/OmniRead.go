@@ -91,8 +91,8 @@ func NewPostRepo(userRepo TestUserRepo) *TestPostRepo {
 
 	return &TestPostRepo{
 		posts: map[uint64]models.Post{
-			id1.ToInt(): models.NewPost(id1, v[0].Id(), time.Now(), "Title 1", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
-			id2.ToInt(): models.NewPost(id2, v[0].Id(), time.Now(), "Title 2", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
+			id1.ToInt(): models.NewPost(id1, v[0].Id(), "Author 1", time.Now(), "Title 1", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
+			id2.ToInt(): models.NewPost(id2, v[0].Id(), "Author 1", time.Now(), "Title 2", "Hello, World!", url.URL{}, 20, make([]snowflake.Snowflake, 0), make([]string, 0)),
 		},
 	}
 }
@@ -140,8 +140,8 @@ func NewCommentRepo(userRepo TestUserRepo, postRepo TestPostRepo) TestCommentRep
 
 	return TestCommentRepo{
 		comments: map[uint64]models.Comment{
-			id1.ToInt(): models.NewComment(id1, v[0].Id(), time.Now(), "Hello, World!", 2),
-			id2.ToInt(): models.NewComment(id2, v[0].Id(), time.Now(), "Hello, World!", 0),
+			id1.ToInt(): models.NewComment(id1, v[0].Id(), "Author 1", time.Now(), "Hello, World!"),
+			id2.ToInt(): models.NewComment(id2, v[0].Id(), "Author 2", time.Now(), "Hello, World!"),
 		},
 	}
 }

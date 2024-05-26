@@ -13,7 +13,7 @@ func TestFirstSnowflakeSequenceIsZero(t *testing.T) {
 	id := g.NextID()
 
 	const mask uint64 = 0b1111_1111_1111
-	sequence := id.Id() & mask
+	sequence := id.ToInt() & mask
 	if sequence != 0 {
 		t.Errorf("First snowflake sequence is not zero, got %d", sequence)
 	}
@@ -26,8 +26,8 @@ func TestSequenceIsZeroForNewTimestamp(t *testing.T) {
 	id2 := g.NextID()
 
 	const mask uint64 = 0b1111_1111_1111
-	sequence1 := id1.Id() & mask
-	sequence2 := id2.Id() & mask
+	sequence1 := id1.ToInt() & mask
+	sequence2 := id2.ToInt() & mask
 	if sequence1 != 0 {
 		t.Errorf("First snowflake sequence is not zero, got %d", sequence1)
 	}
@@ -40,7 +40,7 @@ func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
 	g := NewSnowflakeGenerator(1)
 
 	var wg sync.WaitGroup
-	ch := make(chan Identifier, 2)
+	ch := make(chan Snowflake, 2)
 	wg.Add(2)
 	for i := 0; i < 2; i++ {
 		go func() {
@@ -54,20 +54,21 @@ func TestSecondSnowflakeSequenceIsOne(t *testing.T) {
 	id1 := <-ch
 	id2 := <-ch
 
-	if id1.Id()>>22 != id2.Id()>>22 {
+	if id1.ToInt()>>22 != id2.ToInt()>>22 {
 		fmt.Println("Timestamps do not match")
-		fmt.Printf("Id1 time: %d\n", id1.Id()>>22)
-		fmt.Printf("Id2 time: %d\n", id2.Id()>>22)
+		fmt.Printf("Id1 time: %d\n", id1.ToInt()>>22)
+		fmt.Printf("Id2 time: %d\n", id2.ToInt()>>22)
 		t.SkipNow()
 	}
 
 	const mask uint64 = 0b1111_1111_1111
-	sequence1 := id1.Id() & mask
-	sequence2 := id2.Id() & mask
-	if math.Abs(float64(sequence1-sequence2)) != 1 {
-		fmt.Printf("Id1: %d\n", id1.Id())
-		fmt.Printf("Id2: %d\n", id2.Id())
-		t.Errorf("Sequences are not 1 apart, got %d and %d", sequence1, sequence2)
+	sequence1 := id1.ToInt() & mask
+	sequence2 := id2.ToInt() & mask
+	difference := math.Abs(float64(sequence1) - float64(sequence2))
+	if difference != 1 {
+		fmt.Printf("Id1: %d\n", id1.ToInt())
+		fmt.Printf("Id2: %d\n", id2.ToInt())
+		t.Errorf("Sequences are not 1 apart, got %d and %d, with difference %f", sequence1, sequence2, difference)
 	}
 }
 
@@ -76,7 +77,7 @@ func TestNodeIdIsCorrect(t *testing.T) {
 	id := g.NextID()
 
 	const mask uint64 = 0b11_1111_1111
-	nodeId := (id.Id() >> 12) & mask
+	nodeId := (id.ToInt() >> 12) & mask
 	if nodeId != 1 {
 		t.Errorf("Node ID is not 1, got %d", nodeId)
 	}
@@ -87,7 +88,7 @@ func TestDuplicates(t *testing.T) {
 
 	const count = 10000
 	var wg sync.WaitGroup
-	ch := make(chan Identifier, count)
+	ch := make(chan Snowflake, count)
 	wg.Add(count)
 	defer close(ch)
 	// Concurrently count goroutines for snowFlake ID generation
@@ -104,13 +105,13 @@ func TestDuplicates(t *testing.T) {
 	for i := 0; i < count; i++ {
 		id := <-ch
 		// If there is a key with id in the map, it means that the generated snowflake ID is duplicated
-		_, ok := m[id.Id()]
+		_, ok := m[id.ToInt()]
 		if ok {
-			t.Errorf("repeat on index %d snowflake %s\n", i, id)
+			t.Errorf("repeat on index %d snowflake %d\n", i, id.ToInt())
 			return
 		}
 		// store id as key in map
-		m[id.Id()] = i
+		m[id.ToInt()] = i
 	}
 }
 
@@ -118,7 +119,7 @@ func TestSequenceReset(t *testing.T) {
 	g := NewSnowflakeGenerator(1)
 
 	var wg sync.WaitGroup
-	ch := make(chan Identifier, 2)
+	ch := make(chan Snowflake, 2)
 	wg.Add(2)
 	for i := 0; i < 2; i++ {
 		go func() {
@@ -132,17 +133,17 @@ func TestSequenceReset(t *testing.T) {
 	id1 := <-ch
 	id2 := <-ch
 
-	if id1.Id()>>22 != id2.Id()>>22 {
+	if id1.ToInt()>>22 != id2.ToInt()>>22 {
 		fmt.Println("Timestamps do not match")
-		fmt.Printf("Id1 time: %d\n", id1.Id()>>22)
-		fmt.Printf("Id2 time: %d\n", id2.Id()>>22)
+		fmt.Printf("Id1 time: %d\n", id1.ToInt()>>22)
+		fmt.Printf("Id2 time: %d\n", id2.ToInt()>>22)
 		t.SkipNow()
 	}
 
 	const mask uint64 = 0b1111_1111_1111
 	time.Sleep(1 * time.Second)
 	id := g.NextID()
-	sequence := id.Id() & mask
+	sequence := id.ToInt() & mask
 	if sequence != 0 {
 		t.Errorf("Sequence is not zero, got %d", sequence)
 	}

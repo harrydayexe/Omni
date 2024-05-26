@@ -15,14 +15,14 @@ func TestMarshalCommentJSON(t *testing.T) {
 	authorId := g.NextID()
 	timestamp := time.Now()
 
-	c := NewComment(commentId, authorId, timestamp, "Hello, world!", 0)
+	c := NewComment(commentId, authorId, "Test Name", timestamp, "Hello, world!")
 
 	commentJson, err := c.MarshalJSON()
 	if err != nil {
 		t.Errorf("Failed to marshal comment to json: %v", err)
 	}
 
-	expected := fmt.Sprintf(`{"id":%d,"authorId":%d,"timestamp":"%s","content":"Hello, world!","likeCount":0}`, commentId.Id(), authorId.Id(), timestamp.Format(time.RFC3339))
+	expected := fmt.Sprintf(`{"id":%d,"authorId":%d,"authorName":"Test Name","timestamp":"%s","content":"Hello, world!"}`, commentId.ToInt(), authorId.ToInt(), timestamp.Format(time.RFC3339))
 
 	if string(commentJson) != expected {
 		t.Errorf("Expected %s, got %s", expected, string(commentJson))
@@ -40,17 +40,17 @@ func TestMarshalPostJSON(t *testing.T) {
 		Host:   "example.com",
 		Path:   "/example",
 	}
-	comments := []snowflake.Identifier{commentId}
+	comments := []snowflake.Snowflake{commentId}
 	tags := []string{"tag1", "tag2"}
 
-	p := NewPost(postId, authorId, timestamp, "Hello, world!", "Lorem Ipsum Dolar", url, 10, comments, tags)
+	p := NewPost(postId, authorId, "Test Name", timestamp, "Hello, world!", "Lorem Ipsum Dolar", url, 10, comments, tags)
 
 	postJson, err := p.MarshalJSON()
 	if err != nil {
 		t.Errorf("Failed to marshal post to json: %v", err)
 	}
 
-	expected := fmt.Sprintf(`{"id":%d,"authorId":%d,"timestamp":"%s","title":"Hello, world!","description":"Lorem Ipsum Dolar","contentFileUrl":"https://example.com/example","likeCount":10,"comments":[%d],"tags":["tag1","tag2"]}`, postId.Id(), authorId.Id(), timestamp.Format(time.RFC3339), commentId.Id())
+	expected := fmt.Sprintf(`{"id":%d,"authorId":%d,"authorName":"Test Name","timestamp":"%s","title":"Hello, world!","description":"Lorem Ipsum Dolar","contentFileUrl":"https://example.com/example","likeCount":10,"comments":[%d],"tags":["tag1","tag2"]}`, postId.ToInt(), authorId.ToInt(), timestamp.Format(time.RFC3339), commentId.ToInt())
 
 	if string(postJson) != expected {
 		t.Errorf("Expected %s, got %s", expected, string(postJson))
@@ -63,14 +63,14 @@ func TestMarshallUserJson(t *testing.T) {
 	userId := g.NextID()
 	username := "testuser"
 
-	u := NewUser(userId, username, []snowflake.Identifier{postId})
+	u := NewUser(userId, username, []snowflake.Snowflake{postId})
 
 	userJson, err := u.MarshalJSON()
 	if err != nil {
 		t.Errorf("Failed to marshal user to json: %v", err)
 	}
 
-	expected := fmt.Sprintf(`{"id":%d,"username":"testuser","posts":[%d]}`, userId.Id(), postId.Id())
+	expected := fmt.Sprintf(`{"id":%d,"username":"testuser","posts":[%d]}`, userId.ToInt(), postId.ToInt())
 
 	if string(userJson) != expected {
 		t.Errorf("Expected %s, got %s", expected, string(userJson))

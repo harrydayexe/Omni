@@ -12,6 +12,7 @@ import (
 type Post struct {
 	id          snowflake.Snowflake   // ID is a unique identifier for the post.
 	AuthorId    snowflake.Snowflake   // AuthorId is the id of the user who wrote the post.
+	AuthorName  string                // AuthorName is the name of the user who wrote the post.
 	Timestamp   time.Time             // Timestamp is the time the post was created.
 	Title       string                // Title is the title of the post.
 	Description string                // Description is a short description of the post.
@@ -25,6 +26,7 @@ type Post struct {
 func NewPost(
 	id snowflake.Snowflake,
 	authorId snowflake.Snowflake,
+	authorName string,
 	timestamp time.Time,
 	title string,
 	description string,
@@ -34,10 +36,12 @@ func NewPost(
 	tags []string,
 ) Post {
 	return Post{
-		id:          id,
-		AuthorId:    authorId,
-		Timestamp:   timestamp,
-		Title:       title,
+		id:         id,
+		AuthorId:   authorId,
+		AuthorName: authorName,
+		Timestamp:  timestamp,
+		Title:      title,
+
 		Description: description,
 		ContentFile: contentFile,
 		LikeCount:   likeCount,
@@ -60,6 +64,7 @@ func (p Post) MarshalJSON() ([]byte, error) {
 	postAltered := struct {
 		Id          uint64   `json:"id"`
 		AuthorId    uint64   `json:"authorId"`
+		AuthorName  string   `json:"authorName"`
 		Timestamp   string   `json:"timestamp"`
 		Title       string   `json:"title"`
 		Description string   `json:"description"`
@@ -70,6 +75,7 @@ func (p Post) MarshalJSON() ([]byte, error) {
 	}{
 		Id:          p.Id().ToInt(),
 		AuthorId:    p.AuthorId.ToInt(),
+		AuthorName:  p.AuthorName,
 		Timestamp:   p.Timestamp.Format(time.RFC3339),
 		Title:       p.Title,
 		Description: p.Description,
