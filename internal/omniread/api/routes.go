@@ -38,7 +38,7 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 		idString := r.PathValue("id")
 		idInt, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			logger.Error("failed to parse id: %v", err)
+			logger.ErrorContext(r.Context(), "failed to parse id", slog.Any("error", err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -47,7 +47,7 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 		user, err := userRepo.Read(r.Context(), id)
 		if err != nil {
-			logger.Error("failed to read user: %v", err)
+			logger.ErrorContext(r.Context(), "failed to read user", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -59,7 +59,7 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 		b, err := json.Marshal(user)
 		if err != nil {
-			logger.Error("failed to serialize user to json: %v", err)
+			logger.ErrorContext(r.Context(), "failed to serialize user to json", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -75,7 +75,7 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 		idString := r.PathValue("id")
 		idInt, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			logger.Error("failed to parse id: %v", err)
+			logger.ErrorContext(r.Context(), "failed to parse id", slog.Any("error", err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -84,20 +84,20 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 
 		post, err := postRepo.Read(r.Context(), id)
 		if err != nil {
-			logger.Error("failed to read post: %v", err)
+			logger.ErrorContext(r.Context(), "failed to read post", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if post == nil {
-			logger.Error("post not found")
+			logger.ErrorContext(r.Context(), "post not found", slog.Any("error", err))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		b, err := json.Marshal(post)
 		if err != nil {
-			logger.Error("failed to serialize post to json: %v", err)
+			logger.ErrorContext(r.Context(), "failed to serialize post to json", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
