@@ -48,12 +48,12 @@ func NewUserRepo() *TestUserRepo {
 	}
 }
 
-func (r *TestUserRepo) Read(id snowflake.Snowflake) (models.User, error) {
+func (r *TestUserRepo) Read(id snowflake.Snowflake) (*models.User, error) {
 	user, ok := r.users[id.ToInt()]
 	if !ok {
-		return models.User{}, fmt.Errorf("user not found")
+		return nil, nil
 	}
-	return user, nil
+	return &user, nil
 }
 
 func (r *TestUserRepo) Create(entity models.User) error {
@@ -97,13 +97,13 @@ func NewPostRepo(userRepo TestUserRepo) *TestPostRepo {
 	}
 }
 
-func (r *TestPostRepo) Read(id snowflake.Snowflake) (models.Post, error) {
+func (r *TestPostRepo) Read(id snowflake.Snowflake) (*models.Post, error) {
 	fmt.Fprintf(os.Stdout, "post id: %v\n", id)
 	post, ok := r.posts[id.ToInt()]
 	if !ok {
-		return models.Post{}, fmt.Errorf("post not found")
+		return nil, nil
 	}
-	return post, nil
+	return &post, nil
 }
 
 func (r *TestPostRepo) Create(entity models.Post) error {
@@ -146,12 +146,12 @@ func NewCommentRepo(userRepo TestUserRepo, postRepo TestPostRepo) TestCommentRep
 	}
 }
 
-func (r TestCommentRepo) Read(id snowflake.Snowflake) (models.Comment, error) {
+func (r TestCommentRepo) Read(id snowflake.Snowflake) (*models.Comment, error) {
 	comment, ok := r.comments[id.ToInt()]
 	if !ok {
-		return models.Comment{}, fmt.Errorf("comment not found")
+		return nil, nil
 	}
-	return comment, nil
+	return &comment, nil
 }
 
 func (r TestCommentRepo) Create(entity models.Comment) error {

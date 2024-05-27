@@ -12,7 +12,7 @@ type Repository[T snowflake.Identifier] interface {
 	// Read retrieves an entity from the database.
 	// The returned error is nil if the operation is successful, otherwise it
 	// contains the error that occurred.
-	Read(id snowflake.Snowflake) (T, error)
+	Read(id snowflake.Snowflake) (*T, error)
 
 	// Create adds entity to the database.
 	// The returned error is nil if the operation is successful, otherwise it

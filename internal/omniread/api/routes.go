@@ -28,9 +28,7 @@ func AddRoutes(
 
 	// Get the details of a post by id
 	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, userRepo)))
-	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger)))
 	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, postRepo)))
-	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger)))
 }
 
 // route: GET /user/{id}
@@ -54,6 +52,11 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 			return
 		}
 
+		if user == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		b, err := json.Marshal(user)
 		if err != nil {
 			logger.Error("failed to serialize user to json: %v", err)
@@ -62,15 +65,6 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 		}
 
 		w.Write(b)
-		w.WriteHeader(http.StatusOK)
-	})
-}
-
-// route: GET /user/{id}/posts
-// return the posts of a user by their id
-func handleReadUserPosts(logger *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement
 	})
 }
 
@@ -95,6 +89,12 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 			return
 		}
 
+		if post == nil {
+			logger.Error("post not found")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		b, err := json.Marshal(post)
 		if err != nil {
 			logger.Error("failed to serialize post to json: %v", err)
@@ -103,14 +103,5 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 		}
 
 		w.Write(b)
-		w.WriteHeader(http.StatusOK)
-	})
-}
-
-// route: GET /post/{id}/comments
-// return the comments of a post by it's id
-func handleReadPostComments(logger *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement
 	})
 }
