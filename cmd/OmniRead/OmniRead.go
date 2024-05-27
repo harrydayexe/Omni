@@ -48,7 +48,7 @@ func NewUserRepo() *TestUserRepo {
 	}
 }
 
-func (r *TestUserRepo) Read(id snowflake.Snowflake) (*models.User, error) {
+func (r *TestUserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
 	user, ok := r.users[id.ToInt()]
 	if !ok {
 		return nil, nil
@@ -56,17 +56,17 @@ func (r *TestUserRepo) Read(id snowflake.Snowflake) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *TestUserRepo) Create(entity models.User) error {
+func (r *TestUserRepo) Create(ctx context.Context, entity models.User) error {
 	r.users[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r *TestUserRepo) Update(entity models.User) error {
+func (r *TestUserRepo) Update(ctx context.Context, entity models.User) error {
 	r.users[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r *TestUserRepo) Delete(entity models.User) error {
+func (r *TestUserRepo) Delete(ctx context.Context, entity models.User) error {
 	delete(r.users, entity.Id().ToInt())
 	return nil
 }
@@ -97,8 +97,7 @@ func NewPostRepo(userRepo TestUserRepo) *TestPostRepo {
 	}
 }
 
-func (r *TestPostRepo) Read(id snowflake.Snowflake) (*models.Post, error) {
-	fmt.Fprintf(os.Stdout, "post id: %v\n", id)
+func (r *TestPostRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
 	post, ok := r.posts[id.ToInt()]
 	if !ok {
 		return nil, nil
@@ -106,17 +105,17 @@ func (r *TestPostRepo) Read(id snowflake.Snowflake) (*models.Post, error) {
 	return &post, nil
 }
 
-func (r *TestPostRepo) Create(entity models.Post) error {
+func (r *TestPostRepo) Create(ctx context.Context, entity models.Post) error {
 	r.posts[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r *TestPostRepo) Update(entity models.Post) error {
+func (r *TestPostRepo) Update(ctx context.Context, entity models.Post) error {
 	r.posts[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r *TestPostRepo) Delete(entity models.Post) error {
+func (r *TestPostRepo) Delete(ctx context.Context, entity models.Post) error {
 	delete(r.posts, entity.Id().ToInt())
 	return nil
 }
@@ -146,7 +145,7 @@ func NewCommentRepo(userRepo TestUserRepo, postRepo TestPostRepo) TestCommentRep
 	}
 }
 
-func (r TestCommentRepo) Read(id snowflake.Snowflake) (*models.Comment, error) {
+func (r TestCommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Comment, error) {
 	comment, ok := r.comments[id.ToInt()]
 	if !ok {
 		return nil, nil
@@ -154,17 +153,17 @@ func (r TestCommentRepo) Read(id snowflake.Snowflake) (*models.Comment, error) {
 	return &comment, nil
 }
 
-func (r TestCommentRepo) Create(entity models.Comment) error {
+func (r TestCommentRepo) Create(ctx context.Context, entity models.Comment) error {
 	r.comments[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r TestCommentRepo) Update(entity models.Comment) error {
+func (r TestCommentRepo) Update(ctx context.Context, entity models.Comment) error {
 	r.comments[entity.Id().ToInt()] = entity
 	return nil
 }
 
-func (r TestCommentRepo) Delete(entity models.Comment) error {
+func (r TestCommentRepo) Delete(ctx context.Context, entity models.Comment) error {
 	delete(r.comments, entity.Id().ToInt())
 	return nil
 }

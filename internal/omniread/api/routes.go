@@ -45,7 +45,7 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 		id := snowflake.ParseId(idInt)
 
-		user, err := userRepo.Read(id)
+		user, err := userRepo.Read(r.Context(), id)
 		if err != nil {
 			logger.Error("failed to read user: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -82,7 +82,7 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 
 		id := snowflake.ParseId(idInt)
 
-		post, err := postRepo.Read(id)
+		post, err := postRepo.Read(r.Context(), id)
 		if err != nil {
 			logger.Error("failed to read post: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
