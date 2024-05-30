@@ -28,7 +28,7 @@ func (u User) Id() snowflake.Snowflake {
 }
 
 func (u User) MarshalJSON() ([]byte, error) {
-	var posts []uint64
+	var posts = []uint64{}
 	for _, post := range u.Posts {
 		posts = append(posts, post.ToInt())
 	}

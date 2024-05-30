@@ -30,8 +30,7 @@ type Repository[T snowflake.Identifier] interface {
 	Update(ctx context.Context, entity T) error
 
 	// Delete removes an entry from the database.
-	// It matches based on the Id() of entity.
 	// The returned error is nil if the operation is successful, otherwise it
 	// contains the error that occurred.
-	Delete(ctx context.Context, entity T) error
+	Delete(ctx context.Context, id snowflake.Snowflake) error
 }
