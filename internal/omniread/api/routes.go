@@ -36,9 +36,10 @@ func AddRoutes(
 func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
+		logger.InfoContext(r.Context(), "read user GET request received", slog.String("id", idString))
 		idInt, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -47,12 +48,13 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 		user, err := userRepo.Read(r.Context(), id)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to read user", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "failed to read user from db", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if user == nil {
+			logger.DebugContext(r.Context(), "user not found", slog.Any("id", id))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -73,9 +75,10 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
+		logger.InfoContext(r.Context(), "read post GET request received", slog.String("id", idString))
 		idInt, err := strconv.ParseUint(idString, 10, 64)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -90,7 +93,7 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 		}
 
 		if post == nil {
-			logger.ErrorContext(r.Context(), "post not found", slog.Any("error", err))
+			logger.DebugContext(r.Context(), "post not found in db", slog.Any("id", id))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
