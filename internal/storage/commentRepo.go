@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 
 	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -11,12 +12,16 @@ import (
 // CommentRepo is an implementation of the Repository interface focused on
 // providing access to the Comment table in the database.
 type CommentRepo struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *slog.Logger
 }
 
 // NewCommentRepo creates a new CommentRepo instance.
-func NewCommentRepo(db *sql.DB) *CommentRepo {
-	return &CommentRepo{db: db}
+func NewCommentRepo(db *sql.DB, logger *slog.Logger) *CommentRepo {
+	return &CommentRepo{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *CommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Comment, error) {

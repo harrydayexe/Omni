@@ -16,7 +16,7 @@ CREATE TABLE Posts
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Comments (
+CREATE TABLE Unknown (
     id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -29,6 +29,6 @@ CREATE TABLE Comments (
 
 INSERT INTO Users (id, username) VALUES (1796290045997481984, 'johndoe');
 
-INSERT INTO Posts (id, user_id, created_at, tagline, markdown_url) VALUES  (1796301682498338816, 1796290045997481984, "2024-04-04 00:00:00", "Example TagLine", "https://example.com/exampleid");
+INSERT INTO Posts (id, user_id, created_at, tagline, markdown_url) VALUES (1796301682498338816, 1796290045997481984, "2024-04-04 00:00:00", "Example TagLine", "https://example.com/exampleid");
 
-INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (1796301682498338817, 1796290045997481984, "Example Comment", "2024-04-04 00:00:00"
+INSERT INTO Unknown (id, post_id, user_id, content, created_at) VALUES (1796301682498338817, 1796301682498338816, 1796290045997481984, "Example Comment", "2024-04-04 00:00:00");
