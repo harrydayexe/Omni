@@ -18,10 +18,17 @@ import (
 
 func main() {
 	ctx := context.Background()
-	logger := slog.Default()
-
+	verbose := flag.Bool("v", false, "verbose")
 	fptr := flag.String("config", "config/OmniRead/dev.yml", "file path to read the config from")
 	flag.Parse()
+
+	var logLevel slog.Leveler
+	if *verbose {
+		logLevel = slog.LevelDebug
+	} else {
+		logLevel = slog.LevelInfo
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	cfg, err := config.NewConfig(*fptr)
 	if err != nil {
@@ -35,7 +42,7 @@ func main() {
 		panic(err)
 	}
 
-	ur := storage.NewUserRepo(db)
+	ur := storage.NewUserRepo(db, logger)
 	pr := storage.NewPostRepo(db)
 	cr := storage.NewCommentRepo(db)
 
