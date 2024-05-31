@@ -13,7 +13,7 @@ CREATE TABLE Posts
     tagline VARCHAR(100) NOT NULL,
     markdown_url VARCHAR(100) NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES Users(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 INSERT INTO Users (id, username) VALUES (1796290045997481984, 'johndoe');
