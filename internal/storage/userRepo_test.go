@@ -114,7 +114,7 @@ func TestCreateUser(t *testing.T) {
 
 	readUser, err := userRepo.Read(ctx, newUser.Id())
 	if err != nil || readUser == nil {
-		t.Fatalf("failed to read user: %s", err)
+		t.Fatalf("failed to read user. error: %s, user: %v", err, readUser)
 	}
 
 	if readUser.Id() != newUser.Id() {
