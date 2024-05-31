@@ -35,7 +35,7 @@ func (r *UserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Us
 	switch {
 	case err == sql.ErrNoRows:
 		r.logger.DebugContext(ctx, "Could not find user", slog.Int64("id", int64(id.ToInt())))
-		return nil, NewCouldNotFindEntityError("User", id)
+		return nil, nil
 	case err != nil:
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when reading the user", slog.Any("error", err))
 		return nil, NewDatabaseError("an unknown database error occurred when reading the user", err)
