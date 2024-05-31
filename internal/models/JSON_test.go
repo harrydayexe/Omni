@@ -76,3 +76,22 @@ func TestMarshallUserJson(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expected, string(userJson))
 	}
 }
+
+func TestMarshallUserJsonEmptyPosts(t *testing.T) {
+	g := snowflake.NewSnowflakeGenerator(1)
+	userId := g.NextID()
+	username := "testuser"
+
+	u := NewUser(userId, username, []snowflake.Snowflake{})
+
+	userJson, err := u.MarshalJSON()
+	if err != nil {
+		t.Errorf("Failed to marshal user to json: %v", err)
+	}
+
+	expected := fmt.Sprintf(`{"id":%d,"username":"testuser","posts":[]}`, userId.ToInt())
+
+	if string(userJson) != expected {
+		t.Errorf("Expected %s, got %s", expected, string(userJson))
+	}
+}
