@@ -154,7 +154,7 @@ func TestUpdateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	ctx := context.Background()
 
-	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-no-posts.sql")
+	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-with-posts.sql")
 	defer cleanUp()
 
 	id := snowflake.ParseId(1796290045997481984)
