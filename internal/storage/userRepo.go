@@ -113,6 +113,21 @@ func (r *UserRepo) Update(ctx context.Context, user models.User) error {
 }
 
 func (r *UserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	// TODO: Implement this method
+	r.logger.DebugContext(ctx, "Deleting user from database", slog.Int("id", int(id.ToInt())))
+
+	result, err := r.db.ExecContext(ctx, "DELETE FROM Users WHERE id = ?", id.ToInt())
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when deleting the user", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when deleting the user", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when deleting the user", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when deleting the user", err)
+	}
+	if rows != 1 {
+		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
+		return NewNotFoundError(id, nil)
+	}
 	return nil
 }
