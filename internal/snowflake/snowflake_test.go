@@ -148,3 +148,31 @@ func TestSequenceReset(t *testing.T) {
 		t.Errorf("Sequence is not zero, got %d", sequence)
 	}
 }
+
+func TestParseId(t *testing.T) {
+	g := NewSnowflakeGenerator(1)
+	id := g.NextID()
+
+	parsedId := ParseId(id.ToInt())
+	if parsedId != id {
+		t.Errorf("Parsed ID is not equal to original ID, got %v; expected %v", parsedId, id)
+	}
+}
+
+func TestNodeMaxError(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	NewSnowflakeGenerator(math.MaxUint16)
+}
+
+// The aim of this benchmark is to see how quickly we can generate new ids
+// This is because there are only so many new IDs available in a single millisecond
+func BenchmarkNextId(b *testing.B) {
+	g := NewSnowflakeGenerator(1)
+	for i := 0; i < b.N; i++ {
+		g.NextID()
+	}
+}

@@ -43,6 +43,10 @@ func (r *UserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Us
 
 	r.logger.DebugContext(ctx, "Querying post ids")
 	rows, err := r.db.QueryContext(ctx, `SELECT id FROM Posts WHERE user_id = ?;`, id.ToInt())
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when querying user post ids", slog.Any("error", err))
+		return nil, NewDatabaseError("an unknown database error occurred when reading user post ids", err)
+	}
 	defer rows.Close()
 
 	postIDs := make([]snowflake.Snowflake, 0)
@@ -50,6 +54,8 @@ func (r *UserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Us
 		r.logger.DebugContext(ctx, "Reading next row from results")
 		var postID int64
 		err := rows.Scan(&postID)
+		// I don't think this can ever actually occur. As far as I can see online .Scan() only ever throws a ErrNoRows
+		// And this can't occur here because rows.Next() would return false if there are no more rows
 		if err != nil {
 			r.logger.ErrorContext(ctx, "An unknown database error occurred when indexing through post ids", slog.Any("error", err))
 			return nil, NewDatabaseError("an unknown database error occurred when reading user post ids", err)

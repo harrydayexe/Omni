@@ -170,3 +170,33 @@ func TestDeleteUser(t *testing.T) {
 		t.Fatalf("expected user to be nil, got %v", readUser)
 	}
 }
+
+func TestUnknownUserTableShouldThrowError(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-bad-user-table.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481984)
+
+	_, err := userRepo.Read(ctx, id)
+
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+}
+
+func TestUnknownPostTableShouldThrowError(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-bad-post-table.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481984)
+
+	_, err := userRepo.Read(ctx, id)
+
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+}
