@@ -73,7 +73,22 @@ func (r *UserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Us
 }
 
 func (r *UserRepo) Create(ctx context.Context, user models.User) error {
-	// TODO: Implement this method
+	r.logger.DebugContext(ctx, "Creating user in database", slog.Any("user", user))
+
+	result, err := r.db.ExecContext(ctx, "INSERT INTO Users (id, username) VALUES (?, ?)", user.Id().ToInt(), user.Username)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the user", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when creating the user", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the user", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when creating the user", err)
+	}
+	if rows != 1 {
+		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
+		return NewEntityAlreadyExistsError(user.Id(), nil)
+	}
 	return nil
 }
 

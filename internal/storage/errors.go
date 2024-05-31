@@ -42,3 +42,22 @@ func NewNotFoundError(id snowflake.Snowflake, err error) error {
 		err: err,
 	}
 }
+
+// EntityAlreadyExistsError is an error type that is returned when a query returns no rows.
+// err is the underlying error
+type EntityAlreadyExistsError struct {
+	id  snowflake.Snowflake
+	err error
+}
+
+func (e *EntityAlreadyExistsError) Error() string {
+	return fmt.Sprintf("could not find entity with id: %d, error: %s", e.id.ToInt(), e.err.Error())
+}
+
+// NewEntityAlreadyExistsError creates a new EntityAlreadyExistsError instance.
+func NewEntityAlreadyExistsError(id snowflake.Snowflake, err error) error {
+	return &NotFoundError{
+		id:  id,
+		err: err,
+	}
+}
