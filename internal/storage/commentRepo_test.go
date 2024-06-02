@@ -37,7 +37,7 @@ func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataF
 		}
 	}
 
-	connURL := mySqlContainer.MustConnectionString(ctx)
+	connURL := mySqlContainer.MustConnectionString(ctx, "parseTime=true")
 	db, err := sql.Open("mysql", connURL)
 	if err != nil {
 		t.Fatalf("failed to open database: %s", err)
@@ -61,6 +61,7 @@ func TestReadComment(t *testing.T) {
 
 	expected := models.NewComment(
 		id,
+		snowflake.ParseId(1796290045997481985),
 		snowflake.ParseId(1796290045997481984),
 		"johndoe",
 		time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
@@ -79,7 +80,7 @@ func TestCreateComment(t *testing.T) {
 
 	idGen := snowflake.NewSnowflakeGenerator(0)
 	commentId := idGen.NextID()
-	newComment := models.NewComment(commentId, snowflake.ParseId(1796290045997481984), "johndoe", time.Now(), "Example Comment")
+	newComment := models.NewComment(commentId, snowflake.ParseId(1796290045997481985), snowflake.ParseId(1796290045997481984), "johndoe", time.Now(), "Example Comment")
 
 	commentRepo.Create(ctx, newComment)
 
@@ -100,8 +101,9 @@ func TestUpdateComment(t *testing.T) {
 	defer cleanUp()
 
 	id := snowflake.ParseId(1796301682498338817)
+	postId := snowflake.ParseId(1796290045997481985)
 	authorId := snowflake.ParseId(1796290045997481984)
-	newComment := models.NewComment(id, authorId, "johndoe", time.Now(), "Updated Comment")
+	newComment := models.NewComment(id, postId, authorId, "johndoe", time.Now(), "Updated Comment")
 
 	commentRepo.Update(ctx, newComment)
 
