@@ -49,12 +49,27 @@ func (r *CommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models
 	return &user, nil
 }
 
-func (r *CommentRepo) Create(ctx context.Context, Comment models.Comment) error {
-	// TODO: Implement this method
+func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error {
+	r.logger.DebugContext(ctx, "Creating comment in database", slog.Any("comment", comment))
+
+	result, err := r.db.ExecContext(ctx, "INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?);", comment.Id().ToInt(), comment.PostId.ToInt(), comment.AuthorId.ToInt(), comment.Content, comment.Timestamp)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when creating the comment", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when creating the comment", err)
+	}
+	if rows != 1 {
+		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
+		return NewEntityAlreadyExistsError(comment.Id(), nil)
+	}
 	return nil
 }
 
-func (r *CommentRepo) Update(ctx context.Context, Comment models.Comment) error {
+func (r *CommentRepo) Update(ctx context.Context, comment models.Comment) error {
 	// TODO: Implement this method
 	return nil
 }

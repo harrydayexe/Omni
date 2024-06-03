@@ -80,11 +80,12 @@ func TestCreateComment(t *testing.T) {
 
 	idGen := snowflake.NewSnowflakeGenerator(0)
 	commentId := idGen.NextID()
-	newComment := models.NewComment(commentId, snowflake.ParseId(1796290045997481985), snowflake.ParseId(1796290045997481984), "johndoe", time.Now(), "Example Comment")
+	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
+	newComment := models.NewComment(commentId, snowflake.ParseId(1796290045997481985), snowflake.ParseId(1796290045997481984), "johndoe", time, "Example Comment")
 
 	commentRepo.Create(ctx, newComment)
 
-	readComment, err := commentRepo.Read(ctx, newComment.Id())
+	readComment, err := commentRepo.Read(ctx, commentId)
 	if err != nil || readComment == nil {
 		t.Fatalf("failed to read comment. error: %s, comment: %v", err, readComment)
 	}

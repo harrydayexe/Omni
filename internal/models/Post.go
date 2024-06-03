@@ -39,7 +39,7 @@ func NewPost(
 		id:         id,
 		AuthorId:   authorId,
 		AuthorName: authorName,
-		Timestamp:  timestamp,
+		Timestamp:  timestamp.UTC(),
 		Title:      title,
 
 		Description: description,
