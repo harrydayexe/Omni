@@ -17,7 +17,6 @@ type Post struct {
 	Title       string                // Title is the title of the post.
 	Description string                // Description is a short description of the post.
 	ContentFile url.URL               // ContentFile is the URL of the markdown file containing the post's content.
-	LikeCount   int                   // LikeCount is the number of likes the post has.
 	Comments    []snowflake.Snowflake // Comments is a list of comment id's on the post.
 	Tags        []string              // Tags is a list of tags associated with the post.
 }
@@ -31,7 +30,6 @@ func NewPost(
 	title string,
 	description string,
 	contentFile url.URL,
-	likeCount int,
 	comments []snowflake.Snowflake,
 	tags []string,
 ) Post {
@@ -44,7 +42,6 @@ func NewPost(
 
 		Description: description,
 		ContentFile: contentFile,
-		LikeCount:   likeCount,
 		Comments:    comments,
 		Tags:        tags,
 	}
@@ -69,7 +66,6 @@ func (p Post) MarshalJSON() ([]byte, error) {
 		Title       string   `json:"title"`
 		Description string   `json:"description"`
 		ContentFile string   `json:"contentFileUrl"`
-		LikeCount   int      `json:"likeCount"`
 		Comments    []uint64 `json:"comments"`
 		Tags        []string `json:"tags"`
 	}{
@@ -80,7 +76,6 @@ func (p Post) MarshalJSON() ([]byte, error) {
 		Title:       p.Title,
 		Description: p.Description,
 		ContentFile: p.ContentFile.String(),
-		LikeCount:   p.LikeCount,
 		Comments:    comments,
 		Tags:        p.Tags,
 	}
