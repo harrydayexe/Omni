@@ -90,6 +90,21 @@ func (r *CommentRepo) Update(ctx context.Context, comment models.Comment) error 
 }
 
 func (r *CommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	// TODO: Implement this method
+	r.logger.DebugContext(ctx, "Deleting comment from database", slog.Int("id", int(id.ToInt())))
+
+	result, err := r.db.ExecContext(ctx, "DELETE FROM Comments WHERE id = ?", id.ToInt())
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when deleting the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when deleting the comment", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when deleting the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when deleting the comment", err)
+	}
+	if rows != 1 {
+		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
+		return NewNotFoundError(id, nil)
+	}
 	return nil
 }
