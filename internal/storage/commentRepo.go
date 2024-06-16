@@ -70,7 +70,22 @@ func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error 
 }
 
 func (r *CommentRepo) Update(ctx context.Context, comment models.Comment) error {
-	// TODO: Implement this method
+	r.logger.DebugContext(ctx, "Updating comment in database", slog.Any("comment", comment))
+
+	result, err := r.db.ExecContext(ctx, "UPDATE Comments SET post_id=?, user_id=?, content=?, created_at=? WHERE id=?;", comment.PostId.ToInt(), comment.AuthorId.ToInt(), comment.Content, comment.Timestamp, comment.Id().ToInt())
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when updating the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when updating the comment", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when updating the comment", slog.Any("error", err))
+		return NewDatabaseError("an unknown database error occurred when updating the comment", err)
+	}
+	if rows != 1 {
+		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
+		return NewNotFoundError(comment.Id(), nil)
+	}
 	return nil
 }
 

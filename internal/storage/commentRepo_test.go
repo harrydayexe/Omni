@@ -104,7 +104,8 @@ func TestUpdateComment(t *testing.T) {
 	id := snowflake.ParseId(1796301682498338817)
 	postId := snowflake.ParseId(1796290045997481985)
 	authorId := snowflake.ParseId(1796290045997481984)
-	newComment := models.NewComment(id, postId, authorId, "johndoe", time.Now(), "Updated Comment")
+	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
+	newComment := models.NewComment(id, postId, authorId, "johndoe", time, "Updated Comment")
 
 	commentRepo.Update(ctx, newComment)
 

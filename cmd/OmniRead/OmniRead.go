@@ -44,7 +44,7 @@ func main() {
 
 	ur := storage.NewUserRepo(db, logger)
 	pr := storage.NewPostRepo(db)
-	cr := storage.NewCommentRepo(db)
+	cr := storage.NewCommentRepo(db, logger)
 
 	if err := cmd.Run(ctx, api.NewHandler(logger, ur, pr, cr), os.Stdout, os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
