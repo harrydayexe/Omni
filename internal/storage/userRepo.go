@@ -107,7 +107,7 @@ func (r *UserRepo) Update(ctx context.Context, user models.User) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(user.Id(), nil)
+		return NewNotFoundError(User, user.Id())
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (r *UserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(id, nil)
+		return NewNotFoundError(User, id)
 	}
 	return nil
 }

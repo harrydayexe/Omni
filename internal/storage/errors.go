@@ -6,6 +6,16 @@ import (
 	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
+type EntityType int
+
+const (
+	User EntityType = iota
+	Post
+	Comment
+)
+
+var entityTypeNameMap = map[EntityType]string{User: "User", Post: "Post", Comment: "Comment"}
+
 // DatabaseError is a general error type that is returned for unknown database
 // errors.
 // message is the error message
@@ -24,22 +34,21 @@ func NewDatabaseError(message string, err error) error {
 	return &DatabaseError{message: message, err: err}
 }
 
-// NotFoundError is an error type that is returned when a query returns no rows.
-// err is the underlying error
+// NotFoundError is an error type that is returned when an entity cannot be found
 type NotFoundError struct {
-	id  snowflake.Snowflake
-	err error
+	id     snowflake.Snowflake
+	entity EntityType
 }
 
 func (e *NotFoundError) Error() string {
-	return fmt.Sprintf("could not find entity with id: %d, error: %s", e.id.ToInt(), e.err.Error())
+	return fmt.Sprintf("could not find %s with id: %d", entityTypeNameMap[e.entity], e.id.ToInt())
 }
 
 // NewNotFoundError creates a new NotFoundError instance.
-func NewNotFoundError(id snowflake.Snowflake, err error) error {
+func NewNotFoundError(entity EntityType, id snowflake.Snowflake) error {
 	return &NotFoundError{
-		id:  id,
-		err: err,
+		id:     id,
+		entity: entity,
 	}
 }
 
@@ -59,16 +68,6 @@ func NewEntityAlreadyExistsError(id snowflake.Snowflake) error {
 		id: id,
 	}
 }
-
-type EntityType int
-
-const (
-	User EntityType = iota
-	Post
-	Comment
-)
-
-var entityTypeNameMap = map[EntityType]string{User: "User", Post: "Post", Comment: "Comment"}
 
 // RequiredEntityDoesNotExistError is an error type that is returned when there is something
 // wrong with the data of a request. For example trying to create a comment from

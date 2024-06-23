@@ -53,9 +53,12 @@ func (r *CommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models
 func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error {
 	r.logger.DebugContext(ctx, "Creating comment in database", slog.Any("comment", comment))
 
-	err := r.checkCommentWithIdDoesNotExist(ctx, comment.Id())
+	res, err := r.checkCommentWithIdDoesExist(ctx, comment.Id())
 	if err != nil {
 		return err
+	}
+	if res == true {
+		return NewEntityAlreadyExistsError(comment.Id())
 	}
 
 	err = r.checkPostWithIdExists(ctx, comment.PostId)
@@ -88,6 +91,14 @@ func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error 
 func (r *CommentRepo) Update(ctx context.Context, comment models.Comment) error {
 	r.logger.DebugContext(ctx, "Updating comment in database", slog.Any("comment", comment))
 
+	res, err := r.checkCommentWithIdDoesExist(ctx, comment.Id())
+	if err != nil {
+		return err
+	}
+	if res == false {
+		return NewNotFoundError(Comment, comment.Id())
+	}
+
 	result, err := r.db.ExecContext(ctx, "UPDATE Comments SET post_id=?, user_id=?, content=?, created_at=? WHERE id=?;", comment.PostId.ToInt(), comment.AuthorId.ToInt(), comment.Content, comment.Timestamp, comment.Id().ToInt())
 	if err != nil {
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when updating the comment", slog.Any("error", err))
@@ -100,13 +111,21 @@ func (r *CommentRepo) Update(ctx context.Context, comment models.Comment) error 
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(comment.Id(), nil)
+		return NewNotFoundError(Comment, comment.Id())
 	}
 	return nil
 }
 
 func (r *CommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	r.logger.DebugContext(ctx, "Deleting comment from database", slog.Int("id", int(id.ToInt())))
+
+	res, err := r.checkCommentWithIdDoesExist(ctx, id)
+	if err != nil {
+		return err
+	}
+	if res == false {
+		return NewNotFoundError(Comment, id)
+	}
 
 	result, err := r.db.ExecContext(ctx, "DELETE FROM Comments WHERE id = ?", id.ToInt())
 	if err != nil {
@@ -120,21 +139,23 @@ func (r *CommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error 
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(id, nil)
+		return NewNotFoundError(Comment, id)
 	}
 	return nil
 }
 
-func (r *CommentRepo) checkCommentWithIdDoesNotExist(ctx context.Context, id snowflake.Snowflake) error {
+func (r *CommentRepo) checkCommentWithIdDoesExist(ctx context.Context, id snowflake.Snowflake) (bool, error) {
 	var foundId uint64
-	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Comments WHERE id = ?", id.ToInt()).Scan(&foundId); err == nil {
-		r.logger.ErrorContext(ctx, "Comment already exists", slog.Int("id", int(id.ToInt())))
-		return NewEntityAlreadyExistsError(id)
-	} else if err != sql.ErrNoRows {
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Comments WHERE id = ?", id.ToInt()).Scan(&foundId); err != nil {
+		if err == sql.ErrNoRows {
+			r.logger.DebugContext(ctx, "Comment does not exist", slog.Int("id", int(id.ToInt())))
+			return false, nil
+		}
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a comment with a particular id already exists", slog.Int("id", int(id.ToInt())))
-		return NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a comment with id: %d, already exists", id.ToInt()), err)
+		return false, NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a comment with id: %d, already exists", id.ToInt()), err)
 	}
-	return nil
+	r.logger.DebugContext(ctx, "Comment already exists", slog.Int("id", int(id.ToInt())))
+	return true, nil
 }
 
 func (r *CommentRepo) checkAuthorWithIdExists(ctx context.Context, id snowflake.Snowflake) error {
