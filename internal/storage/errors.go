@@ -59,3 +59,33 @@ func NewEntityAlreadyExistsError(id snowflake.Snowflake) error {
 		id: id,
 	}
 }
+
+type EntityType int
+
+const (
+	User EntityType = iota
+	Post
+	Comment
+)
+
+var entityTypeNameMap = map[EntityType]string{User: "User", Post: "Post", Comment: "Comment"}
+
+// RequiredEntityDoesNotExistError is an error type that is returned when there is something
+// wrong with the data of a request. For example trying to create a comment from
+// a user that does not exist.
+type RequiredEntityDoesNotExistError struct {
+	entity EntityType
+	id     snowflake.Snowflake
+}
+
+func (e *RequiredEntityDoesNotExistError) Error() string {
+	return fmt.Sprintf("%s with id: %d", entityTypeNameMap[e.entity], e.id.ToInt())
+}
+
+// NewRequiredEntityDoesNotExist creates a new RequiredEntityDoesNotExist instance.
+func NewRequiredEntityDoesNotExist(entity EntityType, id snowflake.Snowflake) error {
+	return &RequiredEntityDoesNotExistError{
+		entity: entity,
+		id:     id,
+	}
+}

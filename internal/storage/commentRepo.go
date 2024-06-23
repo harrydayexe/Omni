@@ -58,6 +58,16 @@ func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error 
 		return err
 	}
 
+	err = r.checkPostWithIdExists(ctx, comment.PostId)
+	if err != nil {
+		return err
+	}
+
+	err = r.checkAuthorWithIdExists(ctx, comment.AuthorId)
+	if err != nil {
+		return err
+	}
+
 	result, err := r.db.ExecContext(ctx, "INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?);", comment.Id().ToInt(), comment.PostId.ToInt(), comment.AuthorId.ToInt(), comment.Content, comment.Timestamp)
 	if err != nil {
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the comment", slog.Any("error", err))
@@ -123,6 +133,32 @@ func (r *CommentRepo) checkCommentWithIdDoesNotExist(ctx context.Context, id sno
 	} else if err != sql.ErrNoRows {
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a comment with a particular id already exists", slog.Int("id", int(id.ToInt())))
 		return NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a comment with id: %d, already exists", id.ToInt()), err)
+	}
+	return nil
+}
+
+func (r *CommentRepo) checkAuthorWithIdExists(ctx context.Context, id snowflake.Snowflake) error {
+	var foundId uint64
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Users WHERE id = ?", id.ToInt()).Scan(&foundId); err != nil {
+		if err == sql.ErrNoRows {
+			r.logger.DebugContext(ctx, "User does not exist", slog.Int("id", int(id.ToInt())))
+			return NewRequiredEntityDoesNotExist(User, id)
+		}
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a user with a particular id exists", slog.Int("id", int(id.ToInt())))
+		return NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a user with id: %d, exists", id.ToInt()), err)
+	}
+	return nil
+}
+
+func (r *CommentRepo) checkPostWithIdExists(ctx context.Context, id snowflake.Snowflake) error {
+	var foundId uint64
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Posts WHERE id = ?", id.ToInt()).Scan(&foundId); err != nil {
+		if err == sql.ErrNoRows {
+			r.logger.DebugContext(ctx, "Post does not exist", slog.Int("id", int(id.ToInt())))
+			return NewRequiredEntityDoesNotExist(Post, id)
+		}
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a post with a particular id exists", slog.Int("id", int(id.ToInt())))
+		return NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a post with id: %d, exists", id.ToInt()), err)
 	}
 	return nil
 }

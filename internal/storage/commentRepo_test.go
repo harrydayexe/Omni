@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -49,7 +48,7 @@ func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataF
 		t.Fatalf("failed to open database: %s", err)
 	}
 
-	return NewCommentRepo(db, slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{}))), db, cleanUp
+	return NewCommentRepo(db, slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))), db, cleanUp
 }
 
 func TestReadComment(t *testing.T) {
@@ -123,8 +122,9 @@ func TestCreateCommentUnknownPost(t *testing.T) {
 		t.Fatalf("expected error to be thrown, got nil")
 	}
 
-	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
-		t.Fatalf("expected database error to be thrown, got %s", err)
+	var requiredEntityError *RequiredEntityDoesNotExistError
+	if !errors.As(err, &requiredEntityError) {
+		t.Fatalf("expected RequiredEntityDoesNotExistError to be thrown, got %s", err)
 	}
 }
 
@@ -144,8 +144,9 @@ func TestCreateCommentUnknownUser(t *testing.T) {
 		t.Fatalf("expected error to be thrown, got nil")
 	}
 
-	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
-		t.Fatalf("expected database error to be thrown, got %s", err)
+	var requiredEntityError *RequiredEntityDoesNotExistError
+	if !errors.As(err, &requiredEntityError) {
+		t.Fatalf("expected RequiredEntityDoesNotExistError to be thrown, got %s", err)
 	}
 }
 
