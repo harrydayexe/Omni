@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,6 +103,67 @@ func TestCreateComment(t *testing.T) {
 	readComment := models.NewComment(snowflake.ParseId(readId), snowflake.ParseId(readPostId), snowflake.ParseId(readUserId), "johndoe", readTime, readContent)
 	if newComment != readComment {
 		t.Fatalf("expected comment to be %v, got %v", newComment, readComment)
+	}
+}
+
+func TestCreateCommentUnknownPost(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	idGen := snowflake.NewSnowflakeGenerator(0)
+	commentId := idGen.NextID()
+	newTime := time.Date(2024, 4, 4, 11, 4, 3, 0, time.UTC)
+	newComment := models.NewComment(commentId, snowflake.ParseId(knownPostId+10), snowflake.ParseId(knownUserId), "johndoe", newTime, "Example Comment")
+
+	err := commentRepo.Create(ctx, newComment)
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+
+	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
+		t.Fatalf("expected database error to be thrown, got %s", err)
+	}
+}
+
+func TestCreateCommentUnknownUser(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	idGen := snowflake.NewSnowflakeGenerator(0)
+	commentId := idGen.NextID()
+	newTime := time.Date(2024, 4, 4, 11, 4, 3, 0, time.UTC)
+	newComment := models.NewComment(commentId, snowflake.ParseId(knownPostId), snowflake.ParseId(knownUserId+10), "johndoe", newTime, "Example Comment")
+
+	err := commentRepo.Create(ctx, newComment)
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+
+	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
+		t.Fatalf("expected database error to be thrown, got %s", err)
+	}
+}
+
+func TestCreateCommentWithTakenId(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	newTime := time.Date(2024, 4, 4, 11, 4, 3, 0, time.UTC)
+	newComment := models.NewComment(snowflake.ParseId(knownCommentId), snowflake.ParseId(knownPostId), snowflake.ParseId(knownUserId), "johndoe", newTime, "Example Comment")
+
+	err := commentRepo.Create(ctx, newComment)
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+
+	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
+		t.Fatalf("expected database error to be thrown, got %s", err)
 	}
 }
 
