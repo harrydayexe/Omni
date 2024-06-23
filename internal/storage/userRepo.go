@@ -87,7 +87,7 @@ func (r *UserRepo) Create(ctx context.Context, user models.User) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewEntityAlreadyExistsError(user.Id(), nil)
+		return NewEntityAlreadyExistsError(user.Id())
 	}
 	return nil
 }

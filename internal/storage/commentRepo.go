@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -52,6 +53,11 @@ func (r *CommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models
 func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error {
 	r.logger.DebugContext(ctx, "Creating comment in database", slog.Any("comment", comment))
 
+	err := r.checkCommentWithIdDoesNotExist(ctx, comment.Id())
+	if err != nil {
+		return err
+	}
+
 	result, err := r.db.ExecContext(ctx, "INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?);", comment.Id().ToInt(), comment.PostId.ToInt(), comment.AuthorId.ToInt(), comment.Content, comment.Timestamp)
 	if err != nil {
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the comment", slog.Any("error", err))
@@ -64,7 +70,7 @@ func (r *CommentRepo) Create(ctx context.Context, comment models.Comment) error 
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewEntityAlreadyExistsError(comment.Id(), nil)
+		return NewEntityAlreadyExistsError(comment.Id())
 	}
 	return nil
 }
@@ -105,6 +111,18 @@ func (r *CommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error 
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
 		return NewNotFoundError(id, nil)
+	}
+	return nil
+}
+
+func (r *CommentRepo) checkCommentWithIdDoesNotExist(ctx context.Context, id snowflake.Snowflake) error {
+	var foundId uint64
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Comments WHERE id = ?", id.ToInt()).Scan(&foundId); err == nil {
+		r.logger.ErrorContext(ctx, "Comment already exists", slog.Int("id", int(id.ToInt())))
+		return NewEntityAlreadyExistsError(id)
+	} else if err != sql.ErrNoRows {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a comment with a particular id already exists", slog.Int("id", int(id.ToInt())))
+		return NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a comment with id: %d, already exists", id.ToInt()), err)
 	}
 	return nil
 }

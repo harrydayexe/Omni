@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -162,8 +163,9 @@ func TestCreateCommentWithTakenId(t *testing.T) {
 		t.Fatalf("expected error to be thrown, got nil")
 	}
 
-	if !strings.HasPrefix(err.Error(), "an unknown database error occurred when creating the comment") {
-		t.Fatalf("expected database error to be thrown, got %s", err)
+	var alreadyExistsError *EntityAlreadyExistsError
+	if !errors.As(err, &alreadyExistsError) {
+		t.Fatalf("expected EntityAlreadyExistsError to be thrown, got %s", err)
 	}
 }
 
