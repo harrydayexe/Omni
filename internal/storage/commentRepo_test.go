@@ -3,8 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -16,7 +16,11 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )
 
-func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataFile string) (*CommentRepo, func()) {
+const knownUserId uint64 = 1796290045997481984
+const knownPostId uint64 = 1796290045997481985
+const knownCommentId uint64 = 1796290045997481986
+
+func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataFile string) (*CommentRepo, *sql.DB, func()) {
 	t.Parallel()
 
 	mySqlContainer, err := mysql.RunContainer(ctx,
@@ -43,16 +47,16 @@ func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataF
 		t.Fatalf("failed to open database: %s", err)
 	}
 
-	return NewCommentRepo(db, slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))), cleanUp
+	return NewCommentRepo(db, slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{}))), db, cleanUp
 }
 
 func TestReadComment(t *testing.T) {
 	ctx := context.Background()
 
-	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
 	defer cleanUp()
 
-	id := snowflake.ParseId(1796290045997481986)
+	id := snowflake.ParseId(knownCommentId)
 
 	comment, err := commentRepo.Read(ctx, id)
 	if err != nil || comment == nil {
@@ -61,8 +65,8 @@ func TestReadComment(t *testing.T) {
 
 	expected := models.NewComment(
 		id,
-		snowflake.ParseId(1796290045997481985),
-		snowflake.ParseId(1796290045997481984),
+		snowflake.ParseId(knownPostId),
+		snowflake.ParseId(knownUserId),
 		"johndoe",
 		time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
 		"Example Comment",
@@ -72,29 +76,35 @@ func TestReadComment(t *testing.T) {
 	}
 }
 
-// func TestCreateComment(t *testing.T) {
-// 	ctx := context.Background()
-//
-// 	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
-// 	defer cleanUp()
-//
-// 	idGen := snowflake.NewSnowflakeGenerator(0)
-// 	commentId := idGen.NextID()
-// 	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
-// 	newComment := models.NewComment(commentId, snowflake.ParseId(1796290045997481985), snowflake.ParseId(1796290045997481984), "johndoe", time, "Example Comment")
-//
-// 	commentRepo.Create(ctx, newComment)
-//
-// 	readComment, err := commentRepo.Read(ctx, commentId)
-// 	if err != nil || readComment == nil {
-// 		t.Fatalf("failed to read comment. error: %s, comment: %v", err, readComment)
-// 	}
-//
-// 	if *readComment != newComment {
-// 		t.Fatalf("expected comment to be %v, got %v", newComment, readComment)
-// 	}
-// }
-//
+func TestCreateComment(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, db, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	idGen := snowflake.NewSnowflakeGenerator(0)
+	commentId := idGen.NextID()
+	newTime := time.Date(2024, 4, 4, 11, 4, 3, 0, time.UTC)
+	newComment := models.NewComment(commentId, snowflake.ParseId(knownPostId), snowflake.ParseId(knownUserId), "johndoe", newTime, "Example Comment")
+
+	err := commentRepo.Create(ctx, newComment)
+	if err != nil {
+		t.Fatalf("failed to create comment: %s", err)
+	}
+
+	var readId, readPostId, readUserId uint64
+	var readContent string
+	var readTime time.Time
+	if err := db.QueryRow("SELECT id, post_id, user_id, content, created_at FROM Comments WHERE id = ?", commentId.ToInt()).Scan(&readId, &readPostId, &readUserId, &readContent, &readTime); err != nil {
+		t.Fatalf("failed to read comment from database: %s", err)
+	}
+
+	readComment := models.NewComment(snowflake.ParseId(readId), snowflake.ParseId(readPostId), snowflake.ParseId(readUserId), "johndoe", readTime, readContent)
+	if newComment != readComment {
+		t.Fatalf("expected comment to be %v, got %v", newComment, readComment)
+	}
+}
+
 // func TestUpdateComment(t *testing.T) {
 // 	ctx := context.Background()
 //
