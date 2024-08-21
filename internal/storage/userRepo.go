@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 
 	"github.com/harrydayexe/Omni/internal/models"
@@ -75,6 +76,14 @@ func (r *UserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Us
 func (r *UserRepo) Create(ctx context.Context, user models.User) error {
 	r.logger.DebugContext(ctx, "Creating user in database", slog.Any("user", user))
 
+	res, err := r.checkUserWithIdDoesExist(ctx, user.Id())
+	if err != nil {
+		return err
+	}
+	if res == true {
+		return NewEntityAlreadyExistsError(user.Id())
+	}
+
 	result, err := r.db.ExecContext(ctx, "INSERT INTO Users (id, username) VALUES (?, ?)", user.Id().ToInt(), user.Username)
 	if err != nil {
 		r.logger.ErrorContext(ctx, "An unknown database error occurred when creating the user", slog.Any("error", err))
@@ -87,7 +96,7 @@ func (r *UserRepo) Create(ctx context.Context, user models.User) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewEntityAlreadyExistsError(user.Id(), nil)
+		return NewEntityAlreadyExistsError(user.Id())
 	}
 	return nil
 }
@@ -107,13 +116,21 @@ func (r *UserRepo) Update(ctx context.Context, user models.User) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(user.Id(), nil)
+		return NewNotFoundError(User, user.Id())
 	}
 	return nil
 }
 
 func (r *UserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	r.logger.DebugContext(ctx, "Deleting user from database", slog.Int("id", int(id.ToInt())))
+
+	res, err := r.checkUserWithIdDoesExist(ctx, id)
+	if err != nil {
+		return err
+	}
+	if res != true {
+		return NewNotFoundError(User, id)
+	}
 
 	result, err := r.db.ExecContext(ctx, "DELETE FROM Users WHERE id = ?", id.ToInt())
 	if err != nil {
@@ -127,7 +144,21 @@ func (r *UserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	}
 	if rows != 1 {
 		r.logger.DebugContext(ctx, "Expected to affect 1 row", slog.Int64("affected", rows))
-		return NewNotFoundError(id, nil)
+		return NewNotFoundError(User, id)
 	}
 	return nil
+}
+
+func (r *UserRepo) checkUserWithIdDoesExist(ctx context.Context, id snowflake.Snowflake) (bool, error) {
+	var foundId uint64
+	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Users WHERE id = ?", id.ToInt()).Scan(&foundId); err != nil {
+		if err == sql.ErrNoRows {
+			r.logger.DebugContext(ctx, "User does not exist", slog.Int("id", int(id.ToInt())))
+			return false, nil
+		}
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when checking if a user with a particular id already exists", slog.Int("id", int(id.ToInt())))
+		return false, NewDatabaseError(fmt.Sprintf("an unknown database error occurred when checking if a user with id: %d, already exists", id.ToInt()), err)
+	}
+	r.logger.DebugContext(ctx, "User already exists", slog.Int("id", int(id.ToInt())))
+	return true, nil
 }

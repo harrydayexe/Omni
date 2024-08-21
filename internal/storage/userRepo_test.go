@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -11,15 +12,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )
 
 func createNewUserRepoForTesting(ctx context.Context, t *testing.T, testDataFile string) (*UserRepo, func()) {
 	t.Parallel()
 
-	mySqlContainer, err := mysql.RunContainer(ctx,
-		testcontainers.WithImage("mysql:8.4.0"),
+	mySqlContainer, err := mysql.Run(ctx, "mysql:8.4.0",
 		mysql.WithDatabase("omni"),
 		mysql.WithUsername("root"),
 		mysql.WithPassword("password"),
@@ -126,6 +125,27 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
+func TestCreateUserAlreadyExists(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-no-posts.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481984)
+
+	newUser := models.NewUser(id, "test user 1", make([]snowflake.Snowflake, 0))
+
+	err := userRepo.Create(ctx, newUser)
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+
+	var alreadyExistsError *EntityAlreadyExistsError
+	if !errors.As(err, &alreadyExistsError) {
+		t.Fatalf("expected EntityAlreadyExistsError to be thrown, got %s", err)
+	}
+}
+
 func TestUpdateUser(t *testing.T) {
 	ctx := context.Background()
 
@@ -168,6 +188,25 @@ func TestDeleteUser(t *testing.T) {
 
 	if readUser != nil {
 		t.Fatalf("expected user to be nil, got %v", readUser)
+	}
+}
+
+func TestDeleteUserDoesNotExist(t *testing.T) {
+	ctx := context.Background()
+
+	userRepo, cleanUp := createNewUserRepoForTesting(ctx, t, "user-repo-with-posts.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045987481984)
+
+	err := userRepo.Delete(ctx, id)
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+
+	var notFoundError *NotFoundError
+	if !errors.As(err, &notFoundError) {
+		t.Fatalf("expected NotFoundError to be thrown, got %s", err)
 	}
 }
 
