@@ -170,30 +170,30 @@ func TestCreateCommentWithTakenId(t *testing.T) {
 	}
 }
 
-// func TestUpdateComment(t *testing.T) {
-// 	ctx := context.Background()
-//
-// 	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
-// 	defer cleanUp()
-//
-// 	id := snowflake.ParseId(1796301682498338817)
-// 	postId := snowflake.ParseId(1796290045997481985)
-// 	authorId := snowflake.ParseId(1796290045997481984)
-// 	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
-// 	newComment := models.NewComment(id, postId, authorId, "johndoe", time, "Updated Comment")
-//
-// 	commentRepo.Update(ctx, newComment)
-//
-// 	readComment, err := commentRepo.Read(ctx, newComment.Id())
-// 	if err != nil || readComment == nil {
-// 		t.Fatalf("failed to read comment: %s", err)
-// 	}
-//
-// 	if *readComment != newComment {
-// 		t.Fatalf("expected comment to be %v, got %v", newComment, readComment)
-// 	}
-// }
-//
+func TestUpdateComment(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481986)
+	postId := snowflake.ParseId(1796290045997481985)
+	authorId := snowflake.ParseId(1796290045997481984)
+	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
+	newComment := models.NewComment(id, postId, authorId, "johndoe", time, "Updated Comment")
+
+	commentRepo.Update(ctx, newComment)
+
+	readComment, err := commentRepo.Read(ctx, newComment.Id())
+	if err != nil || readComment == nil {
+		t.Fatalf("failed to read comment: %s", err)
+	}
+
+	if *readComment != newComment {
+		t.Fatalf("expected comment to be %v, got %v", newComment, readComment)
+	}
+}
+
 // func TestDeleteComment(t *testing.T) {
 // 	ctx := context.Background()
 //
