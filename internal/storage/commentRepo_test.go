@@ -194,52 +194,88 @@ func TestUpdateComment(t *testing.T) {
 	}
 }
 
-// func TestDeleteComment(t *testing.T) {
-// 	ctx := context.Background()
-//
-// 	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
-// 	defer cleanUp()
-//
-// 	id := snowflake.ParseId(1796301682498338817)
-//
-// 	commentRepo.Delete(ctx, id)
-//
-// 	readComment, err := commentRepo.Read(ctx, id)
-// 	if err != nil {
-// 		t.Fatalf("an error occurred while reading comment: %s", err)
-// 	}
-//
-// 	if readComment != nil {
-// 		t.Fatalf("expected comment to be nil, got %v", readComment)
-// 	}
-// }
-//
-// func TestUnknownCommentTableShouldThrowError(t *testing.T) {
-// 	ctx := context.Background()
-//
-// 	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo-bad-comment-table.sql")
-// 	defer cleanUp()
-//
-// 	id := snowflake.ParseId(1796301682498338817)
-//
-// 	_, err := commentRepo.Read(ctx, id)
-//
-// 	if err == nil {
-// 		t.Fatalf("expected error to be thrown, got nil")
-// 	}
-// }
-//
-// func TestUnknownUserTableShouldThrowErrorForComments(t *testing.T) {
-// 	ctx := context.Background()
-//
-// 	commentRepo, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo-bad-user-table.sql")
-// 	defer cleanUp()
-//
-// 	id := snowflake.ParseId(1796301682498338817)
-//
-// 	_, err := commentRepo.Read(ctx, id)
-//
-// 	if err == nil {
-// 		t.Fatalf("expected error to be thrown, got nil")
-// 	}
-// }
+func TestUpdateCommentDoesNotExist(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481700)
+	postId := snowflake.ParseId(1796290045997481985)
+	authorId := snowflake.ParseId(1796290045997481984)
+	time := time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC)
+	newComment := models.NewComment(id, postId, authorId, "johndoe", time, "Updated Comment")
+
+	err := commentRepo.Update(ctx, newComment)
+
+	var notFoundError *NotFoundError
+	if !errors.As(err, &notFoundError) {
+		t.Fatalf("expected NotFoundError to be thrown, got %s", err)
+	}
+}
+
+func TestDeleteComment(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481986)
+
+	commentRepo.Delete(ctx, id)
+
+	readComment, err := commentRepo.Read(ctx, id)
+	if err != nil {
+		t.Fatalf("an error occurred while reading comment: %s", err)
+	}
+
+	if readComment != nil {
+		t.Fatalf("expected comment to be nil, got %v", readComment)
+	}
+}
+
+func TestDeleteCommentDoesNotExist(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796290045997481700)
+
+	err := commentRepo.Delete(ctx, id)
+
+	var notFoundError *NotFoundError
+	if !errors.As(err, &notFoundError) {
+		t.Fatalf("expected NotFoundError to be thrown, got %s", err)
+	}
+}
+
+func TestUnknownCommentTableShouldThrowError(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo-bad-comment-table.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796301682498338817)
+
+	_, err := commentRepo.Read(ctx, id)
+
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+}
+
+func TestUnknownUserTableShouldThrowErrorForComments(t *testing.T) {
+	ctx := context.Background()
+
+	commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo-bad-user-table.sql")
+	defer cleanUp()
+
+	id := snowflake.ParseId(1796301682498338817)
+
+	_, err := commentRepo.Read(ctx, id)
+
+	if err == nil {
+		t.Fatalf("expected error to be thrown, got nil")
+	}
+}
