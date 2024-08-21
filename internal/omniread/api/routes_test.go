@@ -98,17 +98,11 @@ func TestGetUserUnknown(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+			status, http.StatusNotFound)
 	}
 }
 
 func TestGetUserBadFormedId(t *testing.T) {
-	mockedRepo := &MockUserRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-			return nil, nil
-		},
-	}
-
 	req, err := http.NewRequest("GET", "/user/hello", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +111,7 @@ func TestGetUserBadFormedId(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		mockedRepo,
+		nil,
 		nil,
 		nil,
 	)
@@ -126,7 +120,18 @@ func TestGetUserBadFormedId(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
 	}
 }
 
@@ -154,6 +159,123 @@ func TestGetUserDBError(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusInternalServerError {
 		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusInternalServerError)
+	}
+}
+
+func TestDeleteUserKnown(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
+			return nil
+		},
+	}
+
+	req, err := http.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
+	}
+}
+
+func TestDeleteUserUnknown(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
+			return storage.NewNotFoundError(storage.User, snowflake.ParseId(1796290045997481984))
+		},
+	}
+
+	req, err := http.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNotFound)
+	}
+}
+
+func TestDeleteUserBadFormedId(t *testing.T) {
+	req, err := http.NewRequest("DELETE", "/user/hello", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		nil,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestDeleteUserDBError(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
+			return storage.NewDatabaseError("database error", errors.New("database error"))
+		},
+	}
+
+	req, err := http.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusInternalServerError)
 	}
 }
