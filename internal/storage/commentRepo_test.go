@@ -13,7 +13,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
 )
 
@@ -24,8 +23,7 @@ const knownCommentId uint64 = 1796290045997481986
 func createNewCommentRepoForTesting(ctx context.Context, t *testing.T, testDataFile string) (*CommentRepo, *sql.DB, func()) {
 	t.Parallel()
 
-	mySqlContainer, err := mysql.RunContainer(ctx,
-		testcontainers.WithImage("mysql:8.4.0"),
+	mySqlContainer, err := mysql.Run(ctx, "mysql:8.4.0",
 		mysql.WithDatabase("omni"),
 		mysql.WithUsername("root"),
 		mysql.WithPassword("password"),
