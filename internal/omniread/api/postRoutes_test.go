@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -328,14 +329,14 @@ func TestCreatePostSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	req, err := http.NewRequest("POST", "/post", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
-		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		nil,
 		mockedRepo,
 		nil,
@@ -353,7 +354,7 @@ func TestCreatePostSuccess(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo"}`
+	expected := `{"id":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo","comments":[],"tags":[]}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -388,7 +389,7 @@ func TestCreatePostDuplicate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	req, err := http.NewRequest("POST", "/post", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -413,7 +414,7 @@ func TestCreatePostDuplicate(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"error":"Conflict","message":"User with that ID already exists."}`
+	expected := `{"error":"Conflict","message":"Post with that ID already exists."}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -434,7 +435,7 @@ func TestCreatePostBadFormedBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	req, err := http.NewRequest("POST", "/post", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -494,7 +495,7 @@ func TestCreatePostDBError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	req, err := http.NewRequest("POST", "/post", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -568,7 +569,7 @@ func TestUpdatePostSuccess(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"authorId":"1796290045997481985",authorName:"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo"}`
+	expected := `{"id":1796290045997481984,"authorId":"1796290045997481985",authorName:"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo","comments":[],"tags":[]}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -628,7 +629,7 @@ func TestUpdatePostNotFound(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"error":"Not Found","message":"User with that ID could not be found to update."}`
+	expected := `{"error":"Not Found","message":"Post with that ID could not be found to update."}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
