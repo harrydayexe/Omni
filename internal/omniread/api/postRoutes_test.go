@@ -569,7 +569,7 @@ func TestUpdatePostSuccess(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"authorId":"1796290045997481985",authorName:"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo","comments":[],"tags":[]}`
+	expected := `{"id":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo","comments":[],"tags":[]}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
