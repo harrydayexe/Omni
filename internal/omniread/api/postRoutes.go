@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -168,30 +169,30 @@ func handleUpdatePost(logger *slog.Logger, postRepo storage.Repository[models.Po
 
 func handleDeletePost(logger *slog.Logger, postRepo storage.Repository[models.Post]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// idString := r.PathValue("id")
-		// logger.InfoContext(r.Context(), "delete user DELETE request received", slog.String("id", idString))
-		// idInt, err := strconv.ParseUint(idString, 10, 64)
-		// if err != nil {
-		// 	logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-		// 	errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-		// 	w.WriteHeader(http.StatusBadRequest)
-		// 	w.Write([]byte(errorMessage))
-		// 	return
-		// }
-		//
-		// id := snowflake.ParseId(idInt)
-		//
-		// err = postRepo.Delete(r.Context(), id)
-		// var e *storage.NotFoundError
-		// if errors.As(err, &e) {
-		// 	logger.DebugContext(r.Context(), "user not found", slog.Any("id", id))
-		// 	w.WriteHeader(http.StatusNotFound)
-		// 	return
-		// }
-		// if err != nil {
-		// 	logger.ErrorContext(r.Context(), "failed to delete user from db", slog.Any("error", err))
-		// 	w.WriteHeader(http.StatusInternalServerError)
-		// 	return
-		// }
+		idString := r.PathValue("id")
+		logger.InfoContext(r.Context(), "delete post DELETE request received", slog.String("id", idString))
+		idInt, err := strconv.ParseUint(idString, 10, 64)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		id := snowflake.ParseId(idInt)
+
+		err = postRepo.Delete(r.Context(), id)
+		var e *storage.NotFoundError
+		if errors.As(err, &e) {
+			logger.DebugContext(r.Context(), "post not found", slog.Any("id", id))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to delete post from db", slog.Any("error", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	})
 }
