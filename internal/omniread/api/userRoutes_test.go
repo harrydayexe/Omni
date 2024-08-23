@@ -16,28 +16,28 @@ import (
 	"github.com/harrydayexe/Omni/internal/storage"
 )
 
-type MockUserRepo struct {
+type mockUserRepo struct {
 	readFunc   func(ctx context.Context, id snowflake.Snowflake) (*models.User, error)
 	createFunc func(ctx context.Context, entity models.User) error
 	updateFunc func(ctx context.Context, entity models.User) error
 	deleteFunc func(ctx context.Context, id snowflake.Snowflake) error
 }
 
-func (m MockUserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
+func (m mockUserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
 	return m.readFunc(ctx, id)
 }
-func (m MockUserRepo) Create(ctx context.Context, entity models.User) error {
+func (m mockUserRepo) Create(ctx context.Context, entity models.User) error {
 	return m.createFunc(ctx, entity)
 }
-func (m MockUserRepo) Update(ctx context.Context, entity models.User) error {
+func (m mockUserRepo) Update(ctx context.Context, entity models.User) error {
 	return m.updateFunc(ctx, entity)
 }
-func (m MockUserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
+func (m mockUserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	return m.deleteFunc(ctx, id)
 }
 
 func TestGetUserKnown(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
 			newUser := models.NewUser(id, "johndoe", make([]snowflake.Snowflake, 0))
 			return &newUser, nil
@@ -77,7 +77,7 @@ func TestGetUserKnown(t *testing.T) {
 }
 
 func TestGetUserUnknown(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
 			return nil, nil
 		},
@@ -138,7 +138,7 @@ func TestGetUserBadFormedId(t *testing.T) {
 }
 
 func TestGetUserDBError(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
 			return nil, storage.NewDatabaseError("database error", errors.New("database error"))
 		},
@@ -166,7 +166,7 @@ func TestGetUserDBError(t *testing.T) {
 }
 
 func TestDeleteUserKnown(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
 			return nil
 		},
@@ -194,7 +194,7 @@ func TestDeleteUserKnown(t *testing.T) {
 }
 
 func TestDeleteUserUnknown(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
 			return storage.NewNotFoundError(storage.User, snowflake.ParseId(1796290045997481984))
 		},
@@ -255,7 +255,7 @@ func TestDeleteUserBadFormedId(t *testing.T) {
 }
 
 func TestDeleteUserDBError(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		deleteFunc: func(ctx context.Context, id snowflake.Snowflake) error {
 			return storage.NewDatabaseError("database error", errors.New("database error"))
 		},
@@ -283,7 +283,7 @@ func TestDeleteUserDBError(t *testing.T) {
 }
 
 func TestCreateUserSuccess(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		createFunc: func(ctx context.Context, entity models.User) error {
 			return nil
 		},
@@ -333,7 +333,7 @@ func TestCreateUserSuccess(t *testing.T) {
 }
 
 func TestCreateUserDuplicate(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		createFunc: func(ctx context.Context, entity models.User) error {
 			return storage.NewEntityAlreadyExistsError(snowflake.ParseId(1796290045997481984))
 		},
@@ -429,7 +429,7 @@ func TestCreateUserBadFormedBody(t *testing.T) {
 }
 
 func TestCreateUserDBError(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		createFunc: func(ctx context.Context, entity models.User) error {
 			return storage.NewDatabaseError("database error", errors.New("database error"))
 		},
@@ -468,7 +468,7 @@ func TestCreateUserDBError(t *testing.T) {
 }
 
 func TestUpdateUserSuccess(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		updateFunc: func(ctx context.Context, entity models.User) error {
 			return nil
 		},
@@ -518,7 +518,7 @@ func TestUpdateUserSuccess(t *testing.T) {
 }
 
 func TestUpdateUserNotFound(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		updateFunc: func(ctx context.Context, entity models.User) error {
 			return storage.NewNotFoundError(storage.User, entity.Id())
 		},
@@ -614,7 +614,7 @@ func TestUpdateUserBadFormedBody(t *testing.T) {
 }
 
 func TestUpdateUserDBError(t *testing.T) {
-	mockedRepo := &MockUserRepo{
+	mockedRepo := &mockUserRepo{
 		updateFunc: func(ctx context.Context, entity models.User) error {
 			return storage.NewDatabaseError("database error", errors.New("database error"))
 		},
