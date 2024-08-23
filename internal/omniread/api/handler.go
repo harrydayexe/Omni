@@ -20,6 +20,11 @@ func NewHandler(
 		logger,
 		userRepo,
 	)
+	AddPostRoutes(
+		mux,
+		logger,
+		postRepo,
+	)
 	var handler http.Handler = mux
 	return handler
 }
