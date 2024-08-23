@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -260,6 +262,191 @@ func TestDeleteUserDBError(t *testing.T) {
 	}
 
 	req, err := http.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusInternalServerError)
+	}
+}
+
+func TestCreateUserSuccess(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		createFunc: func(ctx context.Context, entity models.User) error {
+			return nil
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusCreated)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"id":1796290045997481984,"username":"johndoe","posts":[]}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestCreateUserDuplicate(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		createFunc: func(ctx context.Context, entity models.User) error {
+			return storage.NewEntityAlreadyExistsError(snowflake.ParseId(1796290045997481984))
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusConflict {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusConflict)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Conflict","message":"User with that ID already exists."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestCreateUserBadFormedBody(t *testing.T) {
+	body := struct {
+		Foo uint64 `json:"foo"`
+		Bar string `json:"bar"`
+		Baz string `json:"baz"`
+	}{
+		Foo: 1796290045997481984,
+		Bar: "johndoe",
+		Baz: "foobar",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		nil,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Request body could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestCreateUserDBError(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		createFunc: func(ctx context.Context, entity models.User) error {
+			return storage.NewDatabaseError("database error", errors.New("database error"))
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(out))
 	if err != nil {
 		t.Fatal(err)
 	}

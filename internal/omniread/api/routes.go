@@ -78,6 +78,48 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 func handleCreateUser(logger *slog.Logger, userRepo storage.Repository[models.User]) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "read user DELETE request received")
+
+		var u struct {
+			Id       uint64 `json:"id"`
+			Username string `json:"username"`
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		err := decoder.Decode(&u)
+		if err != nil {
+			var errorMessage = `{"error":"Bad Request","message":"Request body could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		newUser := models.NewUser(snowflake.ParseId(u.Id), u.Username, []snowflake.Snowflake{})
+
+		err = userRepo.Create(r.Context(), newUser)
+		var e *storage.EntityAlreadyExistsError
+		if errors.As(err, &e) {
+			logger.DebugContext(r.Context(), "user already exists", slog.Any("id", newUser.Id()))
+			var errorMessage = `{"error":"Conflict","message":"User with that ID already exists."}`
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(errorMessage))
+			return
+		}
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to create user in db", slog.Any("error", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		b, err := json.Marshal(newUser)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to serialize user to json", slog.Any("error", err))
+			return
+		}
+
+		w.Write(b)
 	})
 }
 
