@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 
@@ -336,7 +335,7 @@ func TestCreatePostSuccess(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
-		slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		nil,
 		mockedRepo,
 		nil,
@@ -461,6 +460,60 @@ func TestCreatePostBadFormedBody(t *testing.T) {
 	}
 
 	expected := `{"error":"Bad Request","message":"Request body could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestCreatePostBadFormedTimestamp(t *testing.T) {
+	body := struct {
+		Id          uint64 `json:"id"`
+		AuthorId    uint64 `json:"authorId"`
+		AuthorName  string `json:"authorName"`
+		Timestamp   string `json:"timestamp"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		ContentFile string `json:"contentFileUrl"`
+	}{
+		Id:          1796290045997481984,
+		AuthorId:    1796290045997481985,
+		AuthorName:  "johndoe",
+		Timestamp:   "hello",
+		Title:       "Hello, World!",
+		Description: "Foobarbaz",
+		ContentFile: "https://example.com/foo",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("POST", "/post", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		nil,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Timestamp could not be parsed properly."}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -676,6 +729,60 @@ func TestUpdatePostBadFormedBody(t *testing.T) {
 	}
 
 	expected := `{"error":"Bad Request","message":"Request body could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestUpdatePostBadFormedTimestamp(t *testing.T) {
+	body := struct {
+		Id          uint64 `json:"id"`
+		AuthorId    uint64 `json:"authorId"`
+		AuthorName  string `json:"authorName"`
+		Timestamp   string `json:"timestamp"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		ContentFile string `json:"contentFileUrl"`
+	}{
+		Id:          1796290045997481984,
+		AuthorId:    1796290045997481985,
+		AuthorName:  "johndoe",
+		Timestamp:   "hello",
+		Title:       "Hello, World!",
+		Description: "Foobarbaz",
+		ContentFile: "https://example.com/foo",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", "/post/1796290045997481984", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		nil,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Timestamp could not be parsed properly."}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
