@@ -53,7 +53,7 @@ func (p Post) Id() snowflake.Snowflake {
 }
 
 func (p Post) MarshalJSON() ([]byte, error) {
-	var comments []uint64
+	var comments = []uint64{}
 	for _, comment := range p.Comments {
 		comments = append(comments, comment.ToInt())
 	}

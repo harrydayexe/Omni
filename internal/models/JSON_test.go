@@ -96,3 +96,30 @@ func TestMarshallUserJsonEmptyPosts(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expected, string(userJson))
 	}
 }
+
+func TestMarshallPostJsonEmptyCommentsAndTags(t *testing.T) {
+	g := snowflake.NewSnowflakeGenerator(1)
+	postId := g.NextID()
+	authorId := g.NextID()
+	timestamp := time.Now()
+	url := url.URL{
+		Scheme: "https",
+		Host:   "example.com",
+		Path:   "/example",
+	}
+	comments := []snowflake.Snowflake{}
+	tags := []string{}
+
+	p := NewPost(postId, authorId, "Test Name", timestamp, "Hello, world!", "Lorem Ipsum Dolar", url, comments, tags)
+
+	postJson, err := p.MarshalJSON()
+	if err != nil {
+		t.Errorf("Failed to marshal post to json: %v", err)
+	}
+
+	expected := fmt.Sprintf(`{"id":%d,"authorId":%d,"authorName":"Test Name","timestamp":"%s","title":"Hello, world!","description":"Lorem Ipsum Dolar","contentFileUrl":"https://example.com/example","comments":[],"tags":[]}`, postId.ToInt(), authorId.ToInt(), timestamp.UTC().Format(time.RFC3339))
+
+	if string(postJson) != expected {
+		t.Errorf("Expected %s, got %s", expected, string(postJson))
+	}
+}
