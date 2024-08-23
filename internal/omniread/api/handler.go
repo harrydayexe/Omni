@@ -15,12 +15,10 @@ func NewHandler(
 	commentRepo storage.Repository[models.Comment],
 ) http.Handler {
 	mux := http.NewServeMux()
-	AddRoutes(
+	AddUserRoutes(
 		mux,
 		logger,
-		postRepo,
 		userRepo,
-		commentRepo,
 	)
 	var handler http.Handler = mux
 	return handler
