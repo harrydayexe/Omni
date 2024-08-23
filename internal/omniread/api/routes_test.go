@@ -466,3 +466,188 @@ func TestCreateUserDBError(t *testing.T) {
 			status, http.StatusInternalServerError)
 	}
 }
+
+func TestUpdateUserSuccess(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		updateFunc: func(ctx context.Context, entity models.User) error {
+			return nil
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusCreated)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"id":1796290045997481984,"username":"johndoe","posts":[]}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestUpdateUserNotFound(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		updateFunc: func(ctx context.Context, entity models.User) error {
+			return storage.NewNotFoundError(storage.User, entity.Id())
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNotFound)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Not Found","message":"User with that ID could not be found to update."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestUpdateUserBadFormedBody(t *testing.T) {
+	body := struct {
+		Foo uint64 `json:"foo"`
+		Bar string `json:"bar"`
+		Baz string `json:"baz"`
+	}{
+		Foo: 1796290045997481984,
+		Bar: "johndoe",
+		Baz: "foobar",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		nil,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler returned wrong content type: got %v want %v",
+			rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Request body could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+}
+
+func TestUpdateUserDBError(t *testing.T) {
+	mockedRepo := &MockUserRepo{
+		updateFunc: func(ctx context.Context, entity models.User) error {
+			return storage.NewDatabaseError("database error", errors.New("database error"))
+		},
+	}
+
+	body := struct {
+		Id       uint64 `json:"id"`
+		Username string `json:"username"`
+	}{
+		Id:       1796290045997481984,
+		Username: "johndoe",
+	}
+	out, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedRepo,
+		nil,
+		nil,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusInternalServerError)
+	}
+}
