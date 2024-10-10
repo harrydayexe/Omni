@@ -11,8 +11,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/harrydayexe/Omni/internal/cmd"
+	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/omniread/api"
-	"github.com/harrydayexe/Omni/internal/omniread/config"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
 
@@ -32,13 +32,13 @@ func main() {
 
 	cfg, err := config.NewConfig(*fptr)
 	if err != nil {
-		logger.Error("failed to load config: %v", err)
+		logger.Error("failed to load config: %v", slog.Any("error", err))
 		panic(err)
 	}
 
 	db, err := GetDBConnection(*cfg)
 	if err != nil {
-		logger.Error("failed to connect to database: %v", err)
+		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)
 	}
 
