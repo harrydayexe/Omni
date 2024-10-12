@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	epoch        int64  = 1288834974657
+	epoch        int64  = 1704067200000
 	nodeBits     uint64 = 10
 	sequenceBits uint64 = 12
 	nodeMax      uint16 = -1 ^ (-1 << nodeBits)
@@ -67,7 +67,7 @@ func (s *SnowflakeGenerator) NextID() Snowflake {
 
 // Get the current time in milliseconds from the Unix epoch
 func (s *SnowflakeGenerator) getMilliSeconds() int64 {
-	return time.Now().UnixNano() / 1e6
+	return time.Now().UnixMilli()
 }
 
 func (s *SnowflakeGenerator) nextID() Snowflake {
