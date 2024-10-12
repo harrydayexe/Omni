@@ -144,6 +144,53 @@ func (r *CommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error 
 	return nil
 }
 
+func (r *CommentRepo) GetCommentsForPost(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error) {
+	r.logger.DebugContext(ctx, "Getting comments for post", slog.Int("postId", int(postId.ToInt())), slog.Time("from", from), slog.Int("limit", limit))
+
+	err := r.checkPostWithIdExists(ctx, postId)
+	if err != nil {
+		return nil, err
+	}
+
+	r.logger.DebugContext(ctx, "Querying comment information")
+	rows, err := r.db.QueryContext(ctx, `
+        SELECT Comments.id, Comments.user_id, Users.username, Comments.content, Comments.created_at FROM Comments 
+        INNER JOIN Users 
+        ON Comments.user_id = Users.id 
+        WHERE Comments.post_id = ? AND Comments.created_at > ? 
+        ORDER BY Comments.created_at ASC
+        LIMIT ?;`, postId.ToInt(), from.UTC(), limit)
+	if err != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when getting comments for post", slog.Any("error", err))
+		return nil, NewDatabaseError("an unknown database error occurred when getting comments for post", err)
+	}
+	defer rows.Close()
+
+	comments := make([]models.Comment, 0, limit)
+
+	for rows.Next() {
+		var commentId int64
+		var userId int64
+		var username string
+		var content string
+		var createdAt time.Time
+		if err := rows.Scan(&commentId, &userId, &username, &content, &createdAt); err != nil {
+			r.logger.ErrorContext(ctx, "An unknown database error occurred when reading the comment", slog.Any("error", err))
+			return nil, NewDatabaseError("an unknown database error occurred when reading the comment", err)
+		}
+		comment := models.NewComment(snowflake.ParseId(uint64(commentId)), postId, snowflake.ParseId(uint64(userId)), username, createdAt, content)
+		comments = append(comments, comment)
+	}
+
+	rerr := rows.Close()
+	if rerr != nil {
+		r.logger.ErrorContext(ctx, "An unknown database error occurred when reading the rows", slog.Any("error", rerr))
+		return nil, NewDatabaseError("an unknown database error occurred when reading the rows", rerr)
+	}
+
+	return comments, nil
+}
+
 func (r *CommentRepo) checkCommentWithIdDoesExist(ctx context.Context, id snowflake.Snowflake) (bool, error) {
 	var foundId uint64
 	if err := r.db.QueryRowContext(ctx, "SELECT id FROM Comments WHERE id = ?", id.ToInt()).Scan(&foundId); err != nil {

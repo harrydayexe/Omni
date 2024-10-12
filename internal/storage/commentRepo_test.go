@@ -277,3 +277,98 @@ func TestUnknownUserTableShouldThrowErrorForComments(t *testing.T) {
 		t.Fatalf("expected error to be thrown, got nil")
 	}
 }
+
+func TestGetCommentsForPost(t *testing.T) {
+	ctx := context.Background()
+
+	id := snowflake.ParseId(knownPostId)
+	expectedComments := []models.Comment{
+		models.NewComment(
+			snowflake.ParseId(knownCommentId),
+			id,
+			snowflake.ParseId(knownUserId),
+			"johndoe",
+			time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
+			"Example Comment",
+		),
+		models.NewComment(
+			snowflake.ParseId(knownCommentId+1),
+			id,
+			snowflake.ParseId(knownUserId),
+			"johndoe",
+			time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+			"Example Comment 2",
+		),
+		models.NewComment(
+			snowflake.ParseId(knownCommentId+2),
+			id,
+			snowflake.ParseId(knownUserId),
+			"johndoe",
+			time.Date(2024, 4, 5, 20, 0, 0, 0, time.UTC),
+			"Example Comment 3",
+		),
+		models.NewComment(
+			snowflake.ParseId(knownCommentId+3),
+			id,
+			snowflake.ParseId(knownUserId),
+			"johndoe",
+			time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+			"Example Comment 4",
+		),
+	}
+
+	tests := []struct {
+		name             string
+		ts               time.Time
+		limit            int
+		expectedComments []int
+	}{
+		{
+			name:             "Get all comments",
+			ts:               time.UnixMilli(0),
+			limit:            10,
+			expectedComments: []int{0, 1, 2, 3},
+		},
+		{
+			name:             "Get 1 comment",
+			ts:               time.UnixMilli(0),
+			limit:            1,
+			expectedComments: []int{0},
+		},
+		{
+			name:             "Get 2 comments",
+			ts:               time.UnixMilli(0),
+			limit:            2,
+			expectedComments: []int{0, 1},
+		},
+		{
+			name:             "Get comments after a certain time",
+			ts:               time.Date(2024, 4, 5, 10, 0, 0, 0, time.UTC),
+			limit:            10,
+			expectedComments: []int{2, 3},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			commentRepo, _, cleanUp := createNewCommentRepoForTesting(ctx, t, "comment-repo.sql")
+			defer cleanUp()
+
+			comments, err := commentRepo.GetCommentsForPost(ctx, id, test.ts, test.limit)
+			if err != nil {
+				t.Fatalf("failed to read comment: %s", err)
+			}
+
+			if len(comments) != len(test.expectedComments) {
+				t.Fatalf("expected %d comments, got %d", len(test.expectedComments), len(comments))
+			}
+
+			for i, expectedIndex := range test.expectedComments {
+				if comments[i] != expectedComments[expectedIndex] {
+					t.Fatalf("expected comment %d to be %v, got %v", i, expectedComments[expectedIndex], comments[i])
+				}
+
+			}
+		})
+	}
+}

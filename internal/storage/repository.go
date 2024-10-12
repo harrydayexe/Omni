@@ -4,7 +4,9 @@ package storage
 
 import (
 	"context"
+	"time"
 
+	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
@@ -33,4 +35,17 @@ type Repository[T snowflake.Identifier] interface {
 	// The returned error is nil if the operation is successful, otherwise it
 	// contains the error that occurred.
 	Delete(ctx context.Context, id snowflake.Snowflake) error
+}
+
+// CommentRepository is an interface for accessing persisted comment data.
+// It provides methods for standard CRUD operations via the Repository interface.
+// It also provides additional methods for querying comments.
+type CommentRepository interface {
+	// Repository is embedded to provide standard CRUD operations.
+	Repository[models.Comment]
+
+	// GetCommentsForPost retrieves comments for a particular post.
+	// The returned error is nil if the operation is successful, otherwise it
+	// contains the error that occurred.
+	GetCommentsForPost(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error)
 }
