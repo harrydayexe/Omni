@@ -49,3 +49,16 @@ type CommentRepository interface {
 	// contains the error that occurred.
 	GetCommentsForPost(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error)
 }
+
+// PostRepository is an interface for accessing persisted post data.
+// It provides methods for standard CRUD operations via the Repository interface.
+// It also provides additional methods for querying posts.
+type PostRepository interface {
+	// Repository is embedded to provide standard CRUD operations.
+	Repository[models.Post]
+
+	// GetPostsForUser retrieves posts for a particular user.
+	// The returned error is nil if the operation is successful, otherwise it
+	// contains the error that occurred.
+	GetPostsForUser(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error)
+}

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -37,4 +38,8 @@ func (r *PostRepo) Update(ctx context.Context, user models.Post) error {
 func (r *PostRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
 	// TODO: Implement this method
 	return nil
+}
+
+func (r *PostRepo) GetPostsForUser(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error) {
+	return nil, nil
 }
