@@ -154,6 +154,7 @@ func handleReadPostComments(logger *slog.Logger, commentRepo storage.CommentRepo
 		fromVal := r.URL.Query().Get("from")
 		if fromVal == "" {
 			fromDate = time.UnixMilli(epoch)
+			// TODO: In this case we may want to return the most recent comments instead of the oldest
 		} else {
 			var err error
 			fromDate, err = time.Parse(time.RFC3339, fromVal)
