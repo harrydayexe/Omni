@@ -444,39 +444,58 @@ func TestGetCommentsForPost(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                 string
-		urlQuery             string
-		commentsToReturn     []int
-		expectedStatusCode   int
-		expectedJsonResponse string
+		name                   string
+		urlQuery               string
+		commentsToReturn       []int
+		expectedStatusCode     int
+		expectedJsonResponse   string
+		expectedRequestedLimit int
+		expectedRequestedFrom  time.Time
 	}{
 		{
-			name:                 "No parameters",
-			urlQuery:             "",
-			commentsToReturn:     []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedStatusCode:   http.StatusOK,
-			expectedJsonResponse: `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
+			name:                   "No parameters",
+			urlQuery:               "",
+			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedStatusCode:     http.StatusOK,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
+			expectedRequestedLimit: 10,
+			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
 		{
-			name:                 "From date, limit not specified",
-			urlQuery:             "from=2024-04-06T00%3A00%3A00Z",
-			commentsToReturn:     []int{3, 4, 5, 6, 7, 8, 9, 10},
-			expectedStatusCode:   http.StatusOK,
-			expectedJsonResponse: `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			name:                   "From date, limit not specified",
+			urlQuery:               "from=2024-04-06T00%3A00%3A00Z",
+			commentsToReturn:       []int{3, 4, 5, 6, 7, 8, 9, 10},
+			expectedStatusCode:     http.StatusOK,
+			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedRequestedLimit: 10,
+			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name:                 "From date, limit specified",
-			urlQuery:             "from=2024-04-06T00%3A00%3A00Z&limit=2",
-			commentsToReturn:     []int{3, 4},
-			expectedStatusCode:   http.StatusOK,
-			expectedJsonResponse: `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
+			name:                   "From date, limit specified",
+			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=2",
+			commentsToReturn:       []int{3, 4},
+			expectedStatusCode:     http.StatusOK,
+			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
+			expectedRequestedLimit: 2,
+			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name:                 "From date, limit specified, limit is greater than number of comments",
-			urlQuery:             "from=2024-04-06T00%3A00%3A00Z&limit=100",
-			commentsToReturn:     []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			expectedStatusCode:   http.StatusOK,
-			expectedJsonResponse: `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			name:                   "From date, limit specified, limit is greater than number of comments",
+			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=100",
+			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			expectedStatusCode:     http.StatusOK,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedRequestedLimit: 100,
+			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:                   "From date, limit specified, limit is greater than 100",
+			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=200",
+			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			expectedStatusCode:     http.StatusOK,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedRequestedLimit: 100,
+			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
 	}
 
@@ -485,6 +504,14 @@ func TestGetCommentsForPost(t *testing.T) {
 			t.Parallel()
 			mockedRepo := &mockCommentRepo{
 				getCommentsForPostFunc: func(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error) {
+					if limit != tt.expectedRequestedLimit {
+						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", limit)
+					}
+
+					if from != tt.expectedRequestedFrom {
+						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", from)
+					}
+
 					comments := make([]models.Comment, len(tt.commentsToReturn))
 					for i, idx := range tt.commentsToReturn {
 						comments[i] = expectedComments[idx]
