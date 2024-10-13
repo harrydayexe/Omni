@@ -11,7 +11,7 @@ import (
 func NewHandler(
 	logger *slog.Logger,
 	userRepo storage.Repository[models.User],
-	postRepo storage.Repository[models.Post],
+	postRepo storage.PostRepository,
 	commentRepo storage.CommentRepository,
 ) http.Handler {
 	mux := http.NewServeMux()

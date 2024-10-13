@@ -23,7 +23,7 @@ func AddReadRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,
 	userRepo storage.Repository[models.User],
-	postRepo storage.Repository[models.Post],
+	postRepo storage.PostRepository,
 	commentRepo storage.CommentRepository,
 ) {
 	stack := middleware.CreateStack(
@@ -34,7 +34,7 @@ func AddReadRoutes(
 	// Get the details of a post by id
 	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, postRepo)))
 	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, userRepo)))
-	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, userRepo, postRepo)))
+	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, postRepo)))
 	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, commentRepo)))
 }
 
@@ -120,11 +120,84 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 	})
 }
 
-// route: GET /user/{id}/posts
-// optional query parameter ?from= which represents the post number to return from
-// return the posts of a user by it's id. limit is 50 posts
-func handleReadUserPosts(logger *slog.Logger, userRepo storage.Repository[models.User], postRepo storage.Repository[models.Post]) http.Handler {
+// Extract the from and limit query parameters from the request
+func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, int, error) {
+	var fromDate time.Time
+	var limit int
+
+	fromVal := r.URL.Query().Get("from")
+	if fromVal == "" {
+		fromDate = time.UnixMilli(epoch)
+		// TODO: In this case we may want to return the most recent comments instead of the oldest
+	} else {
+		var err error
+		fromDate, err = time.Parse(time.RFC3339, fromVal)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
+			return time.Time{}, 0, err
+		}
+	}
+	limitVal := r.URL.Query().Get("limit")
+	if limitVal == "" {
+		limit = 10
+	} else {
+		var err error
+		limit, err = strconv.Atoi(limitVal)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to parse comment limit from url query param", slog.Any("error", err))
+			return time.Time{}, 0, err
+		}
+		if limit > 100 {
+			limit = 100
+		}
+	}
+
+	return fromDate, limit, nil
+}
+
+// route: GET /user/{id}/posts?from=2006-01-02T15%3A04%3A05Z07%3A00&limit=10
+// there are two query parameters from and limit
+// from is the date and time to retrieve comments since in RFC3339 format
+// limit is the number of comments to return (default to 10, max is 100)
+func handleReadUserPosts(logger *slog.Logger, postRepo storage.PostRepository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idString := r.PathValue("id")
+		logger.InfoContext(r.Context(), "read posts GET request received", slog.String("userId", idString))
+
+		idInt, err := strconv.ParseUint(idString, 10, 64)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		id := snowflake.ParseId(idInt)
+
+		fromDate, limit, err := extractPaginationParams(logger, r)
+		if err != nil {
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
+			return
+		}
+
+		comments, err := postRepo.GetPostsForUser(r.Context(), id, fromDate, limit)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to get posts from db", slog.Any("error", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		b, err := json.Marshal(comments)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to serialize posts to json", slog.Any("error", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(b)
 	})
 }
 
@@ -148,40 +221,12 @@ func handleReadPostComments(logger *slog.Logger, commentRepo storage.CommentRepo
 
 		id := snowflake.ParseId(idInt)
 
-		var fromDate time.Time
-		var limit int
-
-		fromVal := r.URL.Query().Get("from")
-		if fromVal == "" {
-			fromDate = time.UnixMilli(epoch)
-			// TODO: In this case we may want to return the most recent comments instead of the oldest
-		} else {
-			var err error
-			fromDate, err = time.Parse(time.RFC3339, fromVal)
-			if err != nil {
-				logger.ErrorContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
-				errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(errorMessage))
-				return
-			}
-		}
-		limitVal := r.URL.Query().Get("limit")
-		if limitVal == "" {
-			limit = 10
-		} else {
-			var err error
-			limit, err = strconv.Atoi(limitVal)
-			if err != nil {
-				logger.ErrorContext(r.Context(), "failed to parse comment limit from url query param", slog.Any("error", err))
-				errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(errorMessage))
-				return
-			}
-			if limit > 100 {
-				limit = 100
-			}
+		fromDate, limit, err := extractPaginationParams(logger, r)
+		if err != nil {
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
+			return
 		}
 
 		comments, err := commentRepo.GetCommentsForPost(r.Context(), id, fromDate, limit)
