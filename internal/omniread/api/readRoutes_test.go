@@ -446,6 +446,7 @@ func TestGetCommentsForPost(t *testing.T) {
 	tests := []struct {
 		name                   string
 		urlQuery               string
+		errorToReturn          error
 		commentsToReturn       []int
 		expectedStatusCode     int
 		expectedJsonResponse   string
@@ -454,7 +455,8 @@ func TestGetCommentsForPost(t *testing.T) {
 	}{
 		{
 			name:                   "No parameters",
-			urlQuery:               "",
+			urlQuery:               postIdString + "/comments?",
+			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 			expectedStatusCode:     http.StatusOK,
 			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
@@ -463,7 +465,8 @@ func TestGetCommentsForPost(t *testing.T) {
 		},
 		{
 			name:                   "From date, limit not specified",
-			urlQuery:               "from=2024-04-06T00%3A00%3A00Z",
+			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z",
+			errorToReturn:          nil,
 			commentsToReturn:       []int{3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
 			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
@@ -472,7 +475,8 @@ func TestGetCommentsForPost(t *testing.T) {
 		},
 		{
 			name:                   "From date, limit specified",
-			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=2",
+			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=2",
+			errorToReturn:          nil,
 			commentsToReturn:       []int{3, 4},
 			expectedStatusCode:     http.StatusOK,
 			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
@@ -481,7 +485,8 @@ func TestGetCommentsForPost(t *testing.T) {
 		},
 		{
 			name:                   "From date, limit specified, limit is greater than number of comments",
-			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=100",
+			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=100",
+			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
 			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
@@ -490,12 +495,39 @@ func TestGetCommentsForPost(t *testing.T) {
 		},
 		{
 			name:                   "From date, limit specified, limit is greater than 100",
-			urlQuery:               "from=2024-04-06T00%3A00%3A00Z&limit=200",
+			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=200",
+			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
 			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:                 "Non number post id string",
+			urlQuery:             "hello/comments",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+		},
+		{
+			name:                 "Date badly formed",
+			urlQuery:             postIdString + "/comments?from=202406T00%3A00%3A00Z",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+		},
+		{
+			name:                 "Limit non integer",
+			urlQuery:             postIdString + "/comments?limit=hello",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+		},
+		{
+			name:                   "DB error",
+			urlQuery:               postIdString + "/comments?",
+			errorToReturn:          storage.NewDatabaseError("database error", errors.New("database error")),
+			expectedStatusCode:     http.StatusInternalServerError,
+			expectedRequestedLimit: 10,
+			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
 	}
 
@@ -512,6 +544,10 @@ func TestGetCommentsForPost(t *testing.T) {
 						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", from)
 					}
 
+					if tt.errorToReturn != nil {
+						return nil, tt.errorToReturn
+					}
+
 					comments := make([]models.Comment, len(tt.commentsToReturn))
 					for i, idx := range tt.commentsToReturn {
 						comments[i] = expectedComments[idx]
@@ -520,7 +556,7 @@ func TestGetCommentsForPost(t *testing.T) {
 				},
 			}
 
-			req, err := http.NewRequest("GET", "/post/"+postIdString+"/comments?"+tt.urlQuery, nil)
+			req, err := http.NewRequest("GET", "/post/"+tt.urlQuery, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
