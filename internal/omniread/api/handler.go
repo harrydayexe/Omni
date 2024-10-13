@@ -12,7 +12,7 @@ func NewHandler(
 	logger *slog.Logger,
 	userRepo storage.Repository[models.User],
 	postRepo storage.Repository[models.Post],
-	commentRepo storage.Repository[models.Comment],
+	commentRepo storage.CommentRepository,
 ) http.Handler {
 	mux := http.NewServeMux()
 	AddReadRoutes(
@@ -20,6 +20,7 @@ func NewHandler(
 		logger,
 		userRepo,
 		postRepo,
+		commentRepo,
 	)
 	var handler http.Handler = mux
 	return handler
