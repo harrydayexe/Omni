@@ -1,11 +1,11 @@
-CREATE TABLE Users 
+CREATE TABLE IF NOT EXISTS Users 
 (
     id BIGINT NOT NULL,
     username VARCHAR(30) NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE Posts
+CREATE TABLE IF NOT EXISTS Posts
 (
     id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE Posts
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Comments (
+CREATE TABLE IF NOT EXISTS Comments (
     id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
@@ -27,3 +27,6 @@ CREATE TABLE Comments (
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (post_id) REFERENCES Posts(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_user_id ON Posts(user_id);
+CREATE INDEX idx_post_id ON Comments(post_id);
