@@ -9,12 +9,12 @@ import (
 type EntityType int
 
 const (
-	User EntityType = iota
-	Post
-	Comment
+	UserEntity EntityType = iota
+	PostEntity
+	CommentEntity
 )
 
-var entityTypeNameMap = map[EntityType]string{User: "User", Post: "Post", Comment: "Comment"}
+var entityTypeNameMap = map[EntityType]string{UserEntity: "User", PostEntity: "Post", CommentEntity: "Comment"}
 
 // DatabaseError is a general error type that is returned for unknown database
 // errors.

@@ -1,14 +1,15 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
-	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
@@ -22,9 +23,7 @@ const (
 func AddReadRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,
-	userRepo storage.Repository[models.User],
-	postRepo storage.PostRepository,
-	commentRepo storage.CommentRepository,
+	db *storage.Repository,
 ) {
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
@@ -32,15 +31,15 @@ func AddReadRoutes(
 	)
 
 	// Get the details of a post by id
-	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, postRepo)))
-	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, userRepo)))
-	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, postRepo)))
-	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, commentRepo)))
+	mux.Handle("GET /post/{id}", stack(handleReadPost(logger, db)))
+	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, db)))
+	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, db)))
+	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, db)))
 }
 
 // route: GET /post/{id}
 // return the details of a user by it's id
-func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post]) http.Handler {
+func handleReadPost(logger *slog.Logger, db *storage.Repository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
 		logger.InfoContext(r.Context(), "read post GET request received", slog.String("id", idString))
@@ -55,16 +54,16 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 
 		id := snowflake.ParseId(idInt)
 
-		post, err := postRepo.Read(r.Context(), id)
+		// TODO: Adopt the repository interface in routes
+		post, err := db.FindPostByID(r.Context(), int64(id.ToInt()))
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.ErrorContext(r.Context(), "post not found", slog.Any("id", id))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to read post from db", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if post == nil {
-			logger.DebugContext(r.Context(), "post not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -81,7 +80,7 @@ func handleReadPost(logger *slog.Logger, postRepo storage.Repository[models.Post
 
 // route: GET /user/{id}
 // return the details of a user by it's id
-func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User]) http.Handler {
+func handleReadUser(logger *slog.Logger, db *storage.Repository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
 		logger.InfoContext(r.Context(), "read user GET request received", slog.String("id", idString))
@@ -96,16 +95,15 @@ func handleReadUser(logger *slog.Logger, userRepo storage.Repository[models.User
 
 		id := snowflake.ParseId(idInt)
 
-		user, err := userRepo.Read(r.Context(), id)
+		user, err := db.GetUserByID(r.Context(), int64(id.ToInt()))
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.ErrorContext(r.Context(), "user not found", slog.Any("id", id))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to read user from db", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if user == nil {
-			logger.DebugContext(r.Context(), "user not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -159,7 +157,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, i
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadUserPosts(logger *slog.Logger, postRepo storage.PostRepository) http.Handler {
+func handleReadUserPosts(logger *slog.Logger, db *storage.Repository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
 		logger.InfoContext(r.Context(), "read posts GET request received", slog.String("userId", idString))
@@ -183,9 +181,18 @@ func handleReadUserPosts(logger *slog.Logger, postRepo storage.PostRepository) h
 			return
 		}
 
-		comments, err := postRepo.GetPostsForUser(r.Context(), id, fromDate, limit)
+		comments, err := db.GetUserAndPostsByIDPaged(r.Context(), storage.GetUserAndPostsByIDPagedParams{
+			ID:           int64(id.ToInt()),
+			CreatedAfter: fromDate,
+			Limit:        int32(limit),
+		})
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.ErrorContext(r.Context(), "user not found", slog.Any("id", id))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to get posts from db", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "failed to read user's posts from db", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -205,7 +212,7 @@ func handleReadUserPosts(logger *slog.Logger, postRepo storage.PostRepository) h
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadPostComments(logger *slog.Logger, commentRepo storage.CommentRepository) http.Handler {
+func handleReadPostComments(logger *slog.Logger, db *storage.Repository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idString := r.PathValue("id")
 		logger.InfoContext(r.Context(), "read comments GET request received", slog.String("postId", idString))
@@ -229,9 +236,18 @@ func handleReadPostComments(logger *slog.Logger, commentRepo storage.CommentRepo
 			return
 		}
 
-		comments, err := commentRepo.GetCommentsForPost(r.Context(), id, fromDate, limit)
+		comments, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), storage.FindCommentsAndUserByPostIDPagedParams{
+			PostID:       int64(id.ToInt()),
+			CreatedAfter: fromDate,
+			Limit:        int32(limit),
+		})
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.ErrorContext(r.Context(), "post not found", slog.Any("id", id))
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to get comments from db", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "failed to read posts's comments from db", slog.Any("error", err))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -11,68 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harrydayexe/Omni/internal/models"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
-
-type mockPostRepo struct {
-	readFunc        func(ctx context.Context, id snowflake.Snowflake) (*models.Post, error)
-	getPostsForUser func(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error)
-}
-
-func (m mockPostRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
-	return m.readFunc(ctx, id)
-}
-func (m mockPostRepo) Create(ctx context.Context, entity models.Post) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) Update(ctx context.Context, entity models.Post) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) GetPostsForUser(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error) {
-	return m.getPostsForUser(ctx, userId, from, limit)
-}
-
-type mockUserRepo struct {
-	readFunc func(ctx context.Context, id snowflake.Snowflake) (*models.User, error)
-}
-
-func (m mockUserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-	return m.readFunc(ctx, id)
-}
-func (m mockUserRepo) Create(ctx context.Context, entity models.User) error {
-	return errors.New("not implemented")
-}
-func (m mockUserRepo) Update(ctx context.Context, entity models.User) error {
-	return errors.New("not implemented")
-}
-func (m mockUserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-
-type mockCommentRepo struct {
-	getCommentsForPostFunc func(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error)
-}
-
-func (m mockCommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Comment, error) {
-	return nil, errors.New("not implemented")
-}
-func (m mockCommentRepo) Create(ctx context.Context, entity models.Comment) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) Update(ctx context.Context, entity models.Comment) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) GetCommentsForPost(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error) {
-	return m.getCommentsForPostFunc(ctx, postId, from, limit)
-}
 
 func TestGetUserKnown(t *testing.T) {
 	mockedRepo := &mockUserRepo{
