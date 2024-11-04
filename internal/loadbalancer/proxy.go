@@ -41,7 +41,7 @@ func NewLoadBalancerProxy(algorithm string, targetServers []url.URL) (*LoadBalan
 			r.Out.Header.Set(XProxy, ReverseProxy)
 		}
 
-		isAlive[server] = false
+		isAlive[server] = true
 		services[server] = proxy
 	}
 
