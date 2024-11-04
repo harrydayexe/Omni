@@ -6,6 +6,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync"
+
+	"github.com/harrydayexe/Omni/internal/loadbalancer/balancer"
 )
 
 var (
@@ -19,7 +21,7 @@ var (
 // backend servers. It uses a Balancer to select the next server to use.
 type LoadBalancerProxy struct {
 	serviceMap map[url.URL]*httputil.ReverseProxy
-	balancer   Balancer
+	balancer   balancer.Balancer
 
 	sync.RWMutex // Protect isAliveMap
 	isAliveMap   map[url.URL]bool
@@ -43,7 +45,7 @@ func NewLoadBalancerProxy(algorithm string, targetServers []url.URL) (*LoadBalan
 		services[server] = proxy
 	}
 
-	bal, err := BuildBalancer(algorithm, targetServers)
+	bal, err := balancer.BuildBalancer(algorithm, targetServers)
 	if err != nil {
 		return nil, err
 	}

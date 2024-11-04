@@ -1,8 +1,9 @@
-package loadbalancer
+package balancer
 
 import (
 	"errors"
 	"net/url"
+	"sync"
 )
 
 var (
@@ -27,4 +28,35 @@ func BuildBalancer(algorithm string, servers []url.URL) (Balancer, error) {
 	}
 
 	return fac(servers), nil
+}
+
+type BaseBalancer struct {
+	sync.RWMutex
+	servers []url.URL
+}
+
+func (b *BaseBalancer) Add(server url.URL) {
+	b.Lock()
+	defer b.Unlock()
+	for _, s := range b.servers {
+		if s.String() == server.String() {
+			return
+		}
+	}
+	b.servers = append(b.servers, server)
+}
+
+func (b *BaseBalancer) Remove(server url.URL) {
+	b.Lock()
+	defer b.Unlock()
+	for i, s := range b.servers {
+		if s.String() == server.String() {
+			b.servers = append(b.servers[:i], b.servers[i+1:]...)
+			return
+		}
+	}
+}
+
+func (b *BaseBalancer) Balance() (url.URL, error) {
+	return url.URL{}, NoHealthyHostsError
 }
