@@ -32,5 +32,5 @@ func NewRoundRobinBalancer(servers []url.URL) Balancer {
 }
 
 func init() {
-	factories["round_robin"] = NewRoundRobinBalancer
+	factories["round-robin"] = NewRoundRobinBalancer
 }
