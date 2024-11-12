@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func CheckHealth(serviceURL url.URL) bool {
+func CheckHealth(serviceURL *url.URL) bool {
 	client := http.Client{
 		Timeout: 5 * time.Second, // Set a timeout to avoid hanging indefinitely
 	}
@@ -29,10 +29,10 @@ func CheckHealth(serviceURL url.URL) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func (p *LoadBalancerProxy) ReadAliveMap(server url.URL) bool {
+func (p *LoadBalancerProxy) ReadAliveMap(server *url.URL) bool {
 	p.RLock()
 	defer p.RUnlock()
-	return p.isAliveMap[server]
+	return p.isAliveMap[server.RawPath]
 }
 
 func (p *LoadBalancerProxy) StartHealthCheck(ctx context.Context, interval time.Duration) {
@@ -41,7 +41,7 @@ func (p *LoadBalancerProxy) StartHealthCheck(ctx context.Context, interval time.
 	}
 }
 
-func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server url.URL, interval time.Duration) {
+func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server *url.URL, interval time.Duration) {
 	ticker := time.NewTicker(interval * time.Second)
 	defer ticker.Stop()
 
@@ -52,12 +52,12 @@ func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server url.URL, int
 		case <-ticker.C:
 			if CheckHealth(server) && !p.ReadAliveMap(server) {
 				p.Lock()
-				p.isAliveMap[server] = true
+				p.isAliveMap[server.RawPath] = true
 				p.Unlock()
 				p.balancer.Add(server)
 			} else if !CheckHealth(server) && p.ReadAliveMap(server) {
 				p.Lock()
-				p.isAliveMap[server] = false
+				p.isAliveMap[server.RawPath] = false
 				p.Unlock()
 				p.balancer.Remove(server)
 			}

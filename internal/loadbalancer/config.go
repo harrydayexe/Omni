@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"errors"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -24,9 +25,8 @@ var (
 )
 
 type Config struct {
-	Location []*Location `yaml:"location"`
-	Schema   string      `yaml:"schema"`
-	Port     int         `yaml:"port"`
+	Location  []*Location `yaml:"location"`
+	Algorithm string      `yaml:"algorithm"`
 }
 
 type Location struct {
@@ -49,10 +49,22 @@ func ReadConfig(fileName string) (*Config, error) {
 }
 
 func (c *Config) Print() {
-	println("%s\n%s\n%u\n", asciiHeader, c.Schema, c.Port)
+	println("%s\n", asciiHeader)
 	for _, location := range c.Location {
 		for _, proxyPass := range location.ProxyPass {
 			println("Location: %s, ProxyPass: %s\n", location.Pattern, proxyPass)
 		}
 	}
+}
+
+func (c *Config) IsValid() error {
+	if len(c.Location) == 0 {
+		return errors.New("the details of location cannot be null")
+	}
+
+	if c.Algorithm != "round-robin" {
+		return errors.New("the algorithm is unknown")
+	}
+
+	return nil
 }

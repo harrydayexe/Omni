@@ -20,19 +20,19 @@ var (
 // A LoadBalancerProxy is an HTTP handler that forwards requests to a pool of
 // backend servers. It uses a Balancer to select the next server to use.
 type LoadBalancerProxy struct {
-	serviceMap map[url.URL]*httputil.ReverseProxy
+	serviceMap map[*url.URL]*httputil.ReverseProxy
 	balancer   balancer.Balancer
 
 	sync.RWMutex // Protect isAliveMap
-	isAliveMap   map[url.URL]bool
+	isAliveMap   map[string]bool
 }
 
-func NewLoadBalancerProxy(algorithm string, targetServers []url.URL) (*LoadBalancerProxy, error) {
-	services := make(map[url.URL]*httputil.ReverseProxy)
-	isAlive := make(map[url.URL]bool)
+func NewLoadBalancerProxy(algorithm string, targetServers []*url.URL) (*LoadBalancerProxy, error) {
+	services := make(map[*url.URL]*httputil.ReverseProxy)
+	isAlive := make(map[string]bool)
 
 	for _, server := range targetServers {
-		proxy := httputil.NewSingleHostReverseProxy(&server)
+		proxy := httputil.NewSingleHostReverseProxy(server)
 
 		rewrite := proxy.Rewrite
 		proxy.Rewrite = func(r *httputil.ProxyRequest) {
@@ -41,7 +41,7 @@ func NewLoadBalancerProxy(algorithm string, targetServers []url.URL) (*LoadBalan
 			r.Out.Header.Set(XProxy, ReverseProxy)
 		}
 
-		isAlive[server] = true
+		isAlive[server.RawPath] = true
 		services[server] = proxy
 	}
 

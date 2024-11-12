@@ -9,6 +9,9 @@ OmniWrite:
 OmniView:
 	go build -o tmp/ ./cmd/OmniView
 
+LoadBalancer:
+	go build -o tmp/ ./cmd/LoadBalancer
+
 Test:
 	go test ./...
 
