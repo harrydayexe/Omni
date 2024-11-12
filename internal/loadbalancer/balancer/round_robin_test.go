@@ -10,27 +10,27 @@ import (
 func TestRoundRobinFactory(t *testing.T) {
 	cases := []struct {
 		name string
-		args []url.URL
+		args []*url.URL
 		want Balancer
 	}{
 		{
 			name: "Create Round Robin Balancer with one URL",
-			args: []url.URL{{Scheme: "http", Host: "localhost:8080"}},
+			args: []*url.URL{{Scheme: "http", Host: "localhost:8080"}},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{{Scheme: "http", Host: "localhost:8080"}},
+					servers: []*url.URL{{Scheme: "http", Host: "localhost:8080"}},
 				},
 			},
 		},
 		{
 			name: "Create Round Robin Balancer with two URLs",
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:8080"},
 				{Scheme: "http", Host: "localhost:4040"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 						{Scheme: "http", Host: "localhost:4040"},
 					},
@@ -57,29 +57,29 @@ func TestRoundRobinAdd(t *testing.T) {
 	cases := []struct {
 		name string
 		bal  Balancer
-		args []url.URL
+		args []*url.URL
 		want Balancer
 	}{
 		{
 			name: "Add one URL to empty balancer",
 			bal:  &RoundRobinBalancer{},
-			args: []url.URL{{Scheme: "http", Host: "localhost:8080"}},
+			args: []*url.URL{{Scheme: "http", Host: "localhost:8080"}},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{{Scheme: "http", Host: "localhost:8080"}},
+					servers: []*url.URL{{Scheme: "http", Host: "localhost:8080"}},
 				},
 			},
 		},
 		{
 			name: "Add two URLs to empty balancer",
 			bal:  &RoundRobinBalancer{},
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:8080"},
 				{Scheme: "http", Host: "localhost:4040"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 						{Scheme: "http", Host: "localhost:4040"},
 					},
@@ -90,17 +90,17 @@ func TestRoundRobinAdd(t *testing.T) {
 			name: "Add URL to filled balancer",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
 			},
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:4040"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 						{Scheme: "http", Host: "localhost:4040"},
 					},
@@ -111,17 +111,17 @@ func TestRoundRobinAdd(t *testing.T) {
 			name: "Add existing URL to filled balancer",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
 			},
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:8080"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
@@ -146,30 +146,30 @@ func TestRoundRobinRemove(t *testing.T) {
 	cases := []struct {
 		name string
 		bal  Balancer
-		args []url.URL
+		args []*url.URL
 		want Balancer
 	}{
 		{
 			name: "Remove one URL from empty balancer",
 			bal:  &RoundRobinBalancer{},
-			args: []url.URL{{Scheme: "http", Host: "localhost:8080"}},
+			args: []*url.URL{{Scheme: "http", Host: "localhost:8080"}},
 			want: &RoundRobinBalancer{},
 		},
 		{
 			name: "Remove URL from filled balancer",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
 			},
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:8080"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{},
+					servers: []*url.URL{},
 				},
 			},
 		},
@@ -177,17 +177,17 @@ func TestRoundRobinRemove(t *testing.T) {
 			name: "Remove non-existent URL from filled balancer",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
 			},
-			args: []url.URL{
+			args: []*url.URL{
 				{Scheme: "http", Host: "localhost:4040"},
 			},
 			want: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
@@ -210,7 +210,7 @@ func TestRoundRobinRemove(t *testing.T) {
 func TestRoundRobinBalance(t *testing.T) {
 	type expected struct {
 		isErrorExpected bool
-		want            url.URL
+		want            *url.URL
 		error           error
 	}
 	cases := []struct {
@@ -222,13 +222,13 @@ func TestRoundRobinBalance(t *testing.T) {
 			name: "Balance with no URL",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{},
+					servers: []*url.URL{},
 				},
 			},
 			reqs: []expected{
 				{
 					isErrorExpected: true,
-					want:            url.URL{},
+					want:            &url.URL{},
 					error:           NoHealthyHostsError,
 				},
 			},
@@ -237,7 +237,7 @@ func TestRoundRobinBalance(t *testing.T) {
 			name: "Balance with one URL",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:8080"},
 					},
 				},
@@ -245,7 +245,7 @@ func TestRoundRobinBalance(t *testing.T) {
 			reqs: []expected{
 				{
 					isErrorExpected: false,
-					want:            url.URL{Scheme: "http", Host: "localhost:8080"},
+					want:            &url.URL{Scheme: "http", Host: "localhost:8080"},
 					error:           nil,
 				},
 			},
@@ -254,7 +254,7 @@ func TestRoundRobinBalance(t *testing.T) {
 			name: "Balance with two URLs",
 			bal: &RoundRobinBalancer{
 				BaseBalancer: BaseBalancer{
-					servers: []url.URL{
+					servers: []*url.URL{
 						{Scheme: "http", Host: "localhost:4040"},
 						{Scheme: "http", Host: "localhost:8080"},
 					},
@@ -264,17 +264,17 @@ func TestRoundRobinBalance(t *testing.T) {
 			reqs: []expected{
 				{
 					isErrorExpected: false,
-					want:            url.URL{Scheme: "http", Host: "localhost:8080"},
+					want:            &url.URL{Scheme: "http", Host: "localhost:8080"},
 					error:           nil,
 				},
 				{
 					isErrorExpected: false,
-					want:            url.URL{Scheme: "http", Host: "localhost:4040"},
+					want:            &url.URL{Scheme: "http", Host: "localhost:4040"},
 					error:           nil,
 				},
 				{
 					isErrorExpected: false,
-					want:            url.URL{Scheme: "http", Host: "localhost:8080"},
+					want:            &url.URL{Scheme: "http", Host: "localhost:8080"},
 					error:           nil,
 				},
 			},

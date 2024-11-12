@@ -23,7 +23,7 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	config, err := loadbalancer.ReadConfig(*fptr)
+	config, err := loadbalancer.ReadConfig(*fptr, logger)
 	if err != nil {
 		logger.Error("Could not read config", slog.String("configFile", *fptr))
 		panic("could not read config")

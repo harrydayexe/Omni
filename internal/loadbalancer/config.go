@@ -3,26 +3,10 @@ package loadbalancer
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"gopkg.in/yaml.v2"
-)
-
-var (
-	asciiHeader = `
-   ____                  _                                          
-  / __ \                (_)                                         
- | |  | |_ __ ___  _ __  _                                          
- | |  | | '_ ' _ \| '_ \| |                                         
- | |__| | | | | | | | | | |                                         
-  \____/|_| |_| |_|_| |_|_| ____        _                           
- | |                   | | |  _ \      | |                          
- | |     ___   __ _  __| | | |_) | __ _| | __ _ _ __   ___ ___ _ __ 
- | |    / _ \ / _' |/ _' | |  _ < / _' | |/ _' | '_ \ / __/ _ \ '__|
- | |___| (_) | (_| | (_| | | |_) | (_| | | (_| | | | | (_|  __/ |   
- |______\___/ \__,_|\__,_| |____/ \__,_|_|\__,_|_| |_|\___\___|_|   
-
-`
 )
 
 type Config struct {
@@ -31,26 +15,30 @@ type Config struct {
 }
 
 // ReadConfig read configuration from `fileName` file
-func ReadConfig(fileName string) (Config, error) {
+func ReadConfig(fileName string, logger *slog.Logger) (Config, error) {
 	in, err := os.ReadFile(fileName)
 	if err != nil {
+		logger.Error("error reading file", slog.String("file", fileName), slog.String("error message", err.Error()))
 		return Config{}, err
 	}
 	var config Config
 	err = yaml.Unmarshal(in, &config)
 	if err != nil {
+		logger.Error("error unmarshalling yaml", slog.String("error message", err.Error()))
 		return Config{}, err
 	}
+
+	config.Print(logger)
 	return config, nil
 }
 
-func (c *Config) Print() {
-	println("%s\n", asciiHeader)
-	fmt.Printf("Algorithm: %s\n", c.Algorithm)
-	fmt.Printf("Paths: %v\n", c.Paths)
-	for _, path := range c.Paths {
-		fmt.Printf(" - %s\n", path)
+func (c *Config) Print(logger *slog.Logger) {
+	logger.Info("Algorithm", slog.String("algorithm", c.Algorithm))
+	paths := make([]any, len(c.Paths))
+	for i, path := range c.Paths {
+		paths[i] = slog.String("path", path)
 	}
+	logger.Info("Paths", paths...)
 }
 
 func (c *Config) IsValid() error {
