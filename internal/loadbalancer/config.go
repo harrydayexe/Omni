@@ -26,7 +26,8 @@ var (
 )
 
 type Config struct {
-	Algorithm string `yaml:"algorithm"`
+	Algorithm string   `yaml:"algorithm"`
+	Paths     []string `yaml:"paths"`
 }
 
 // ReadConfig read configuration from `fileName` file
@@ -46,11 +47,27 @@ func ReadConfig(fileName string) (*Config, error) {
 func (c *Config) Print() {
 	println("%s\n", asciiHeader)
 	fmt.Printf("Algorithm: %s\n", c.Algorithm)
+	fmt.Printf("Paths: %v\n", c.Paths)
+	for _, path := range c.Paths {
+		fmt.Printf(" - %s\n", path)
+	}
 }
 
 func (c *Config) IsValid() error {
 	if c.Algorithm != "round-robin" {
 		return errors.New("the algorithm is unknown")
+	}
+
+	if len(c.Paths) == 0 {
+		return errors.New("no paths are defined")
+	}
+
+	for _, path := range c.Paths {
+		_, err := parsePattern(path)
+		if err != nil {
+			return fmt.Errorf("invalid path pattern found for %s when parsing: %w", path, err)
+		}
+
 	}
 
 	return nil

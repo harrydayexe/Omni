@@ -14,32 +14,41 @@ type loadBalancer struct {
 	Mux     *http.ServeMux
 }
 
-func New(config Config, logger *slog.Logger) *http.ServeMux {
+func New(config Config, logger *slog.Logger) (*http.ServeMux, error) {
 	logger.Debug("Creating new load balancer")
 
 	loadBalancer := &loadBalancer{
 		Config:  config,
 		Logger:  logger,
 		Proxies: make(map[string]*LoadBalancerProxy),
+		Mux:     http.NewServeMux(),
 	}
 
-	// TODO: Add valid paths from config to serve mux
+	for _, path := range config.Paths {
+		proxy, err := NewLoadBalancerProxy(config.Algorithm, []*url.URL{})
+		if err != nil {
+			logger.Error("failed to create new load balancer proxy", slog.String("path", path), slog.Any("error", err))
+			return nil, err
+		}
 
-	router := http.NewServeMux()
-	router.HandleFunc("POST /addz", func(w http.ResponseWriter, r *http.Request) {
+		loadBalancer.Proxies[path] = proxy
+		loadBalancer.Mux.Handle(path, proxy)
+	}
+
+	loadBalancer.Mux.HandleFunc("POST /addz", func(w http.ResponseWriter, r *http.Request) {
 		loadBalancer.addBackend(w, r)
 	})
-	router.HandleFunc("DELETE /removez", func(w http.ResponseWriter, r *http.Request) {
+	loadBalancer.Mux.HandleFunc("DELETE /removez", func(w http.ResponseWriter, r *http.Request) {
 		loadBalancer.removeBackend(w, r)
 	})
-	router.HandleFunc("GET /livez", func(w http.ResponseWriter, r *http.Request) {
+	loadBalancer.Mux.HandleFunc("GET /livez", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	router.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+	loadBalancer.Mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		loadBalancer.readyz(w, r)
 	})
 
-	return router
+	return loadBalancer.Mux, nil
 }
 
 // Readiness check endpoint
