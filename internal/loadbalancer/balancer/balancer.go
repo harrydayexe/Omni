@@ -17,6 +17,7 @@ type Balancer interface {
 	Add(*url.URL)               // Add a new server to the load balancer
 	Remove(*url.URL)            // Remove a server from the load balancer
 	Balance() (*url.URL, error) // Return the next server to use
+	Len() int                   // Return the number of servers in the load balancer
 }
 
 var factories = make(map[string]func([]*url.URL) Balancer)
@@ -59,4 +60,10 @@ func (b *BaseBalancer) Remove(server *url.URL) {
 
 func (b *BaseBalancer) Balance() (*url.URL, error) {
 	return &url.URL{}, NoHealthyHostsError
+}
+
+func (b *BaseBalancer) Len() int {
+	b.RLock()
+	defer b.RUnlock()
+	return len(b.servers)
 }
