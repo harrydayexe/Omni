@@ -31,17 +31,17 @@ type Config struct {
 }
 
 // ReadConfig read configuration from `fileName` file
-func ReadConfig(fileName string) (*Config, error) {
+func ReadConfig(fileName string) (Config, error) {
 	in, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 	var config Config
 	err = yaml.Unmarshal(in, &config)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
-	return &config, nil
+	return config, nil
 }
 
 func (c *Config) Print() {

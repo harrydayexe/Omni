@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log/slog"
 	"net/http"
@@ -36,21 +35,9 @@ func main() {
 		panic("config is not valid")
 	}
 
-	router := http.NewServeMux()
-	for _, l := range config.Location {
-		urls, err := convertToUrl(l.ProxyPass)
-		if err != nil {
-			logger.Error(err.Error())
-			panic("could not convert locations to urls")
-		}
-
-		httpProxy, err := loadbalancer.NewLoadBalancerProxy(config.Algorithm, urls)
-		if err != nil {
-			logger.Error(err.Error())
-			panic("could not create load balancer proxy")
-		}
-		httpProxy.StartHealthCheck(context.Background(), 10)
-		router.Handle(l.Pattern, httpProxy)
+	router, err := loadbalancer.New(config, logger)
+	if err != nil {
+		panic("could not create router")
 	}
 
 	server := &http.Server{
