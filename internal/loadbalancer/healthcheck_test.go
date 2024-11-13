@@ -97,3 +97,12 @@ func TestCheckHealth(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckHealthUnreachable(t *testing.T) {
+	if CheckHealth(&url.URL{
+		Scheme: "http",
+		Host:   "localhost:1234",
+	}) {
+		t.Errorf("Expected %v, got %v", false, true)
+	}
+}
