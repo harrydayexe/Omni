@@ -1,13 +1,13 @@
 package loadbalancer
 
 import (
+	"io"
 	"log/slog"
-	"os"
 	"testing"
 )
 
 func TestReadConfig(t *testing.T) {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	config, err := ReadConfig("../../testdata/loadbalancer-config.yaml", logger)
 	if err != nil {
 		t.Fatalf("error reading config: %v", err)
@@ -30,7 +30,7 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestReadConfigInvalidPath(t *testing.T) {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	_, err := ReadConfig("invalid-path", logger)
 	if err == nil {
 		t.Fatalf("expected error reading config\n")
@@ -38,7 +38,7 @@ func TestReadConfigInvalidPath(t *testing.T) {
 }
 
 func TestReadConfigInvalidYaml(t *testing.T) {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	_, err := ReadConfig("../../testdata/user-repo-no-posts.sql", logger)
 	if err == nil {
 		t.Fatalf("expected error reading config\n")

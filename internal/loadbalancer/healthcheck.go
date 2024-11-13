@@ -16,7 +16,7 @@ func CheckHealth(serviceURL *url.URL) bool {
 	healthEndpoint := url.URL{
 		Scheme: serviceURL.Scheme,
 		Host:   serviceURL.Host,
-		Path:   "/healthz",
+		Path:   "/readyz",
 	}
 
 	resp, err := client.Get(healthEndpoint.String())
@@ -32,7 +32,7 @@ func CheckHealth(serviceURL *url.URL) bool {
 func (p *LoadBalancerProxy) ReadAliveMap(server *url.URL) bool {
 	p.RLock()
 	defer p.RUnlock()
-	return p.isAliveMap[server.RawPath]
+	return p.isAliveMap[server.Host]
 }
 
 func (p *LoadBalancerProxy) StartHealthCheck(ctx context.Context, interval time.Duration) {
@@ -52,12 +52,12 @@ func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server *url.URL, in
 		case <-ticker.C:
 			if CheckHealth(server) && !p.ReadAliveMap(server) {
 				p.Lock()
-				p.isAliveMap[server.RawPath] = true
+				p.isAliveMap[server.Host] = true
 				p.Unlock()
 				p.balancer.Add(server)
 			} else if !CheckHealth(server) && p.ReadAliveMap(server) {
 				p.Lock()
-				p.isAliveMap[server.RawPath] = false
+				p.isAliveMap[server.Host] = false
 				p.Unlock()
 				p.balancer.Remove(server)
 			}
