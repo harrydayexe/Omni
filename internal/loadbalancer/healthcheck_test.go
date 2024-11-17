@@ -105,50 +105,92 @@ func TestCheckHealthUnreachable(t *testing.T) {
 	}
 }
 
-// func TestHealthCheck(t *testing.T) {
-// 	cases := []struct {
-// 		name          string
-// 		envVars       map[string]string
-// 		loadBalancer  *LoadBalancerProxy
-// 		expectedAlive bool
-// 	}{
-// 		{
-// 			name: "currently healthy, is still healthy",
-// 			envVars: map[string]string{
-// 				"READYZ": "TRUE",
-// 			},
-// 			loadBalancer: &LoadBalancerProxy{
-// 				isAliveMap: make(map[string]bool),
-// 				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
-// 				balancer:   balancer.NewRoundRobinBalancer([]*url.URL{}),
-// 			},
-// 			expectedAlive: true,
-// 		},
-// 	}
-//
-// 	for _, c := range cases {
-// 		t.Run(c.name, func(t *testing.T) {
-// 			htc, err := createHealthCheckTester(t, c.envVars)
-// 			if err != nil {
-// 				t.Errorf("Error starting container: %v", err)
-// 			}
-// 			endpoint, err := htc.Endpoint(context.Background(), "")
-// 			if err != nil {
-// 				t.Errorf("Error getting endpoint: %v", err)
-// 			}
-//
-// 			url := &url.URL{
-// 				Scheme: "http",
-// 				Host:   endpoint,
-// 			}
-//
-// 			c.loadBalancer.balancer.Add(url)
-//
-// 			c.loadBalancer.healthCheck(context.Background(), url)
-//
-// 			if reflect.DeepEqual(c.loadBalancer.isAliveMap, c.expectedAliveMap) {
-// 				t.Errorf("Expected %v, got %v", c.expectedAliveMap, c.loadBalancer.isAliveMap)
-// 			}
-// 		})
-// 	}
-// }
+func TestHealthCheck(t *testing.T) {
+	cases := []struct {
+		name          string
+		envVars       map[string]string
+		initialHealth bool
+		loadBalancer  *LoadBalancerProxy
+		expectedAlive bool
+	}{
+		{
+			name: "currently healthy, is still healthy",
+			envVars: map[string]string{
+				"READYZ": "TRUE",
+			},
+			initialHealth: true,
+			loadBalancer: &LoadBalancerProxy{
+				isAliveMap: make(map[string]bool),
+				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
+				balancer:   balancer.NewRoundRobinBalancer(),
+			},
+			expectedAlive: true,
+		},
+		{
+			name: "currently unhealthy, is still unhealthy",
+			envVars: map[string]string{
+				"READYZ": "FALSE",
+			},
+			initialHealth: false,
+			loadBalancer: &LoadBalancerProxy{
+				isAliveMap: make(map[string]bool),
+				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
+				balancer:   balancer.NewRoundRobinBalancer(),
+			},
+			expectedAlive: false,
+		},
+		{
+			name: "currently healthy, is now unhealthy",
+			envVars: map[string]string{
+				"READYZ": "FALSE",
+			},
+			initialHealth: true,
+			loadBalancer: &LoadBalancerProxy{
+				isAliveMap: make(map[string]bool),
+				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
+				balancer:   balancer.NewRoundRobinBalancer(),
+			},
+			expectedAlive: false,
+		},
+		{
+			name: "currently unhealthy, is now healthy",
+			envVars: map[string]string{
+				"READYZ": "TRUE",
+			},
+			initialHealth: false,
+			loadBalancer: &LoadBalancerProxy{
+				isAliveMap: make(map[string]bool),
+				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
+				balancer:   balancer.NewRoundRobinBalancer(),
+			},
+			expectedAlive: true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			htc, err := createHealthCheckTester(t, c.envVars)
+			if err != nil {
+				t.Errorf("Error starting container: %v", err)
+			}
+			endpoint, err := htc.Endpoint(context.Background(), "")
+			if err != nil {
+				t.Errorf("Error getting endpoint: %v", err)
+			}
+
+			url := &url.URL{
+				Scheme: "http",
+				Host:   endpoint,
+			}
+
+			c.loadBalancer.balancer.Add(url)
+			c.loadBalancer.isAliveMap[url.Host] = c.initialHealth
+
+			c.loadBalancer.healthCheck(context.Background(), url)
+
+			if c.loadBalancer.isAliveMap[url.Host] != c.expectedAlive {
+				t.Errorf("Expected %v, got %v", c.expectedAlive, !c.expectedAlive)
+			}
+		})
+	}
+}
