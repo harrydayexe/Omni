@@ -25,7 +25,7 @@ func New(config Config, logger *slog.Logger) (*http.ServeMux, error) {
 	}
 
 	for _, path := range config.Paths {
-		proxy, err := NewLoadBalancerProxy(config.Algorithm, []*url.URL{})
+		proxy, err := NewLoadBalancerProxy(config.Algorithm)
 		if err != nil {
 			logger.Error("failed to create new load balancer proxy", slog.String("path", path), slog.Any("error", err))
 			return nil, err
@@ -53,6 +53,7 @@ func New(config Config, logger *slog.Logger) (*http.ServeMux, error) {
 
 // Readiness check endpoint
 // Note this returns StatusServiceUnavailable if no backends are available for any path
+// TODO: Check standards to see if this is the right chocice
 func (loadBalancer *loadBalancer) readyz(w http.ResponseWriter, r *http.Request) {
 	loadBalancer.Logger.InfoContext(r.Context(), "readyz GET request received")
 
@@ -108,8 +109,7 @@ func (loadBalancer *loadBalancer) addBackend(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	proxy.balancer.Add(address)
-
+	proxy.Add(address)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -144,7 +144,6 @@ func (loadBalancer *loadBalancer) removeBackend(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	proxy.balancer.Remove(address)
-
-	w.WriteHeader(http.StatusOK)
+	proxy.Remove(address)
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -35,7 +35,7 @@ func customRewrite(rf func(*httputil.ProxyRequest)) func(*httputil.ProxyRequest)
 	}
 }
 
-func NewLoadBalancerProxy(algorithm string, targetServers []*url.URL) (*LoadBalancerProxy, error) {
+func NewLoadBalancerProxy(algorithm string) (*LoadBalancerProxy, error) {
 	services := make(map[*url.URL]*httputil.ReverseProxy)
 	isAlive := make(map[string]bool)
 
@@ -48,10 +48,6 @@ func NewLoadBalancerProxy(algorithm string, targetServers []*url.URL) (*LoadBala
 		serviceMap: services,
 		isAliveMap: isAlive,
 		balancer:   bal,
-	}
-
-	for _, server := range targetServers {
-		lb.Add(server)
 	}
 
 	return &lb, nil
@@ -89,4 +85,13 @@ func (p *LoadBalancerProxy) Add(server *url.URL) {
 	p.isAliveMap[server.Host] = false
 	p.serviceMap[server] = proxy
 	p.balancer.Add(server)
+}
+
+func (p *LoadBalancerProxy) Remove(server *url.URL) {
+	p.Lock()
+	defer p.Unlock()
+
+	delete(p.serviceMap, server)
+	delete(p.isAliveMap, server.Host)
+	p.balancer.Remove(server)
 }
