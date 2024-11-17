@@ -7,7 +7,7 @@ import (
 
 func TestBuildBalancer(t *testing.T) {
 	// Test that the BuildBalancer function returns an error when the algorithm is not supported
-	_, err := BuildBalancer("unsupported", nil)
+	_, err := BuildBalancer("unsupported")
 	if err != AlgorithmNotSupportedError {
 		t.Errorf("expected AlgorithmNotSupportedError, got %v", err)
 	}

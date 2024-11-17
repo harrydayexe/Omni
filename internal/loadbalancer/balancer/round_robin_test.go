@@ -41,7 +41,10 @@ func TestRoundRobinFactory(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			bal, err := BuildBalancer("round-robin", c.args)
+			bal, err := BuildBalancer("round-robin")
+			for _, arg := range c.args {
+				bal.Add(arg)
+			}
 			if err != nil {
 				t.Errorf("Test: %s failed\nunexpected error: %v", c.name, err)
 			}

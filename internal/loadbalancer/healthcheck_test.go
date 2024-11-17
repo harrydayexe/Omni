@@ -83,13 +83,11 @@ func TestCheckHealth(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error getting endpoint: %v", err)
 			}
-			t.Log(endpoint)
 
 			url := &url.URL{
 				Scheme: "http",
 				Host:   endpoint,
 			}
-			t.Logf("URL: %v", url)
 
 			if CheckHealth(url) != c.expected {
 				t.Errorf("Expected %v, got %v", c.expected, !c.expected)
@@ -106,3 +104,51 @@ func TestCheckHealthUnreachable(t *testing.T) {
 		t.Errorf("Expected %v, got %v", false, true)
 	}
 }
+
+// func TestHealthCheck(t *testing.T) {
+// 	cases := []struct {
+// 		name          string
+// 		envVars       map[string]string
+// 		loadBalancer  *LoadBalancerProxy
+// 		expectedAlive bool
+// 	}{
+// 		{
+// 			name: "currently healthy, is still healthy",
+// 			envVars: map[string]string{
+// 				"READYZ": "TRUE",
+// 			},
+// 			loadBalancer: &LoadBalancerProxy{
+// 				isAliveMap: make(map[string]bool),
+// 				serviceMap: make(map[*url.URL]*httputil.ReverseProxy),
+// 				balancer:   balancer.NewRoundRobinBalancer([]*url.URL{}),
+// 			},
+// 			expectedAlive: true,
+// 		},
+// 	}
+//
+// 	for _, c := range cases {
+// 		t.Run(c.name, func(t *testing.T) {
+// 			htc, err := createHealthCheckTester(t, c.envVars)
+// 			if err != nil {
+// 				t.Errorf("Error starting container: %v", err)
+// 			}
+// 			endpoint, err := htc.Endpoint(context.Background(), "")
+// 			if err != nil {
+// 				t.Errorf("Error getting endpoint: %v", err)
+// 			}
+//
+// 			url := &url.URL{
+// 				Scheme: "http",
+// 				Host:   endpoint,
+// 			}
+//
+// 			c.loadBalancer.balancer.Add(url)
+//
+// 			c.loadBalancer.healthCheck(context.Background(), url)
+//
+// 			if reflect.DeepEqual(c.loadBalancer.isAliveMap, c.expectedAliveMap) {
+// 				t.Errorf("Expected %v, got %v", c.expectedAliveMap, c.loadBalancer.isAliveMap)
+// 			}
+// 		})
+// 	}
+// }
