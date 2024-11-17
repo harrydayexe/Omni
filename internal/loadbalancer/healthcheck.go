@@ -37,11 +37,11 @@ func (p *LoadBalancerProxy) ReadAliveMap(server *url.URL) bool {
 
 func (p *LoadBalancerProxy) StartHealthCheck(ctx context.Context, interval time.Duration) {
 	for server := range p.serviceMap {
-		go p.healthCheck(ctx, server, interval)
+		go p.runHealthCheck(ctx, server, interval)
 	}
 }
 
-func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server *url.URL, interval time.Duration) {
+func (p *LoadBalancerProxy) runHealthCheck(ctx context.Context, server *url.URL, interval time.Duration) {
 	ticker := time.NewTicker(interval * time.Second)
 	defer ticker.Stop()
 
@@ -50,17 +50,21 @@ func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server *url.URL, in
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if CheckHealth(server) && !p.ReadAliveMap(server) {
-				p.Lock()
-				p.isAliveMap[server.Host] = true
-				p.Unlock()
-				p.balancer.Add(server)
-			} else if !CheckHealth(server) && p.ReadAliveMap(server) {
-				p.Lock()
-				p.isAliveMap[server.Host] = false
-				p.Unlock()
-				p.balancer.Remove(server)
-			}
+			p.healthCheck(ctx, server)
 		}
+	}
+}
+
+func (p *LoadBalancerProxy) healthCheck(ctx context.Context, server *url.URL) {
+	if CheckHealth(server) && !p.ReadAliveMap(server) {
+		p.Lock()
+		p.isAliveMap[server.Host] = true
+		p.Unlock()
+		p.balancer.Add(server)
+	} else if !CheckHealth(server) && p.ReadAliveMap(server) {
+		p.Lock()
+		p.isAliveMap[server.Host] = false
+		p.Unlock()
+		p.balancer.Remove(server)
 	}
 }

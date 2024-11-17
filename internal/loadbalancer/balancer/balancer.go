@@ -20,15 +20,15 @@ type Balancer interface {
 	Len() int                   // Return the number of servers in the load balancer
 }
 
-var factories = make(map[string]func([]*url.URL) Balancer)
+var factories = make(map[string]func() Balancer)
 
-func BuildBalancer(algorithm string, servers []*url.URL) (Balancer, error) {
+func BuildBalancer(algorithm string) (Balancer, error) {
 	fac, ok := factories[algorithm]
 	if !ok {
 		return nil, AlgorithmNotSupportedError
 	}
 
-	return fac(servers), nil
+	return fac(), nil
 }
 
 type BaseBalancer struct {

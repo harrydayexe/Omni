@@ -22,10 +22,10 @@ func (r *RoundRobinBalancer) Balance() (*url.URL, error) {
 	return r.servers[i], nil
 }
 
-func NewRoundRobinBalancer(servers []*url.URL) Balancer {
+func NewRoundRobinBalancer() Balancer {
 	return &RoundRobinBalancer{
 		BaseBalancer: BaseBalancer{
-			servers: servers,
+			servers: []*url.URL{},
 		},
 		current: atomic.Uint64{},
 	}

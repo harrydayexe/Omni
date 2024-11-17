@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/harrydayexe/Omni/internal/loadbalancer"
@@ -46,17 +45,4 @@ func main() {
 
 	logger.Info("Starting server")
 	err = server.ListenAndServe()
-}
-
-func convertToUrl(locations []string) ([]*url.URL, error) {
-	returnSet := make([]*url.URL, len(locations))
-	for i, v := range locations {
-		u, err := url.Parse(v)
-		if err != nil {
-			return nil, err
-		}
-		returnSet[i] = u
-	}
-
-	return returnSet, nil
 }
