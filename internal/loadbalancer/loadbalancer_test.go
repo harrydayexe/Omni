@@ -13,6 +13,9 @@ import (
 )
 
 func TestReadyz(t *testing.T) {
+	goodBalancer := balancer.NewRoundRobinBalancer()
+	goodBalancer.Add(&url.URL{Host: "localhost:8080"})
+
 	cases := []struct {
 		name    string
 		proxies map[string]*LoadBalancerProxy
@@ -33,6 +36,21 @@ func TestReadyz(t *testing.T) {
 				},
 			},
 			want: http.StatusServiceUnavailable,
+		},
+		{
+			name: "proxy with backends",
+			proxies: map[string]*LoadBalancerProxy{
+				"GET /": {
+					serviceMap: map[*url.URL]*httputil.ReverseProxy{
+						{Host: "localhost:8080"}: httputil.NewSingleHostReverseProxy(&url.URL{Host: "localhost:8080"}),
+					},
+					isAliveMap: map[string]bool{
+						"localhost:8080": true,
+					},
+					balancer: goodBalancer,
+				},
+			},
+			want: http.StatusOK,
 		},
 	}
 
