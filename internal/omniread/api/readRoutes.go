@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -23,7 +25,7 @@ const (
 func AddReadRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,
-	db *storage.Repository,
+	db *storage.Queries,
 ) {
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
@@ -37,89 +39,91 @@ func AddReadRoutes(
 	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, db)))
 }
 
+// extract the id parameter from the http request
+// if the parameter cannot be parsed then an error is written to the http response
+func extractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger) (snowflake.Snowflake, error) {
+	idString := r.PathValue("id")
+	logger.InfoContext(r.Context(), "extracting id from request", slog.String("idString", idString))
+	idInt, err := strconv.ParseUint(idString, 10, 64)
+	if err != nil {
+		logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
+		errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(errorMessage))
+		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int", err)
+	}
+
+	return snowflake.ParseId(idInt), nil
+}
+
+// check if an error is present and handle the http response if it is
+func isDbError(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, id snowflake.Snowflake, err error) bool {
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.ErrorContext(ctx, "entity not found", slog.Any("id", id))
+		w.WriteHeader(http.StatusNotFound)
+		return true
+	}
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to read entity from db", slog.Any("error", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+
+	return false
+}
+
+// marshall an entity to a json object and write to http response
+func marshallToResponse(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, v interface{}) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to serialize entity to json", slog.Any("error", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(b)
+}
+
 // route: GET /post/{id}
 // return the details of a user by it's id
-func handleReadPost(logger *slog.Logger, db *storage.Repository) http.Handler {
+func handleReadPost(logger *slog.Logger, db *storage.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idString := r.PathValue("id")
-		logger.InfoContext(r.Context(), "read post GET request received", slog.String("id", idString))
-		idInt, err := strconv.ParseUint(idString, 10, 64)
+		logger.InfoContext(r.Context(), "read post GET request received")
+		id, err := extractIdParam(r, w, logger)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
 
-		id := snowflake.ParseId(idInt)
-
-		// TODO: Adopt the repository interface in routes
 		post, err := db.FindPostByID(r.Context(), int64(id.ToInt()))
-		if errors.Is(err, sql.ErrNoRows) {
-			logger.ErrorContext(r.Context(), "post not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to read post from db", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
+		if isDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		b, err := json.Marshal(post)
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to serialize post to json", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
+		marshallToResponse(r.Context(), logger, w, post)
 	})
 }
 
 // route: GET /user/{id}
 // return the details of a user by it's id
-func handleReadUser(logger *slog.Logger, db *storage.Repository) http.Handler {
+func handleReadUser(logger *slog.Logger, db *storage.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idString := r.PathValue("id")
-		logger.InfoContext(r.Context(), "read user GET request received", slog.String("id", idString))
-		idInt, err := strconv.ParseUint(idString, 10, 64)
+		logger.InfoContext(r.Context(), "read user GET request received")
+		id, err := extractIdParam(r, w, logger)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
-
-		id := snowflake.ParseId(idInt)
 
 		user, err := db.GetUserByID(r.Context(), int64(id.ToInt()))
-		if errors.Is(err, sql.ErrNoRows) {
-			logger.ErrorContext(r.Context(), "user not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to read user from db", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
+		if isDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		b, err := json.Marshal(user)
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to serialize user to json", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
+		marshallToResponse(r.Context(), logger, w, user)
 	})
 }
 
-// Extract the from and limit query parameters from the request
-func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, int, error) {
+// extract the from and limit query parameters from the request
+func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.ResponseWriter) (time.Time, int, error) {
 	var fromDate time.Time
 	var limit int
 
@@ -132,6 +136,9 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, i
 		fromDate, err = time.Parse(time.RFC3339, fromVal)
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
 			return time.Time{}, 0, err
 		}
 	}
@@ -143,6 +150,9 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, i
 		limit, err = strconv.Atoi(limitVal)
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to parse comment limit from url query param", slog.Any("error", err))
+			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errorMessage))
 			return time.Time{}, 0, err
 		}
 		if limit > 100 {
@@ -157,27 +167,16 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request) (time.Time, i
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadUserPosts(logger *slog.Logger, db *storage.Repository) http.Handler {
+func handleReadUserPosts(logger *slog.Logger, db *storage.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idString := r.PathValue("id")
-		logger.InfoContext(r.Context(), "read posts GET request received", slog.String("userId", idString))
-
-		idInt, err := strconv.ParseUint(idString, 10, 64)
+		logger.InfoContext(r.Context(), "read posts GET request received")
+		id, err := extractIdParam(r, w, logger)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
 
-		id := snowflake.ParseId(idInt)
-
-		fromDate, limit, err := extractPaginationParams(logger, r)
+		fromDate, limit, err := extractPaginationParams(logger, r, w)
 		if err != nil {
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
 
@@ -186,25 +185,11 @@ func handleReadUserPosts(logger *slog.Logger, db *storage.Repository) http.Handl
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
 		})
-		if errors.Is(err, sql.ErrNoRows) {
-			logger.ErrorContext(r.Context(), "user not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to read user's posts from db", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
+		if isDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		b, err := json.Marshal(comments)
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to serialize posts to json", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
+		marshallToResponse(r.Context(), logger, w, comments)
 	})
 }
 
@@ -212,27 +197,16 @@ func handleReadUserPosts(logger *slog.Logger, db *storage.Repository) http.Handl
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadPostComments(logger *slog.Logger, db *storage.Repository) http.Handler {
+func handleReadPostComments(logger *slog.Logger, db *storage.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idString := r.PathValue("id")
-		logger.InfoContext(r.Context(), "read comments GET request received", slog.String("postId", idString))
-
-		idInt, err := strconv.ParseUint(idString, 10, 64)
+		logger.InfoContext(r.Context(), "read comments GET request received")
+		id, err := extractIdParam(r, w, logger)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
 
-		id := snowflake.ParseId(idInt)
-
-		fromDate, limit, err := extractPaginationParams(logger, r)
+		fromDate, limit, err := extractPaginationParams(logger, r, w)
 		if err != nil {
-			errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(errorMessage))
 			return
 		}
 
@@ -241,24 +215,10 @@ func handleReadPostComments(logger *slog.Logger, db *storage.Repository) http.Ha
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
 		})
-		if errors.Is(err, sql.ErrNoRows) {
-			logger.ErrorContext(r.Context(), "post not found", slog.Any("id", id))
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to read posts's comments from db", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
+		if isDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		b, err := json.Marshal(comments)
-		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to serialize comments to json", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(b)
+		marshallToResponse(r.Context(), logger, w, comments)
 	})
 }
