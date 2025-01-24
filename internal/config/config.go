@@ -2,9 +2,9 @@ package config
 
 // Config is a struct that holds the configuration for the OmniRead application.
 type Config struct {
-	Port            int    `env:"PORT"`
-	DataSourceName  string `env:"DATA_SOURCE_NAME"`
-	ConnMaxLifetime int    `env:"CONNECTION_MAX_LIFETIME"`
-	MaxOpenConns    int    `env:"MAX_OPEN_CONNECTIONS"`
-	MaxIdleConns    int    `env:"MAX_IDLE_CONNECTIONS"`
+	Port            int    `env:"PORT" envDefault:"80"`
+	DataSourceName  string `env:"DATA_SOURCE_NAME,required"`
+	ConnMaxLifetime int    `env:"CONNECTION_MAX_LIFETIME" envDefault:"3"`
+	MaxOpenConns    int    `env:"MAX_OPEN_CONNECTIONS" envDefault:"10"`
+	MaxIdleConns    int    `env:"MAX_IDLE_CONNECTIONS" envDefault:"10"`
 }

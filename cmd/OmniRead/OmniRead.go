@@ -32,6 +32,7 @@ func main() {
 	cfg, err := env.ParseAs[config.Config]()
 	if err != nil {
 		logger.Error("failed to parse config", slog.Any("error", err))
+		panic(err)
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
