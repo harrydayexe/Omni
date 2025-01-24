@@ -15,6 +15,17 @@ import (
 	"github.com/harrydayexe/Omni/internal/storage"
 )
 
+type stubbedDB struct {
+	ShouldReturnError bool
+}
+
+func (s *stubbedDB) PingContext(ctx context.Context) error {
+	if s.ShouldReturnError {
+		return fmt.Errorf("ping error")
+	}
+	return nil
+}
+
 func TestGetUserKnown(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
 		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
@@ -26,15 +37,13 @@ func TestGetUserKnown(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/user/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/user/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -63,15 +72,13 @@ func TestGetUserUnknown(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/user/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/user/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -83,15 +90,13 @@ func TestGetUserUnknown(t *testing.T) {
 }
 
 func TestGetUserBadFormedId(t *testing.T) {
-	req, err := http.NewRequest("GET", "/user/hello", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/user/hello", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		nil,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -120,15 +125,13 @@ func TestGetUserDBError(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/user/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/user/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -160,15 +163,13 @@ func TestGetPostKnown(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/post/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/post/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -197,15 +198,13 @@ func TestGetPostUnknown(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/post/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/post/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -217,15 +216,13 @@ func TestGetPostUnknown(t *testing.T) {
 }
 
 func TestGetPostBadFormedId(t *testing.T) {
-	req, err := http.NewRequest("GET", "/post/hello", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/post/hello", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		nil,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -254,15 +251,13 @@ func TestGetPostDBError(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "/post/1796290045997481984", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := httptest.NewRequest("GET", "/post/1796290045997481984", nil)
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
+		&stubbedDB{ShouldReturnError: false},
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -280,7 +275,7 @@ func TestGetPostsForUser(t *testing.T) {
 	const mdUrl = "https://example.com"
 
 	expectedPosts := []storage.Post{
-		storage.Post{
+		{
 			ID:          basePostNum,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
@@ -288,7 +283,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 1,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
@@ -296,7 +291,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 2,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
@@ -304,7 +299,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 3,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
@@ -312,7 +307,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 4,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
@@ -320,7 +315,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 5,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
@@ -328,7 +323,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 6,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
@@ -336,7 +331,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 7,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 4, 10, 0, 0, 0, 0, time.UTC),
@@ -344,7 +339,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 8,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 5, 4, 0, 0, 0, 0, time.UTC),
@@ -352,7 +347,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 9,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 6, 4, 0, 0, 0, 0, time.UTC),
@@ -360,7 +355,7 @@ func TestGetPostsForUser(t *testing.T) {
 			Description: "Foobarbaz",
 			MarkdownUrl: mdUrl,
 		},
-		storage.Post{
+		{
 			ID:          basePostNum + 10,
 			UserID:      userIdNum,
 			CreatedAt:   time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC),
@@ -491,15 +486,13 @@ func TestGetPostsForUser(t *testing.T) {
 				},
 			}
 
-			req, err := http.NewRequest("GET", "/user/"+tt.urlQuery, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			req := httptest.NewRequest("GET", "/user/"+tt.urlQuery, nil)
 
 			rr := httptest.NewRecorder()
 			handler := NewHandler(
 				slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 				mockedQueries,
+				&stubbedDB{ShouldReturnError: false},
 			)
 
 			handler.ServeHTTP(rr, req)
@@ -524,77 +517,77 @@ func TestGetCommentsForPost(t *testing.T) {
 	const baseCommentNum = 1796290045997481986
 
 	expectedComments := []storage.Comment{
-		storage.Comment{
+		{
 			ID:        baseCommentNum,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 1",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 1,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 2",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 2,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 5, 20, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 3",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 3,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 4",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 4,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 5",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 5,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 6",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 6,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 7",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 7,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 5, 6, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 8",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 8,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 5, 7, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 9",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 9,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
 			CreatedAt: time.Date(2024, 5, 8, 0, 0, 0, 0, time.UTC),
 			Content:   "Example Comment 10",
 		},
-		storage.Comment{
+		{
 			ID:        baseCommentNum + 10,
 			PostID:    postIdNum,
 			UserID:    userIdNum,
@@ -724,15 +717,13 @@ func TestGetCommentsForPost(t *testing.T) {
 				},
 			}
 
-			req, err := http.NewRequest("GET", "/post/"+tt.urlQuery, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			req := httptest.NewRequest("GET", "/post/"+tt.urlQuery, nil)
 
 			rr := httptest.NewRecorder()
 			handler := NewHandler(
 				slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 				mockedQueries,
+				&stubbedDB{ShouldReturnError: false},
 			)
 
 			handler.ServeHTTP(rr, req)
