@@ -62,7 +62,7 @@ func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
 	return i, err
 }
 
-const getUserAndPostsByIDPaged = `-- name: GetUserAndPostsByIDPaged :one
+const getUserAndPostsByIDPaged = `-- name: GetUserAndPostsByIDPaged :many
 SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM Users 
 LEFT JOIN Posts ON Users.id = Posts.user_id
 WHERE Users.id = ? AND Posts.created_at > ? 
@@ -81,20 +81,36 @@ type GetUserAndPostsByIDPagedRow struct {
 	Post Post `json:"post"`
 }
 
-func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPostsByIDPagedParams) (GetUserAndPostsByIDPagedRow, error) {
-	row := q.queryRow(ctx, q.getUserAndPostsByIDPagedStmt, getUserAndPostsByIDPaged, arg.ID, arg.CreatedAfter, arg.Limit)
-	var i GetUserAndPostsByIDPagedRow
-	err := row.Scan(
-		&i.User.ID,
-		&i.User.Username,
-		&i.Post.ID,
-		&i.Post.UserID,
-		&i.Post.CreatedAt,
-		&i.Post.Title,
-		&i.Post.Description,
-		&i.Post.MarkdownUrl,
-	)
-	return i, err
+func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPostsByIDPagedParams) ([]GetUserAndPostsByIDPagedRow, error) {
+	rows, err := q.query(ctx, q.getUserAndPostsByIDPagedStmt, getUserAndPostsByIDPaged, arg.ID, arg.CreatedAfter, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserAndPostsByIDPagedRow
+	for rows.Next() {
+		var i GetUserAndPostsByIDPagedRow
+		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.Post.ID,
+			&i.Post.UserID,
+			&i.Post.CreatedAt,
+			&i.Post.Title,
+			&i.Post.Description,
+			&i.Post.MarkdownUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updatePost = `-- name: UpdatePost :exec

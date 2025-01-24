@@ -9,7 +9,7 @@ import (
 
 func NewHandler(
 	logger *slog.Logger,
-	db *storage.Queries,
+	db storage.Querier,
 ) http.Handler {
 	mux := http.NewServeMux()
 	AddReadRoutes(

@@ -9,3 +9,4 @@ sql:
         emit_prepared_queries: true
         package: "storage"
         out: "internal/storage"
+        emit_interface: true

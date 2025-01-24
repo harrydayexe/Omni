@@ -1,7 +1,7 @@
 -- name: FindPostByID :one
 SELECT * FROM Posts WHERE id = ?;
 
--- name: GetUserAndPostsByIDPaged :one
+-- name: GetUserAndPostsByIDPaged :many
 SELECT sqlc.embed(Users), sqlc.embed(Posts) FROM Users 
 LEFT JOIN Posts ON Users.id = Posts.user_id
 WHERE Users.id = ? AND Posts.created_at > sqlc.arg(created_after) 

@@ -25,7 +25,7 @@ const (
 func AddReadRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,
-	db *storage.Queries,
+	db storage.Querier,
 ) {
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
@@ -37,6 +37,7 @@ func AddReadRoutes(
 	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, db)))
 	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, db)))
 	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, db)))
+	// TODO: Add new routes for things like getting a user and their posts together
 }
 
 // extract the id parameter from the http request
@@ -50,7 +51,7 @@ func extractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 		errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errorMessage))
-		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int", err)
+		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int: %w", err)
 	}
 
 	return snowflake.ParseId(idInt), nil
@@ -86,7 +87,7 @@ func marshallToResponse(ctx context.Context, logger *slog.Logger, w http.Respons
 
 // route: GET /post/{id}
 // return the details of a user by it's id
-func handleReadPost(logger *slog.Logger, db *storage.Queries) http.Handler {
+func handleReadPost(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read post GET request received")
 		id, err := extractIdParam(r, w, logger)
@@ -105,7 +106,7 @@ func handleReadPost(logger *slog.Logger, db *storage.Queries) http.Handler {
 
 // route: GET /user/{id}
 // return the details of a user by it's id
-func handleReadUser(logger *slog.Logger, db *storage.Queries) http.Handler {
+func handleReadUser(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read user GET request received")
 		id, err := extractIdParam(r, w, logger)
@@ -167,7 +168,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadUserPosts(logger *slog.Logger, db *storage.Queries) http.Handler {
+func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read posts GET request received")
 		id, err := extractIdParam(r, w, logger)
@@ -180,7 +181,7 @@ func handleReadUserPosts(logger *slog.Logger, db *storage.Queries) http.Handler 
 			return
 		}
 
-		comments, err := db.GetUserAndPostsByIDPaged(r.Context(), storage.GetUserAndPostsByIDPagedParams{
+		rows, err := db.GetUserAndPostsByIDPaged(r.Context(), storage.GetUserAndPostsByIDPagedParams{
 			ID:           int64(id.ToInt()),
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
@@ -189,7 +190,13 @@ func handleReadUserPosts(logger *slog.Logger, db *storage.Queries) http.Handler 
 			return
 		}
 
-		marshallToResponse(r.Context(), logger, w, comments)
+		// Extract the posts from the rows
+		posts := make([]storage.Post, len(rows))
+		for i, row := range rows {
+			posts[i] = row.Post
+		}
+
+		marshallToResponse(r.Context(), logger, w, posts)
 	})
 }
 
@@ -197,7 +204,7 @@ func handleReadUserPosts(logger *slog.Logger, db *storage.Queries) http.Handler 
 // there are two query parameters from and limit
 // from is the date and time to retrieve comments since in RFC3339 format
 // limit is the number of comments to return (default to 10, max is 100)
-func handleReadPostComments(logger *slog.Logger, db *storage.Queries) http.Handler {
+func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read comments GET request received")
 		id, err := extractIdParam(r, w, logger)
@@ -210,7 +217,7 @@ func handleReadPostComments(logger *slog.Logger, db *storage.Queries) http.Handl
 			return
 		}
 
-		comments, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), storage.FindCommentsAndUserByPostIDPagedParams{
+		rows, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), storage.FindCommentsAndUserByPostIDPagedParams{
 			PostID:       int64(id.ToInt()),
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
@@ -219,6 +226,27 @@ func handleReadPostComments(logger *slog.Logger, db *storage.Queries) http.Handl
 			return
 		}
 
+		type CommentReturn struct {
+			ID        int64     `json:"id"`
+			PostID    int64     `json:"post_id"`
+			UserID    int64     `json:"user_id"`
+			Username  string    `json:"username"`
+			CreatedAt time.Time `json:"created_at"`
+			Content   string    `json:"content"`
+		}
+
+		// Extract the comments from the rows with usernames
+		comments := make([]CommentReturn, len(rows))
+		for i, row := range rows {
+			comments[i] = CommentReturn{
+				ID:        row.Comment.ID,
+				PostID:    row.Comment.PostID,
+				UserID:    row.Comment.UserID,
+				Username:  row.User.Username,
+				CreatedAt: row.Comment.CreatedAt,
+				Content:   row.Comment.Content,
+			}
+		}
 		marshallToResponse(r.Context(), logger, w, comments)
 	})
 }
