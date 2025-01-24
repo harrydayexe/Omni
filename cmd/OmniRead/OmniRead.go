@@ -42,11 +42,9 @@ func main() {
 		panic(err)
 	}
 
-	ur := storage.NewUserRepo(db, logger)
-	pr := storage.NewPostRepo(db)
-	cr := storage.NewCommentRepo(db, logger)
+	queries := storage.New(db)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, ur, pr, cr), os.Stdout, os.Args); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, queries), os.Stdout, os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

@@ -2,7 +2,8 @@ package api
 
 import (
 	"context"
-	"errors"
+	"database/sql"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,74 +12,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/harrydayexe/Omni/internal/models"
-	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
 
-type mockPostRepo struct {
-	readFunc        func(ctx context.Context, id snowflake.Snowflake) (*models.Post, error)
-	getPostsForUser func(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error)
-}
-
-func (m mockPostRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
-	return m.readFunc(ctx, id)
-}
-func (m mockPostRepo) Create(ctx context.Context, entity models.Post) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) Update(ctx context.Context, entity models.Post) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-func (m mockPostRepo) GetPostsForUser(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error) {
-	return m.getPostsForUser(ctx, userId, from, limit)
-}
-
-type mockUserRepo struct {
-	readFunc func(ctx context.Context, id snowflake.Snowflake) (*models.User, error)
-}
-
-func (m mockUserRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-	return m.readFunc(ctx, id)
-}
-func (m mockUserRepo) Create(ctx context.Context, entity models.User) error {
-	return errors.New("not implemented")
-}
-func (m mockUserRepo) Update(ctx context.Context, entity models.User) error {
-	return errors.New("not implemented")
-}
-func (m mockUserRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-
-type mockCommentRepo struct {
-	getCommentsForPostFunc func(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error)
-}
-
-func (m mockCommentRepo) Read(ctx context.Context, id snowflake.Snowflake) (*models.Comment, error) {
-	return nil, errors.New("not implemented")
-}
-func (m mockCommentRepo) Create(ctx context.Context, entity models.Comment) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) Update(ctx context.Context, entity models.Comment) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) Delete(ctx context.Context, id snowflake.Snowflake) error {
-	return errors.New("not implemented")
-}
-func (m mockCommentRepo) GetCommentsForPost(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error) {
-	return m.getCommentsForPostFunc(ctx, postId, from, limit)
-}
-
 func TestGetUserKnown(t *testing.T) {
-	mockedRepo := &mockUserRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-			newUser := models.NewUser(id, "johndoe", make([]snowflake.Snowflake, 0))
-			return &newUser, nil
+	mockedQueries := &storage.StubbedQueries{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			newUser := storage.User{
+				ID:       id,
+				Username: "johndoe",
+			}
+			return newUser, nil
 		},
 	}
 
@@ -90,9 +34,7 @@ func TestGetUserKnown(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		mockedRepo,
-		nil,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -107,7 +49,7 @@ func TestGetUserKnown(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"username":"johndoe","posts":[]}`
+	expected := `{"id":1796290045997481984,"username":"johndoe"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -115,9 +57,9 @@ func TestGetUserKnown(t *testing.T) {
 }
 
 func TestGetUserUnknown(t *testing.T) {
-	mockedRepo := &mockUserRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-			return nil, nil
+	mockedQueries := &storage.StubbedQueries{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{}, sql.ErrNoRows
 		},
 	}
 
@@ -129,9 +71,7 @@ func TestGetUserUnknown(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		mockedRepo,
-		nil,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -151,8 +91,6 @@ func TestGetUserBadFormedId(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		nil,
-		nil,
 		nil,
 	)
 
@@ -176,9 +114,9 @@ func TestGetUserBadFormedId(t *testing.T) {
 }
 
 func TestGetUserDBError(t *testing.T) {
-	mockedRepo := &mockUserRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.User, error) {
-			return nil, storage.NewDatabaseError("database error", errors.New("database error"))
+	mockedQueries := &storage.StubbedQueries{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{}, fmt.Errorf("database error")
 		},
 	}
 
@@ -190,9 +128,7 @@ func TestGetUserDBError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		mockedRepo,
-		nil,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -210,20 +146,17 @@ func TestGetPostKnown(t *testing.T) {
 		Host:   "example.com",
 		Path:   "/foo",
 	}
-	mockedRepo := &mockPostRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
-			newPost := models.NewPost(
-				id,
-				snowflake.ParseId(1796290045997481985),
-				"johndoe",
-				expectedTime,
-				"Hello, World!",
-				"Foobarbaz",
-				expectedURL,
-				[]snowflake.Snowflake{snowflake.ParseId(1796290045997481986)},
-				[]string{"foo", "bar", "baz"},
-			)
-			return &newPost, nil
+	mockedQueries := &storage.StubbedQueries{
+		FindPostByIDFn: func(ctx context.Context, id int64) (storage.Post, error) {
+			newPost := storage.Post{
+				ID:          id,
+				UserID:      1796290045997481985,
+				CreatedAt:   expectedTime,
+				Title:       "Hello, World!",
+				Description: "Foobarbaz",
+				MarkdownUrl: expectedURL.String(),
+			}
+			return newPost, nil
 		},
 	}
 
@@ -235,9 +168,7 @@ func TestGetPostKnown(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		nil,
-		mockedRepo,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -252,7 +183,7 @@ func TestGetPostKnown(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","contentFileUrl":"https://example.com/foo","comments":[1796290045997481986],"tags":["foo","bar","baz"]}`
+	expected := `{"id":1796290045997481984,"user_id":1796290045997481985,"created_at":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","markdown_url":"https://example.com/foo"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -260,9 +191,9 @@ func TestGetPostKnown(t *testing.T) {
 }
 
 func TestGetPostUnknown(t *testing.T) {
-	mockedRepo := &mockPostRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
-			return nil, nil
+	mockedQueries := &storage.StubbedQueries{
+		FindPostByIDFn: func(ctx context.Context, id int64) (storage.Post, error) {
+			return storage.Post{}, sql.ErrNoRows
 		},
 	}
 
@@ -274,9 +205,7 @@ func TestGetPostUnknown(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		nil,
-		mockedRepo,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -296,8 +225,6 @@ func TestGetPostBadFormedId(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		nil,
-		nil,
 		nil,
 	)
 
@@ -321,9 +248,9 @@ func TestGetPostBadFormedId(t *testing.T) {
 }
 
 func TestGetPostDBError(t *testing.T) {
-	mockedRepo := &mockPostRepo{
-		readFunc: func(ctx context.Context, id snowflake.Snowflake) (*models.Post, error) {
-			return nil, storage.NewDatabaseError("database error", errors.New("database error"))
+	mockedQueries := &storage.StubbedQueries{
+		FindPostByIDFn: func(ctx context.Context, id int64) (storage.Post, error) {
+			return storage.Post{}, fmt.Errorf("database error")
 		},
 	}
 
@@ -335,9 +262,7 @@ func TestGetPostDBError(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-		nil,
-		mockedRepo,
-		nil,
+		mockedQueries,
 	)
 
 	handler.ServeHTTP(rr, req)
@@ -352,163 +277,97 @@ func TestGetPostsForUser(t *testing.T) {
 	const userIdNum = 1796290045997481984
 	const userIdString = "1796290045997481984"
 	const basePostNum = 1796290045997481985
-	userId := snowflake.ParseId(userIdNum)
+	const mdUrl = "https://example.com"
 
-	expectedPosts := []models.Post{
-		models.NewPost(
-			snowflake.ParseId(basePostNum+0),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
-			"Post 0",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+1),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-			"Post 1",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+2),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
-			"Post 2",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+3),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
-			"Post 3",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+4),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
-			"Post 4",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+5),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
-			"Post 5",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+6),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
-			"Post 6",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+7),
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 10, 0, 0, 0, 0, time.UTC),
-			"Post 7",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+8),
-			userId,
-			"johndoe",
-			time.Date(2024, 5, 4, 0, 0, 0, 0, time.UTC),
-			"Post 8",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+9),
-			userId,
-			"johndoe",
-			time.Date(2024, 6, 4, 0, 0, 0, 0, time.UTC),
-			"Post 9",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
-		models.NewPost(
-			snowflake.ParseId(basePostNum+10),
-			userId,
-			"johndoe",
-			time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC),
-			"Post 10",
-			"Foobarbaz",
-			url.URL{
-				Scheme: "https",
-				Host:   "example.com",
-			},
-			[]snowflake.Snowflake{},
-			[]string{},
-		),
+	expectedPosts := []storage.Post{
+		storage.Post{
+			ID:          basePostNum,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 0",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 1,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 1",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 2,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 2",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 3,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 3",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 4,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 4",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 5,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 5",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 6,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 6",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 7,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 4, 10, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 7",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 8,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 5, 4, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 8",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 9,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 6, 4, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 9",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
+		storage.Post{
+			ID:          basePostNum + 10,
+			UserID:      userIdNum,
+			CreatedAt:   time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC),
+			Title:       "Post 10",
+			Description: "Foobarbaz",
+			MarkdownUrl: mdUrl,
+		},
 	}
 
 	tests := []struct {
@@ -527,7 +386,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481986,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481987,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481988,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481989,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481990,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481991,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481992,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481993,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481994,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
@@ -537,7 +396,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481988,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481989,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481990,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481991,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481992,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481993,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481994,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481995,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
 		},
@@ -547,7 +406,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{3, 4},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481988,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481989,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
 			expectedRequestedLimit: 2,
 			expectedRequestedFrom:  time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
 		},
@@ -557,7 +416,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481986,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481987,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481988,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481989,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481990,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481991,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481992,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481993,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481994,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481995,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 2, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -567,7 +426,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481986,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481987,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481988,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481989,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481990,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481991,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481992,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481993,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481994,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]},{"id":1796290045997481995,"authorId":1796290045997481984,"authorName":"johndoe","timestamp":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","contentFileUrl":"https://example.com","comments":[],"tags":[]}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 2, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -592,36 +451,43 @@ func TestGetPostsForUser(t *testing.T) {
 		{
 			name:                   "DB error",
 			urlQuery:               userIdString + "/posts?",
-			errorToReturn:          storage.NewDatabaseError("database error", errors.New("database error")),
+			errorToReturn:          fmt.Errorf("database error"),
 			expectedStatusCode:     http.StatusInternalServerError,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
 	}
 
+	var userObj = storage.User{
+		ID:       userIdNum,
+		Username: "johndoe",
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			mockedRepo := &mockPostRepo{
-				getPostsForUser: func(ctx context.Context, userId snowflake.Snowflake, from time.Time, limit int) ([]models.Post, error) {
-					if limit != tt.expectedRequestedLimit {
-						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", limit)
+			mockedQueries := &storage.StubbedQueries{
+				GetUserAndPostsByIDPagedFn: func(ctx context.Context, arg storage.GetUserAndPostsByIDPagedParams) ([]storage.GetUserAndPostsByIDPagedRow, error) {
+					if int(arg.Limit) != tt.expectedRequestedLimit {
+						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", arg.Limit)
 					}
 
-					if from != tt.expectedRequestedFrom {
-						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", from)
+					if arg.CreatedAfter != tt.expectedRequestedFrom {
+						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", arg.CreatedAfter)
 					}
 
 					if tt.errorToReturn != nil {
-						return nil, tt.errorToReturn
+						return []storage.GetUserAndPostsByIDPagedRow{}, tt.errorToReturn
 					}
 
-					posts := make([]models.Post, len(tt.postsToReturn))
+					rows := make([]storage.GetUserAndPostsByIDPagedRow, len(tt.postsToReturn))
 					for i, idx := range tt.postsToReturn {
-						posts[i] = expectedPosts[idx]
+						rows[i] = storage.GetUserAndPostsByIDPagedRow{
+							User: userObj,
+							Post: expectedPosts[idx],
+						}
 					}
-					return posts, nil
-
+					return rows, nil
 				},
 			}
 
@@ -633,9 +499,7 @@ func TestGetPostsForUser(t *testing.T) {
 			rr := httptest.NewRecorder()
 			handler := NewHandler(
 				slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-				nil,
-				mockedRepo,
-				nil,
+				mockedQueries,
 			)
 
 			handler.ServeHTTP(rr, req)
@@ -658,98 +522,85 @@ func TestGetCommentsForPost(t *testing.T) {
 	const postIdString = "1796290045997481984"
 	const userIdNum = 1796290045997481985
 	const baseCommentNum = 1796290045997481986
-	postId := snowflake.ParseId(postIdNum)
-	userId := snowflake.ParseId(userIdNum)
 
-	expectedComments := []models.Comment{
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
-			"Example Comment 1",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+1),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-			"Example Comment 2",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+2),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 5, 20, 0, 0, 0, time.UTC),
-			"Example Comment 3",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+3),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
-			"Example Comment 4",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+4),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
-			"Example Comment 5",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+5),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
-			"Example Comment 6",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+6),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
-			"Example Comment 7",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+7),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 5, 6, 0, 0, 0, 0, time.UTC),
-			"Example Comment 8",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+8),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 5, 7, 0, 0, 0, 0, time.UTC),
-			"Example Comment 9",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+9),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 5, 8, 0, 0, 0, 0, time.UTC),
-			"Example Comment 10",
-		),
-		models.NewComment(
-			snowflake.ParseId(baseCommentNum+10),
-			postId,
-			userId,
-			"johndoe",
-			time.Date(2024, 5, 9, 0, 0, 0, 0, time.UTC),
-			"Example Comment 11",
-		),
+	expectedComments := []storage.Comment{
+		storage.Comment{
+			ID:        baseCommentNum,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 4, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 1",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 1,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 2",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 2,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 5, 20, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 3",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 3,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 4",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 4,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 5",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 5,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 8, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 6",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 6,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 4, 9, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 7",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 7,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 5, 6, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 8",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 8,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 5, 7, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 9",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 9,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 5, 8, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 10",
+		},
+		storage.Comment{
+			ID:        baseCommentNum + 10,
+			PostID:    postIdNum,
+			UserID:    userIdNum,
+			CreatedAt: time.Date(2024, 5, 9, 0, 0, 0, 0, time.UTC),
+			Content:   "Example Comment 11",
+		},
 	}
 
 	tests := []struct {
@@ -768,7 +619,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
@@ -778,7 +629,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			errorToReturn:          nil,
 			commentsToReturn:       []int{3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -788,7 +639,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			errorToReturn:          nil,
 			commentsToReturn:       []int{3, 4},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
 			expectedRequestedLimit: 2,
 			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -798,7 +649,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -808,7 +659,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			errorToReturn:          nil,
 			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"postId":1796290045997481984,"authorId":1796290045997481985,"authorName":"johndoe","timestamp":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -833,35 +684,43 @@ func TestGetCommentsForPost(t *testing.T) {
 		{
 			name:                   "DB error",
 			urlQuery:               postIdString + "/comments?",
-			errorToReturn:          storage.NewDatabaseError("database error", errors.New("database error")),
+			errorToReturn:          fmt.Errorf("database error"),
 			expectedStatusCode:     http.StatusInternalServerError,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
 	}
 
+	var userObj = storage.User{
+		ID:       userIdNum,
+		Username: "johndoe",
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			mockedRepo := &mockCommentRepo{
-				getCommentsForPostFunc: func(ctx context.Context, postId snowflake.Snowflake, from time.Time, limit int) ([]models.Comment, error) {
-					if limit != tt.expectedRequestedLimit {
-						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", limit)
+			mockedQueries := &storage.StubbedQueries{
+				FindCommentsAndUserByPostIDPagedFn: func(ctx context.Context, arg storage.FindCommentsAndUserByPostIDPagedParams) ([]storage.FindCommentsAndUserByPostIDPagedRow, error) {
+					if int(arg.Limit) != tt.expectedRequestedLimit {
+						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", arg.Limit)
 					}
 
-					if from != tt.expectedRequestedFrom {
-						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", from)
+					if arg.CreatedAfter != tt.expectedRequestedFrom {
+						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", arg.CreatedAfter)
 					}
 
 					if tt.errorToReturn != nil {
 						return nil, tt.errorToReturn
 					}
 
-					comments := make([]models.Comment, len(tt.commentsToReturn))
+					rows := make([]storage.FindCommentsAndUserByPostIDPagedRow, len(tt.commentsToReturn))
 					for i, idx := range tt.commentsToReturn {
-						comments[i] = expectedComments[idx]
+						rows[i] = storage.FindCommentsAndUserByPostIDPagedRow{
+							User:    userObj,
+							Comment: expectedComments[idx],
+						}
 					}
-					return comments, nil
+					return rows, nil
 				},
 			}
 
@@ -873,9 +732,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			rr := httptest.NewRecorder()
 			handler := NewHandler(
 				slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
-				nil,
-				nil,
-				mockedRepo,
+				mockedQueries,
 			)
 
 			handler.ServeHTTP(rr, req)

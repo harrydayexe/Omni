@@ -1,6 +1,6 @@
 services:
-  mysql:
-    image: mysql:8.4.0
+  mariadb:
+    image: mariadb:11.6.2
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Password1!
@@ -10,8 +10,26 @@ services:
     expose:
       - "3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      test: ['CMD', '/usr/local/bin/healthcheck.sh', '--innodb_initialized']
+      start_period: 5s
+      timeout: 5s
       interval: 5s
-      timeout: 3s
-      retries: 2
-      start_period: 0s
+      retries: 5
+    # healthcheck:
+    #   test: ["CMD", "mysql", "ping", "-h", "127.0.0.1", "--silent"]
+    #   interval: 5s
+    #   timeout: 3s
+    #   retries: 2
+    #   start_period: 0s
+
+  migrate:
+    image: migrate/migrate:latest
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    entrypoint: [
+      "sh", "-c",
+      "migrate -path=/migrations -database 'mysql://root:Password1!@tcp(mariadb:3306)/omni' up"
+    ]
+    volumes:
+      - ./db/migrations:/migrations

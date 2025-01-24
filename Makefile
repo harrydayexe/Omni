@@ -33,3 +33,6 @@ compose-up:
 
 compose-down:
 	docker-compose down
+
+sqlc:
+	sqlc generate
