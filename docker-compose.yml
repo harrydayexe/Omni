@@ -15,3 +15,15 @@ services:
       timeout: 3s
       retries: 2
       start_period: 0s
+
+  migrate:
+    image: migrate/migrate:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: [
+      "sh", "-c",
+      "migrate -path=/migrations -database 'mysql://root:Password1!@tcp(mysql:3306)/omni' up"
+    ]
+    volumes:
+      - ./db/migrations:/migrations
