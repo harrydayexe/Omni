@@ -11,7 +11,7 @@ import (
 )
 
 const createComment = `-- name: CreateComment :exec
-INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?)
+INSERT INTO comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?)
 `
 
 type CreateCommentParams struct {
@@ -34,7 +34,7 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) er
 }
 
 const deleteComment = `-- name: DeleteComment :exec
-DELETE FROM Comments WHERE id = ?
+DELETE FROM comments WHERE id = ?
 `
 
 func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
@@ -43,10 +43,10 @@ func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
 }
 
 const findCommentAndUserByID = `-- name: FindCommentAndUserByID :one
-SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM Comments 
-INNER JOIN Users 
-ON Comments.user_id = Users.id 
-WHERE Comments.id = ?
+SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM comments 
+INNER JOIN users 
+ON comments.user_id = users.id 
+WHERE comments.id = ?
 `
 
 type FindCommentAndUserByIDRow struct {
@@ -70,11 +70,11 @@ func (q *Queries) FindCommentAndUserByID(ctx context.Context, id int64) (FindCom
 }
 
 const findCommentsAndUserByPostIDPaged = `-- name: FindCommentsAndUserByPostIDPaged :many
-SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM Comments 
-INNER JOIN Users 
-ON Comments.user_id = Users.id 
-WHERE Comments.post_id = ? AND Comments.created_at > ? 
-ORDER BY Comments.created_at ASC
+SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM comments 
+INNER JOIN users 
+ON comments.user_id = users.id 
+WHERE comments.post_id = ? AND comments.created_at > ? 
+ORDER BY comments.created_at ASC
 LIMIT ?
 `
 
@@ -121,7 +121,7 @@ func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg Find
 }
 
 const updateComment = `-- name: UpdateComment :exec
-UPDATE Comments SET content=? WHERE id=?
+UPDATE comments SET content=? WHERE id=?
 `
 
 type UpdateCommentParams struct {

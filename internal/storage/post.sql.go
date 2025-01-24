@@ -11,7 +11,7 @@ import (
 )
 
 const createPost = `-- name: CreatePost :exec
-INSERT INTO Posts (id, user_id, created_at, title, description, markdown_url) VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO posts (id, user_id, created_at, title, description, markdown_url) VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreatePostParams struct {
@@ -36,7 +36,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) error {
 }
 
 const deletePost = `-- name: DeletePost :exec
-DELETE FROM Posts WHERE id = ?
+DELETE FROM posts WHERE id = ?
 `
 
 func (q *Queries) DeletePost(ctx context.Context, id int64) error {
@@ -45,7 +45,7 @@ func (q *Queries) DeletePost(ctx context.Context, id int64) error {
 }
 
 const findPostByID = `-- name: FindPostByID :one
-SELECT id, user_id, created_at, title, description, markdown_url FROM Posts WHERE id = ?
+SELECT id, user_id, created_at, title, description, markdown_url FROM posts WHERE id = ?
 `
 
 func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
@@ -63,10 +63,10 @@ func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
 }
 
 const getUserAndPostsByIDPaged = `-- name: GetUserAndPostsByIDPaged :many
-SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM Users 
-LEFT JOIN Posts ON Users.id = Posts.user_id
-WHERE Users.id = ? AND Posts.created_at > ? 
-ORDER BY Posts.created_at ASC
+SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM users 
+LEFT JOIN posts ON users.id = posts.user_id
+WHERE users.id = ? AND posts.created_at > ? 
+ORDER BY posts.created_at ASC
 LIMIT ?
 `
 
@@ -114,7 +114,7 @@ func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPo
 }
 
 const updatePost = `-- name: UpdatePost :exec
-UPDATE Posts SET title=?, description=?, markdown_url=? WHERE id=?
+UPDATE posts SET title=?, description=?, markdown_url=? WHERE id=?
 `
 
 type UpdatePostParams struct {

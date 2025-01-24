@@ -1,11 +1,11 @@
 -- name: GetUserByID :one
-SELECT * FROM Users WHERE id = ?;
+SELECT * FROM users WHERE id = ?;
 
 -- name: CreateUser :exec
-INSERT INTO Users (id, username) VALUES (?, ?);
+INSERT INTO users (id, username) VALUES (?, ?);
 
 -- name: UpdateUser :exec
-UPDATE Users SET username = ? WHERE id = ?;
+UPDATE users SET username = ? WHERE id = ?;
 
 -- name: DeleteUser :exec
-DELETE FROM Users WHERE id = ?;
+DELETE FROM users WHERE id = ?;

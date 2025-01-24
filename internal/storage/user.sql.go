@@ -10,7 +10,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO Users (id, username) VALUES (?, ?)
+INSERT INTO users (id, username) VALUES (?, ?)
 `
 
 type CreateUserParams struct {
@@ -24,7 +24,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM Users WHERE id = ?
+DELETE FROM users WHERE id = ?
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
@@ -33,7 +33,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username FROM Users WHERE id = ?
+SELECT id, username FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -44,7 +44,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 }
 
 const updateUser = `-- name: UpdateUser :exec
-UPDATE Users SET username = ? WHERE id = ?
+UPDATE users SET username = ? WHERE id = ?
 `
 
 type UpdateUserParams struct {

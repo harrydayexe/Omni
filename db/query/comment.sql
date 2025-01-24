@@ -1,22 +1,22 @@
 -- name: FindCommentAndUserByID :one
-SELECT sqlc.embed(Comments), sqlc.embed(Users) FROM Comments 
-INNER JOIN Users 
-ON Comments.user_id = Users.id 
-WHERE Comments.id = ?;
+SELECT sqlc.embed(comments), sqlc.embed(users) FROM comments 
+INNER JOIN users 
+ON comments.user_id = users.id 
+WHERE comments.id = ?;
 
 -- name: CreateComment :exec
-INSERT INTO Comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?);
+INSERT INTO comments (id, post_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?);
 
 -- name: UpdateComment :exec
-UPDATE Comments SET content=? WHERE id=?;
+UPDATE comments SET content=? WHERE id=?;
 
 -- name: DeleteComment :exec
-DELETE FROM Comments WHERE id = ?;
+DELETE FROM comments WHERE id = ?;
 
 -- name: FindCommentsAndUserByPostIDPaged :many
-SELECT sqlc.embed(Comments), sqlc.embed(Users) FROM Comments 
-INNER JOIN Users 
-ON Comments.user_id = Users.id 
-WHERE Comments.post_id = ? AND Comments.created_at > sqlc.arg(created_after) 
-ORDER BY Comments.created_at ASC
+SELECT sqlc.embed(comments), sqlc.embed(users) FROM comments 
+INNER JOIN users 
+ON comments.user_id = users.id 
+WHERE comments.post_id = ? AND comments.created_at > sqlc.arg(created_after) 
+ORDER BY comments.created_at ASC
 LIMIT ?;
