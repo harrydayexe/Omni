@@ -1,19 +1,14 @@
 package api
 
 import (
-	"context"
-	"database/sql"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
-	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
+	"github.com/harrydayexe/Omni/internal/utilities"
 )
 
 const (
@@ -40,67 +35,22 @@ func AddReadRoutes(
 	// TODO: Add new routes for things like getting a user and their posts together
 }
 
-// extract the id parameter from the http request
-// if the parameter cannot be parsed then an error is written to the http response
-func extractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger) (snowflake.Snowflake, error) {
-	idString := r.PathValue("id")
-	logger.InfoContext(r.Context(), "extracting id from request", slog.String("idString", idString))
-	idInt, err := strconv.ParseUint(idString, 10, 64)
-	if err != nil {
-		logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-		errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(errorMessage))
-		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int: %w", err)
-	}
-
-	return snowflake.ParseId(idInt), nil
-}
-
-// check if an error is present and handle the http response if it is
-func isDbError(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, id snowflake.Snowflake, err error) bool {
-	if errors.Is(err, sql.ErrNoRows) {
-		logger.ErrorContext(ctx, "entity not found", slog.Any("id", id))
-		w.WriteHeader(http.StatusNotFound)
-		return true
-	}
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to read entity from db", slog.Any("error", err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return true
-	}
-
-	return false
-}
-
-// marshall an entity to a json object and write to http response
-func marshallToResponse(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, v interface{}) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		logger.ErrorContext(ctx, "failed to serialize entity to json", slog.Any("error", err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(b)
-}
-
 // route: GET /post/{id}
 // return the details of a user by it's id
 func handleReadPost(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read post GET request received")
-		id, err := extractIdParam(r, w, logger)
+		id, err := utilities.ExtractIdParam(r, w, logger)
 		if err != nil {
 			return
 		}
 
 		post, err := db.FindPostByID(r.Context(), int64(id.ToInt()))
-		if isDbError(r.Context(), logger, w, id, err) {
+		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		marshallToResponse(r.Context(), logger, w, post)
+		utilities.MarshallToResponse(r.Context(), logger, w, post)
 	})
 }
 
@@ -109,17 +59,17 @@ func handleReadPost(logger *slog.Logger, db storage.Querier) http.Handler {
 func handleReadUser(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read user GET request received")
-		id, err := extractIdParam(r, w, logger)
+		id, err := utilities.ExtractIdParam(r, w, logger)
 		if err != nil {
 			return
 		}
 
 		user, err := db.GetUserByID(r.Context(), int64(id.ToInt()))
-		if isDbError(r.Context(), logger, w, id, err) {
+		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		marshallToResponse(r.Context(), logger, w, user)
+		utilities.MarshallToResponse(r.Context(), logger, w, user)
 	})
 }
 
@@ -171,7 +121,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read posts GET request received")
-		id, err := extractIdParam(r, w, logger)
+		id, err := utilities.ExtractIdParam(r, w, logger)
 		if err != nil {
 			return
 		}
@@ -186,7 +136,7 @@ func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
 		})
-		if isDbError(r.Context(), logger, w, id, err) {
+		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
@@ -196,7 +146,7 @@ func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 			posts[i] = row.Post
 		}
 
-		marshallToResponse(r.Context(), logger, w, posts)
+		utilities.MarshallToResponse(r.Context(), logger, w, posts)
 	})
 }
 
@@ -207,7 +157,7 @@ func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read comments GET request received")
-		id, err := extractIdParam(r, w, logger)
+		id, err := utilities.ExtractIdParam(r, w, logger)
 		if err != nil {
 			return
 		}
@@ -222,7 +172,7 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 			CreatedAfter: fromDate,
 			Limit:        int32(limit),
 		})
-		if isDbError(r.Context(), logger, w, id, err) {
+		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
@@ -247,6 +197,6 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 				Content:   row.Comment.Content,
 			}
 		}
-		marshallToResponse(r.Context(), logger, w, comments)
+		utilities.MarshallToResponse(r.Context(), logger, w, comments)
 	})
 }
