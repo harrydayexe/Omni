@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/harrydayexe/Omni/internal/cmd"
 	"github.com/harrydayexe/Omni/internal/config"
@@ -19,8 +20,6 @@ import (
 func main() {
 	ctx := context.Background()
 	verbose := flag.Bool("v", false, "verbose")
-	fptr := flag.String("config", "config/OmniRead/dev.yml", "file path to read the config from")
-	flag.Parse()
 
 	var logLevel slog.Leveler
 	if *verbose {
@@ -30,13 +29,13 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	cfg, err := config.NewConfig(*fptr)
+	cfg, err := env.ParseAs[config.Config]()
 	if err != nil {
-		logger.Error("failed to load config: %v", slog.Any("error", err))
-		panic(err)
+		logger.Error("failed to parse config", slog.Any("error", err))
 	}
+	logger.Info("config", slog.Any("config", cfg))
 
-	db, err := GetDBConnection(*cfg)
+	db, err := GetDBConnection(cfg)
 	if err != nil {
 		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)
@@ -44,19 +43,19 @@ func main() {
 
 	queries := storage.New(db)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, queries), os.Stdout, os.Args); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, queries), os.Stdout, cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 }
 
 func GetDBConnection(config config.Config) (*sql.DB, error) {
-	db, err := sql.Open(config.Database.DriverName, config.Database.DataSourceName)
+	db, err := sql.Open("mysql", config.DataSourceName)
 	if err != nil {
 		return nil, err
 	}
 	// See "Important settings" section.
-	db.SetConnMaxLifetime(time.Minute * time.Duration(config.Database.ConnMaxLifetime))
+	db.SetConnMaxLifetime(time.Minute * time.Duration(config.ConnMaxLifetime))
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 	return db, nil

@@ -11,17 +11,19 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+
+	"github.com/harrydayexe/Omni/internal/config"
 )
 
 // run starts the HTTP server with the provided handler.
-func Run(ctx context.Context, srv http.Handler, stdout io.Writer, args []string) error {
+func Run(ctx context.Context, srv http.Handler, stdout io.Writer, config config.Config) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
 	logger := slog.Default()
 
 	httpServer := &http.Server{
-		Addr:    ":8080",
+		Addr:    fmt.Sprintf(":%d", config.Port),
 		Handler: srv,
 	}
 	go func() {
