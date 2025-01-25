@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-readapi-deployment
+  labels:
+    app: {{ .Chart.Name }}-readapi
+spec:
+  replicas: {{ .Values.omniread.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-readapi
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-readapi
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-readapi
+          image: "{{ .Values.omniread.image.repository }}:{{ .Values.omniread.image.tag }}"
+          imagePullPolicy: {{ .Values.omniread.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          env:
+            - name: PORT
+              value: 80
+            - name: DATA_SOURCE_NAME
+              value: "{{ .Values.database.username }}:{{ .Values.database.password }}@tcp({{ .Values.database.host }})/{{ .Values.database.database }}?parseTime=true"
+            - name: CONNECTION_MAX_LIFETIME
+              value: 3
+            - name: MAX_OPEN_CONNECTIONS
+              value: 10
+            - name: MAX_IDLE_CONNECTIONS
+              value: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault

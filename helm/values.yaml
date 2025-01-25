@@ -1,0 +1,16 @@
+omniread:
+  replicaCount: 3
+  image:
+    repository: raspidb.local:5000/harrydayexe/omniread
+    tag: latest
+    pullPolicy: Always
+
+service:
+  port: 80
+  targetPort: 80
+
+database:
+  host: 192.168.1.191
+  username: user
+  password: Password1!
+  database: omni
