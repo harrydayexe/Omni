@@ -45,4 +45,4 @@ EXPOSE 80
 USER 1001
 
 # Set the entrypoint command
-ENTRYPOINT ["/app/OmniRead"]
+ENTRYPOINT ["./OmniRead"]
