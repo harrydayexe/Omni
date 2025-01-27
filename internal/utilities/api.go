@@ -61,12 +61,14 @@ func MarshallToResponse(ctx context.Context, logger *slog.Logger, w http.Respons
 
 func CheckContentTypeHeader(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, r *http.Request) error {
 	ct := r.Header.Get("Content-Type")
-	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
-	if mediaType != "application/json" {
-		msg := "Content-Type header is not application/json"
-		logger.ErrorContext(ctx, msg)
-		http.Error(w, msg, http.StatusUnsupportedMediaType)
-		return fmt.Errorf("Content-Type header is not application/json")
+	if ct != "" {
+		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
+		if mediaType != "application/json" {
+			msg := "Content-Type header is not application/json"
+			logger.ErrorContext(ctx, msg)
+			http.Error(w, msg, http.StatusUnsupportedMediaType)
+			return fmt.Errorf("Content-Type header is not application/json")
+		}
 	}
 	return nil
 }
