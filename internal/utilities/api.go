@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -59,6 +60,8 @@ func MarshallToResponse(ctx context.Context, logger *slog.Logger, w http.Respons
 	w.Write(b)
 }
 
+// check that the content type header is application/json
+// adapted from https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
 func CheckContentTypeHeader(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, r *http.Request) error {
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
@@ -70,5 +73,72 @@ func CheckContentTypeHeader(ctx context.Context, logger *slog.Logger, w http.Res
 			return fmt.Errorf("Content-Type header is not application/json")
 		}
 	}
+	return nil
+}
+
+// decode the json body of an http request into a struct
+// adapted from https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
+func DecodeJsonBody[T any](ctx context.Context, logger *slog.Logger, w http.ResponseWriter, r *http.Request, obj T) error {
+	err := CheckContentTypeHeader(ctx, logger, w, r)
+	if err != nil {
+		return err
+	}
+
+	// Set maximum body size to 1MB to prevent dos attacks
+	http.MaxBytesReader(w, r.Body, 1048576)
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&obj)
+	if err != nil {
+		// Handle JSON decode error
+		var syntaxError *json.SyntaxError
+		var unmarshalTypeError *json.UnmarshalTypeError
+
+		switch {
+		case errors.As(err, &syntaxError):
+			msg := fmt.Sprintf("Request body contains badly-formed JSON (at position %d)", syntaxError.Offset)
+			http.Error(w, msg, http.StatusBadRequest)
+			return fmt.Errorf("Request body contains badly-formed JSON: %w", err)
+		case errors.Is(err, io.ErrUnexpectedEOF):
+			msg := "Request body contains badly-formed JSON"
+			http.Error(w, msg, http.StatusBadRequest)
+			return fmt.Errorf("Request body contains badly-formed JSON: %w", err)
+		case errors.As(err, &unmarshalTypeError):
+			msg := fmt.Sprintf("Request body contains an invalid value for the %q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
+			http.Error(w, msg, http.StatusBadRequest)
+			return fmt.Errorf("Request body contains an invalid value for the %q field: %w", unmarshalTypeError.Field, err)
+		case strings.HasPrefix(err.Error(), "json: unknown field "):
+			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
+			msg := fmt.Sprintf("Request body contains unknown field %s", fieldName)
+			http.Error(w, msg, http.StatusBadRequest)
+			return fmt.Errorf("Request body contains unknown field %s: %w", fieldName, err)
+		case errors.Is(err, io.EOF):
+			msg := "Request body must not be empty"
+			http.Error(w, msg, http.StatusBadRequest)
+			return fmt.Errorf("Request body must not be empty: %w", err)
+		case err.Error() == "http: request body too large":
+			msg := "Request body must not be larger than 1MB"
+			http.Error(w, msg, http.StatusRequestEntityTooLarge)
+			return fmt.Errorf("Request body must not be larger than 1MB: %w", err)
+		default:
+			msg := "An unknown error occurred while decoding the request body"
+			http.Error(w, msg, http.StatusInternalServerError)
+			return err
+		}
+	}
+
+	// Call decode again, using a pointer to an empty anonymous struct as
+	// the destination. If the request body only contained a single JSON
+	// object this will return an io.EOF error. So if we get anything else,
+	// we know that there is additional data in the request body.
+	err = decoder.Decode(&struct{}{})
+	if !errors.Is(err, io.EOF) {
+		msg := "Request body must only contain a single JSON object"
+		http.Error(w, msg, http.StatusBadRequest)
+		return fmt.Errorf("Request body must only contain a single JSON object")
+	}
+
 	return nil
 }
