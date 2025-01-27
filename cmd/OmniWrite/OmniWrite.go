@@ -54,7 +54,7 @@ func main() {
 
 	queries := storage.New(db)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db, snowflakeGenerator), os.Stdout, cfg); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db, snowflakeGenerator, &cfg), os.Stdout, cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
