@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/caarlos0/env/v11"
 	_ "github.com/go-sql-driver/mysql"
@@ -36,7 +34,7 @@ func main() {
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	db, err := GetDBConnection(cfg)
+	db, err := cmd.GetDBConnection(cfg)
 	if err != nil {
 		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)
@@ -48,16 +46,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-}
-
-func GetDBConnection(config config.Config) (*sql.DB, error) {
-	db, err := sql.Open("mysql", config.DataSourceName)
-	if err != nil {
-		return nil, err
-	}
-	// See "Important settings" section.
-	db.SetConnMaxLifetime(time.Minute * time.Duration(config.ConnMaxLifetime))
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
-	return db, nil
 }
