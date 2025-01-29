@@ -1,7 +1,14 @@
 omniread:
-  replicaCount: 3
+  replicaCount: 5
   image:
     repository: raspidb.local/harrydayexe/omniread
+    tag: latest
+    pullPolicy: Always
+
+omniwrite:
+  replicaCount: 3
+  image:
+    repository: raspidb.local/harrydayexe/omniwrite
     tag: latest
     pullPolicy: Always
 
