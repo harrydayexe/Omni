@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/harrydayexe/Omni/internal/cmd"
@@ -14,6 +13,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/omniwrite/api"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
+	"github.com/harrydayexe/Omni/internal/utilities"
 )
 
 func main() {
@@ -35,16 +35,10 @@ func main() {
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	// Get node id from env
-	nodeIdStr, prs := os.LookupEnv("NODE_ID")
-	if !prs {
-		logger.Error("failed to get node id from env")
-		panic("failed to get node id from env")
-	}
-	nodeId64, err := strconv.ParseUint(nodeIdStr, 10, 16)
+	nodeId, err := utilities.GetNodeIDFromDeployment(logger)
 
 	// Create snowflake generator
-	snowflakeGenerator := snowflake.NewSnowflakeGenerator(uint16(nodeId64))
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(uint16(nodeId))
 
 	db, err := cmd.GetDBConnection(cfg)
 	if err != nil {
