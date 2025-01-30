@@ -119,3 +119,62 @@ func TestInsertUserDatabaseError(t *testing.T) {
 		t.Errorf("handler did not return expected error message")
 	}
 }
+
+func TestUpdateUserValue(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	requestBody := map[string]string{
+		"username": "johndoe",
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	if rr.Header().Get("Location") != "test.com:80/user/1796290045997481984" {
+		t.Errorf("handler did not return Location header, got %v, want %v", rr.Header().Get("Location"), "test.com/user/1796290045997481984")
+	}
+
+	expected := `{"id":1796290045997481984,"username":"johndoe"}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}

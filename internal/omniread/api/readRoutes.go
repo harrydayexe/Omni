@@ -36,7 +36,7 @@ func AddReadRoutes(
 }
 
 // route: GET /post/{id}
-// return the details of a user by it's id
+// return the details of a post by it's id
 func handleReadPost(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read post GET request received")
@@ -116,8 +116,8 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 
 // route: GET /user/{id}/posts?from=2006-01-02T15%3A04%3A05Z07%3A00&limit=10
 // there are two query parameters from and limit
-// from is the date and time to retrieve comments since in RFC3339 format
-// limit is the number of comments to return (default to 10, max is 100)
+// from is the date and time to retrieve posts since in RFC3339 format
+// limit is the number of posts to return (default to 10, max is 100)
 func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read posts GET request received")
