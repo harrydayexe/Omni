@@ -435,13 +435,13 @@ func TestGetPostsForUser(t *testing.T) {
 			name:                 "Date badly formed",
 			urlQuery:             userIdString + "/posts?from=202406T00%3A00%3A00Z",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                 "Limit non integer",
 			urlQuery:             userIdString + "/posts?limit=hello",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                   "DB error",
@@ -666,13 +666,13 @@ func TestGetCommentsForPost(t *testing.T) {
 			name:                 "Date badly formed",
 			urlQuery:             postIdString + "/comments?from=202406T00%3A00%3A00Z",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                 "Limit non integer",
 			urlQuery:             postIdString + "/comments?limit=hello",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                   "DB error",
