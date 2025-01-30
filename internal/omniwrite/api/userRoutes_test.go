@@ -77,6 +77,44 @@ func TestInsertUserValid(t *testing.T) {
 	}
 }
 
+func TestInsertUserBadFormedJsonRequest(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
+			return nil
+		},
+	}
+
+	jsonBody := []byte(`{"username"ohndoe"}`)
+
+	req := httptest.NewRequest("POST", "/user", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, 201)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+}
+
 func TestInsertUserDatabaseError(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
 		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
@@ -336,5 +374,104 @@ func TestUpdateUserDbErrorOnWrite(t *testing.T) {
 	expected := "failed to update user\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestUpdateUserInvalidId(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	requestBody := map[string]string{
+		"username": "johndoe",
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := httptest.NewRequest("PUT", "/user/hello", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
+	}
+
+	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestUpdateUserInvalidJsonBody(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	jsonBody := []byte(`{"username"ohndoe"}`)
+
+	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	}
 }
