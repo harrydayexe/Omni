@@ -106,12 +106,12 @@ func TestGetUserBadFormedId(t *testing.T) {
 			status, http.StatusBadRequest)
 	}
 
-	if rr.Header().Get("Content-Type") != "application/json" {
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
 		t.Errorf("handler returned wrong content type: got %v want %v",
-			rr.Header().Get("Content-Type"), "application/json")
+			rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	}
 
-	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	expected := "Url parameter could not be parsed properly.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -232,12 +232,12 @@ func TestGetPostBadFormedId(t *testing.T) {
 			status, http.StatusBadRequest)
 	}
 
-	if rr.Header().Get("Content-Type") != "application/json" {
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
 		t.Errorf("handler returned wrong content type: got %v want %v",
-			rr.Header().Get("Content-Type"), "application/json")
+			rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	}
 
-	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	expected := "Url parameter could not be parsed properly.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -429,7 +429,7 @@ func TestGetPostsForUser(t *testing.T) {
 			name:                 "Non number post id string",
 			urlQuery:             "hello/posts",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                 "Date badly formed",
@@ -660,7 +660,7 @@ func TestGetCommentsForPost(t *testing.T) {
 			name:                 "Non number post id string",
 			urlQuery:             "hello/comments",
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedJsonResponse: `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`,
+			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
 			name:                 "Date badly formed",

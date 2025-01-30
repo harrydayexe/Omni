@@ -422,11 +422,11 @@ func TestUpdateUserInvalidId(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	if rr.Header().Get("Content-Type") != "application/json" {
-		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	}
 
-	expected := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
+	expected := "Url parameter could not be parsed properly.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}

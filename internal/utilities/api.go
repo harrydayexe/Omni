@@ -23,9 +23,8 @@ func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 	idInt, err := strconv.ParseUint(idString, 10, 64)
 	if err != nil {
 		logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
-		errorMessage := `{"error":"Bad Request","message":"Url parameter could not be parsed properly."}`
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(errorMessage))
+		errorMessage := "Url parameter could not be parsed properly."
+		http.Error(w, errorMessage, http.StatusBadRequest)
 		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int: %w", err)
 	}
 
