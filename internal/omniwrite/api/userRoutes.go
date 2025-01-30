@@ -86,11 +86,11 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				logger.ErrorContext(r.Context(), "entity not found", slog.Any("id", id))
-				w.WriteHeader(http.StatusNotFound)
+				http.Error(w, "entity not found", http.StatusNotFound)
 				return
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
 			return
 		}
 
