@@ -36,3 +36,11 @@ compose-down:
 
 sqlc:
 	sqlc generate
+
+OmniRead-Image: OmniRead
+	docker build -t raspidb.local:5000/harrydayexe/omniread -f ./cmd/OmniRead/Dockerfile .
+	docker push raspidb.local:5000/harrydayexe/omniread
+
+OmniWrite-Image: OmniWrite
+	docker build -t raspidb.local:5000/harrydayexe/omniwrite -f ./cmd/OmniWrite/Dockerfile .
+	docker push raspidb.local:5000/harrydayexe/omniwrite
