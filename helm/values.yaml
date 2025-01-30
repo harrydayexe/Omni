@@ -13,6 +13,7 @@ omniwrite:
     pullPolicy: Always
 
 service:
+  host: localhost
   port: 80
   targetPort: 80
 
