@@ -35,7 +35,13 @@ func main() {
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	nodeId, err := utilities.GetNodeIDFromDeployment(logger)
+	hostname, err := os.Hostname()
+	if err != nil {
+		logger.Error("Failed to get hostname", slog.Any("error", err))
+		panic(fmt.Errorf("failed to get hostname: %w", err))
+	}
+
+	nodeId, err := utilities.GetNodeIDFromDeployment(logger, hostname)
 
 	// Create snowflake generator
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(uint16(nodeId))

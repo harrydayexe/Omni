@@ -5,17 +5,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log/slog"
-	"os"
 	"strings"
 )
 
-func GetNodeIDFromDeployment(logger *slog.Logger) (uint16, error) {
-	hostname, err := os.Hostname()
-	if err != nil {
-		logger.Error("Failed to get hostname", slog.Any("error", err))
-		return 0, fmt.Errorf("failed to get hostname: %w", err)
-	}
-
+func GetNodeIDFromDeployment(logger *slog.Logger, hostname string) (uint16, error) {
 	// Split by '-' and take the last two parts as a unique identifier
 	parts := strings.Split(hostname, "-")
 	if len(parts) < 2 {
