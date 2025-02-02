@@ -26,14 +26,34 @@ spec:
         type: PathPrefix
         value: /api/
       method: POST
-  #   - path:
-  #       type: PathPrefix
-  #       value: /api/
-  #     method: PUT
-  #   - path:
-  #       type: PathPrefix
-  #       value: /api/
-  #     method: DELETE
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-writeapi-service
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/
+      method: PUT
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-writeapi-service
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/
+      method: DELETE
     filters:
     - type: URLRewrite
       urlRewrite:
