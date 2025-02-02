@@ -13,7 +13,7 @@ omniwrite:
     pullPolicy: Always
 
 service:
-  host: 192.168.1.210
+  host: 192.168.1.212
   port: 80
   targetPort: 80
 
