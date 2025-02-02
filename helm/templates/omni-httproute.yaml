@@ -1,0 +1,45 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Chart.Name }}-route
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+  - name: {{ .Chart.Name }}-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/
+      method: GET
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-readapi-service
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/
+      method: POST
+  #   - path:
+  #       type: PathPrefix
+  #       value: /api/
+  #     method: PUT
+  #   - path:
+  #       type: PathPrefix
+  #       value: /api/
+  #     method: DELETE
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-writeapi-service
+      port: 80

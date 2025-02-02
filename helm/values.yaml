@@ -13,7 +13,7 @@ omniwrite:
     pullPolicy: Always
 
 service:
-  host: localhost
+  host: 192.168.1.210
   port: 80
   targetPort: 80
 
@@ -22,3 +22,8 @@ database:
   username: user
   password: Password1!
   database: omni
+
+gateway:
+  gatewayClassName: nginx
+
+namespace: omni
