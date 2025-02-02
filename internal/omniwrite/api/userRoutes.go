@@ -65,7 +65,7 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 
 		strId := strconv.Itoa(int(newUser.ID))
 		strPort := strconv.Itoa(config.Port)
-		w.Header().Set("Location", config.Host+":"+strPort+"/user/"+strId)
+		w.Header().Set("Location", config.Host+":"+strPort+"/api/user/"+strId)
 		w.WriteHeader(http.StatusCreated)
 	})
 }
@@ -119,7 +119,7 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 
 		strId := strconv.Itoa(int(updatedUser.ID))
 		strPort := strconv.Itoa(config.Port)
-		w.Header().Set("Location", config.Host+":"+strPort+"/user/"+strId)
+		w.Header().Set("Location", config.Host+":"+strPort+"/api/user/"+strId)
 		utilities.MarshallToResponse(r.Context(), logger, w, updatedUser)
 	})
 }
