@@ -35,6 +35,7 @@ func AddUserRoutes(
 
 	mux.Handle("POST /user", stack(handleInsertUser(logger, db, snowflakeGenerator, config)))
 	mux.Handle("PUT /user/{id}", stack(handleUpdateUser(logger, db, config)))
+	mux.Handle("DELETE /user/{id}", stack(handleDeleteUser(logger, db)))
 }
 
 // route: POST /user/
@@ -121,5 +122,40 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 		strPort := strconv.Itoa(config.Port)
 		w.Header().Set("Location", config.Host+":"+strPort+"/api/user/"+strId)
 		utilities.MarshallToResponse(r.Context(), logger, w, updatedUser)
+	})
+}
+
+// route: DELETE /user/{id}
+// delete a user by id
+func handleDeleteUser(logger *slog.Logger, db storage.Querier, config *config.Config) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "delete user DELETE request received")
+
+		id, err := utilities.ExtractIdParam(r, w, logger)
+		if err != nil {
+			return
+		}
+
+		// Check user exists
+		_, err = db.GetUserByID(r.Context(), int64(id.ToInt()))
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				logger.ErrorContext(r.Context(), "entity not found", slog.Any("id", id))
+				http.Error(w, "entity not found", http.StatusNotFound)
+				return
+			}
+			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
+			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
+			return
+		}
+
+		err = db.DeleteUser(r.Context(), int64(id.ToInt()))
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to delete user", slog.Any("error", err))
+			http.Error(w, "failed to delete user", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 }
