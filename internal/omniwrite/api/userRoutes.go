@@ -14,13 +14,6 @@ import (
 	"github.com/harrydayexe/Omni/internal/utilities"
 )
 
-// Notes:
-// POST for insert, PUT for update
-// post is not idempotent (multiple requests = multiple new users)
-// POST should return Location header with the URL of the new resource
-// POST should return 201 for creation
-// PUT should return 200/204 for success
-
 func AddUserRoutes(
 	mux *http.ServeMux,
 	logger *slog.Logger,

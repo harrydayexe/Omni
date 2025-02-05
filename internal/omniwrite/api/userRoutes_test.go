@@ -63,9 +63,9 @@ func TestInsertUserValid(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != 201 {
+	if status := rr.Code; status != http.StatusCreated {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, 201)
+			status, http.StatusCreated)
 	}
 
 	if rr.Header().Get("Content-Type") != "application/json" {
@@ -107,7 +107,7 @@ func TestInsertUserBadFormedJsonRequest(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, 201)
+			status, http.StatusBadRequest)
 	}
 
 	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
@@ -151,7 +151,7 @@ func TestInsertUserDatabaseError(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusInternalServerError {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, 201)
+			status, http.StatusInternalServerError)
 	}
 
 	if rr.Body.String() != "failed to create user\n" {
