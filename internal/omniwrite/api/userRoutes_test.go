@@ -72,7 +72,7 @@ func TestInsertUserValid(t *testing.T) {
 		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	if strings.HasPrefix(rr.Header().Get("Location"), "test.com/user/") {
+	if strings.HasPrefix(rr.Header().Get("Location"), "test.com/api/user/") {
 		t.Errorf("handler did not return Location header")
 	}
 }
@@ -208,8 +208,8 @@ func TestUpdateUserValid(t *testing.T) {
 		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	if rr.Header().Get("Location") != "test.com:80/user/1796290045997481984" {
-		t.Errorf("handler did not return Location header, got %v, want %v", rr.Header().Get("Location"), "test.com/user/1796290045997481984")
+	if rr.Header().Get("Location") != "test.com:80/api/user/1796290045997481984" {
+		t.Errorf("handler did not return Location header, got %v, want %v", rr.Header().Get("Location"), "test.com:80/api/user/1796290045997481984")
 	}
 
 	expected := `{"id":1796290045997481984,"username":"johndoe"}`
@@ -257,7 +257,7 @@ func TestUpdateUserNotFound(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+			status, http.StatusNotFound)
 	}
 
 	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
@@ -473,5 +473,229 @@ func TestUpdateUserInvalidJsonBody(t *testing.T) {
 
 	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
 		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+}
+
+func TestDeleteUserValid(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		DeleteUserFn: func(ctx context.Context, id int64) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNoContent {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNoContent)
+	}
+
+	if rr.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "application/json")
+	}
+}
+
+func TestDeleteUserNotFound(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		DeleteUserFn: func(ctx context.Context, id int64) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{}, sql.ErrNoRows
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusNotFound)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+
+	expected := "entity not found\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestDeleteUserDbErrorOnRead(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		DeleteUserFn: func(ctx context.Context, id int64) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{}, fmt.Errorf("database error")
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+
+	expected := "failed to read entity from db\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestDeleteUserDbErrorOnWrite(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		DeleteUserFn: func(ctx context.Context, id int64) error {
+			return fmt.Errorf("database error")
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+
+	expected := "failed to delete user\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestDeleteUserInvalidId(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		DeleteUserFn: func(ctx context.Context, id int64) error {
+			return nil
+		},
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
+			return storage.User{
+				ID:       1796290045997481984,
+				Username: "tester",
+			}, nil
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/user/hello", nil)
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+
+	expected := "Url parameter could not be parsed properly.\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }

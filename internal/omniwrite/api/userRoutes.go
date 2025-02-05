@@ -127,7 +127,7 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 
 // route: DELETE /user/{id}
 // delete a user by id
-func handleDeleteUser(logger *slog.Logger, db storage.Querier, config *config.Config) http.Handler {
+func handleDeleteUser(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "delete user DELETE request received")
 
