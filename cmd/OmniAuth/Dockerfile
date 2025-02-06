@@ -1,0 +1,41 @@
+# Stage 1: Build stage
+FROM golang:1.23-alpine AS build
+
+# Set the working directory
+WORKDIR /app
+
+# Copy and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the Go application
+RUN CGO_ENABLED=0 GOOS=linux go build -o OmniAuth ./cmd/OmniAuth
+
+# Stage 2: Final stage
+FROM alpine:edge
+
+# Set the timezone and install CA certificates
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create a non-root user and group
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+
+# Set the working directory
+WORKDIR /home/appuser/
+
+# Copy the binary from the build stage
+COPY --from=build /app/OmniAuth .
+
+# Change ownership of the application binary to the non-root user
+RUN chown 1001:1001 OmniAuth && chmod +x OmniAuth
+
+EXPOSE 80
+
+# Switch to the non-root user
+USER 1001
+
+# Set the entrypoint command
+ENTRYPOINT ["./OmniAuth"]
