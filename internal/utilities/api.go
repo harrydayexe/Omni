@@ -22,7 +22,7 @@ func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 	logger.InfoContext(r.Context(), "extracting id from request", slog.String("idString", idString))
 	idInt, err := strconv.ParseUint(idString, 10, 64)
 	if err != nil {
-		logger.ErrorContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
+		logger.InfoContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
 		errorMessage := "Url parameter could not be parsed properly."
 		http.Error(w, errorMessage, http.StatusBadRequest)
 		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int: %w", err)
@@ -34,7 +34,7 @@ func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 // check if an error is present and handle the http response if it is
 func IsDbError(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, id snowflake.Snowflake, err error) bool {
 	if errors.Is(err, sql.ErrNoRows) {
-		logger.ErrorContext(ctx, "entity not found", slog.Any("id", id))
+		logger.InfoContext(ctx, "entity not found", slog.Any("id", id))
 		w.WriteHeader(http.StatusNotFound)
 		return true
 	}
@@ -67,7 +67,7 @@ func CheckContentTypeHeader(ctx context.Context, logger *slog.Logger, w http.Res
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 		if mediaType != "application/json" {
 			msg := "Content-Type header is not application/json"
-			logger.ErrorContext(ctx, msg)
+			logger.InfoContext(ctx, msg)
 			http.Error(w, msg, http.StatusUnsupportedMediaType)
 			return fmt.Errorf("Content-Type header is not application/json")
 		}

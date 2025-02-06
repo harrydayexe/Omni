@@ -86,7 +86,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 		var err error
 		fromDate, err = time.Parse(time.RFC3339, fromVal)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
+			logger.InfoContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
 			errorMessage := "Url parameter could not be parsed properly."
 			http.Error(w, errorMessage, http.StatusBadRequest)
 			return time.Time{}, 0, err
@@ -99,7 +99,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 		var err error
 		limit, err = strconv.Atoi(limitVal)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "failed to parse comment limit from url query param", slog.Any("error", err))
+			logger.InfoContext(r.Context(), "failed to parse comment limit from url query param", slog.Any("error", err))
 			errorMessage := "Url parameter could not be parsed properly."
 			http.Error(w, errorMessage, http.StatusBadRequest)
 			return time.Time{}, 0, err

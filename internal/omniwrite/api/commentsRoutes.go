@@ -99,7 +99,7 @@ func handleUpdateComment(logger *slog.Logger, db storage.Querier, config *config
 		currentCommentAndUser, err := db.FindCommentAndUserByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				logger.ErrorContext(r.Context(), "entity not found", slog.Any("id", id))
+				logger.InfoContext(r.Context(), "entity not found", slog.Any("id", id))
 				http.Error(w, "entity not found", http.StatusNotFound)
 				return
 			}
@@ -149,7 +149,7 @@ func handleDeleteComment(logger *slog.Logger, db storage.Querier) http.Handler {
 		_, err = db.FindCommentAndUserByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				logger.ErrorContext(r.Context(), "entity not found", slog.Any("id", id))
+				logger.InfoContext(r.Context(), "entity not found", slog.Any("id", id))
 				http.Error(w, "entity not found", http.StatusNotFound)
 				return
 			}
