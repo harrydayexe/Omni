@@ -164,8 +164,8 @@ func TestUpdateUserValid(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -212,7 +212,7 @@ func TestUpdateUserValid(t *testing.T) {
 		t.Errorf("handler did not return Location header, got %v, want %v", rr.Header().Get("Location"), "test.com:80/api/user/1796290045997481984")
 	}
 
-	expected := `{"id":1796290045997481984,"username":"johndoe"}`
+	expected := `{"username":"johndoe","id":1796290045997481984}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -223,8 +223,8 @@ func TestUpdateUserNotFound(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, sql.ErrNoRows
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, sql.ErrNoRows
 		},
 	}
 
@@ -275,8 +275,8 @@ func TestUpdateUserDbErrorOnRead(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, fmt.Errorf("database error")
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, fmt.Errorf("database error")
 		},
 	}
 
@@ -327,8 +327,8 @@ func TestUpdateUserDbErrorOnWrite(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return fmt.Errorf("database error")
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -382,8 +382,8 @@ func TestUpdateUserInvalidId(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -437,8 +437,8 @@ func TestUpdateUserInvalidJsonBody(t *testing.T) {
 		UpdateUserFn: func(ctx context.Context, arg storage.UpdateUserParams) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -481,8 +481,8 @@ func TestDeleteUserValid(t *testing.T) {
 		DeleteUserFn: func(ctx context.Context, id int64) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -523,8 +523,8 @@ func TestDeleteUserNotFound(t *testing.T) {
 		DeleteUserFn: func(ctx context.Context, id int64) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, sql.ErrNoRows
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, sql.ErrNoRows
 		},
 	}
 
@@ -567,8 +567,8 @@ func TestDeleteUserDbErrorOnRead(t *testing.T) {
 		DeleteUserFn: func(ctx context.Context, id int64) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, fmt.Errorf("database error")
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, fmt.Errorf("database error")
 		},
 	}
 
@@ -611,8 +611,8 @@ func TestDeleteUserDbErrorOnWrite(t *testing.T) {
 		DeleteUserFn: func(ctx context.Context, id int64) error {
 			return fmt.Errorf("database error")
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil
@@ -658,8 +658,8 @@ func TestDeleteUserInvalidId(t *testing.T) {
 		DeleteUserFn: func(ctx context.Context, id int64) error {
 			return nil
 		},
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{
 				ID:       1796290045997481984,
 				Username: "tester",
 			}, nil

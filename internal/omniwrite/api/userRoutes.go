@@ -100,15 +100,12 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 			return
 		}
 
-		updatedUser := storage.User{
+		updatedUser := storage.UpdateUserParams{
 			Username: u.Username,
 			ID:       int64(id.ToInt()),
 		}
 
-		err = db.UpdateUser(r.Context(), storage.UpdateUserParams{
-			ID:       updatedUser.ID,
-			Username: updatedUser.Username,
-		})
+		err = db.UpdateUser(r.Context(), updatedUser)
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to update user", slog.Any("error", err))
 			http.Error(w, "failed to update user", http.StatusInternalServerError)

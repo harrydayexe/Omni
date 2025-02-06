@@ -167,10 +167,8 @@ func TestUpdateCommentValid(t *testing.T) {
 					Content:   "test comment",
 					CreatedAt: time.Date(2025, 01, 01, 02, 30, 00, 00, time.UTC),
 				},
-				User: storage.User{
-					ID:       1796290045997481984,
-					Username: "testuser",
-				},
+				ID:       1796290045997481984,
+				Username: "testuser",
 			}, nil
 		},
 	}
@@ -340,10 +338,8 @@ func TestUpdateCommentDbErrorOnWrite(t *testing.T) {
 					Content:   "test comment",
 					CreatedAt: time.Date(2025, 01, 01, 02, 30, 00, 00, time.UTC),
 				},
-				User: storage.User{
-					ID:       1796290045997481984,
-					Username: "testuser",
-				},
+				ID:       1796290045997481984,
+				Username: "testuser",
 			}, nil
 		},
 	}
@@ -483,10 +479,8 @@ func TestDeleteCommentValid(t *testing.T) {
 					Content:   "test comment",
 					CreatedAt: time.Date(2025, 01, 01, 02, 30, 00, 00, time.UTC),
 				},
-				User: storage.User{
-					ID:       1796290045997481984,
-					Username: "testuser",
-				},
+				ID:       1796290045997481984,
+				Username: "testuser",
 			}, nil
 		},
 	}
@@ -622,10 +616,8 @@ func TestDeleteCommentDbErrorOnWrite(t *testing.T) {
 					Content:   "test comment",
 					CreatedAt: time.Date(2025, 01, 01, 02, 30, 00, 00, time.UTC),
 				},
-				User: storage.User{
-					ID:       1796290045997481984,
-					Username: "testuser",
-				},
+				ID:       1796290045997481984,
+				Username: "testuser",
 			}, nil
 		},
 	}

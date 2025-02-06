@@ -28,8 +28,8 @@ func (s *stubbedDB) PingContext(ctx context.Context) error {
 
 func TestGetUserKnown(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			newUser := storage.User{
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			newUser := storage.GetUserByIDRow{
 				ID:       id,
 				Username: "johndoe",
 			}
@@ -67,8 +67,8 @@ func TestGetUserKnown(t *testing.T) {
 
 func TestGetUserUnknown(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, sql.ErrNoRows
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, sql.ErrNoRows
 		},
 	}
 
@@ -120,8 +120,8 @@ func TestGetUserBadFormedId(t *testing.T) {
 
 func TestGetUserDBError(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
-		GetUserByIDFn: func(ctx context.Context, id int64) (storage.User, error) {
-			return storage.User{}, fmt.Errorf("database error")
+		GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+			return storage.GetUserByIDRow{}, fmt.Errorf("database error")
 		},
 	}
 
@@ -453,7 +453,7 @@ func TestGetPostsForUser(t *testing.T) {
 		},
 	}
 
-	var userObj = storage.User{
+	var userObj = storage.GetUserByIDRow{
 		ID:       userIdNum,
 		Username: "johndoe",
 	}
@@ -478,8 +478,9 @@ func TestGetPostsForUser(t *testing.T) {
 					rows := make([]storage.GetUserAndPostsByIDPagedRow, len(tt.postsToReturn))
 					for i, idx := range tt.postsToReturn {
 						rows[i] = storage.GetUserAndPostsByIDPagedRow{
-							User: userObj,
-							Post: expectedPosts[idx],
+							ID:       userObj.ID,
+							Username: userObj.Username,
+							Post:     expectedPosts[idx],
 						}
 					}
 					return rows, nil
@@ -684,7 +685,7 @@ func TestGetCommentsForPost(t *testing.T) {
 		},
 	}
 
-	var userObj = storage.User{
+	var userObj = storage.GetUserByIDRow{
 		ID:       userIdNum,
 		Username: "johndoe",
 	}
@@ -709,8 +710,9 @@ func TestGetCommentsForPost(t *testing.T) {
 					rows := make([]storage.FindCommentsAndUserByPostIDPagedRow, len(tt.commentsToReturn))
 					for i, idx := range tt.commentsToReturn {
 						rows[i] = storage.FindCommentsAndUserByPostIDPagedRow{
-							User:    userObj,
-							Comment: expectedComments[idx],
+							ID:       userObj.ID,
+							Username: userObj.Username,
+							Comment:  expectedComments[idx],
 						}
 					}
 					return rows, nil
