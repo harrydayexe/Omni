@@ -70,6 +70,7 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		strPort := strconv.Itoa(config.Port)
 		w.Header().Set("Location", config.Host+":"+strPort+"/api/post/"+strId)
 		w.WriteHeader(http.StatusCreated)
+		utilities.MarshallToResponse(r.Context(), logger, w, newPost)
 	})
 }
 
@@ -84,6 +85,16 @@ func handleUpdatePost(logger *slog.Logger, db storage.Querier, config *config.Co
 			return
 		}
 
+		var p struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+			MarkdownUrl string `json:"markdown_url"`
+		}
+		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &p)
+		if err != nil {
+			return
+		}
+
 		// Check post exists
 		currentPost, err := db.FindPostByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
@@ -94,16 +105,6 @@ func handleUpdatePost(logger *slog.Logger, db storage.Querier, config *config.Co
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
-			return
-		}
-
-		var p struct {
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			MarkdownUrl string `json:"markdown_url"`
-		}
-		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &p)
-		if err != nil {
 			return
 		}
 

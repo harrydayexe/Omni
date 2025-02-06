@@ -61,6 +61,7 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		strPort := strconv.Itoa(config.Port)
 		w.Header().Set("Location", config.Host+":"+strPort+"/api/user/"+strId)
 		w.WriteHeader(http.StatusCreated)
+		utilities.MarshallToResponse(r.Context(), logger, w, newUser)
 	})
 }
 
@@ -75,6 +76,14 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 			return
 		}
 
+		var u struct {
+			Username string `json:"username"`
+		}
+		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &u)
+		if err != nil {
+			return
+		}
+
 		// Check user exists
 		_, err = db.GetUserByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
@@ -85,14 +94,6 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
-			return
-		}
-
-		var u struct {
-			Username string `json:"username"`
-		}
-		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &u)
-		if err != nil {
 			return
 		}
 
