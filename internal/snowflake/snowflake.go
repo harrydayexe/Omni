@@ -27,6 +27,10 @@ type Snowflake struct {
 	sequence  uint16
 }
 
+func (s Snowflake) Id() Snowflake {
+	return s
+}
+
 func ParseId(id uint64) Snowflake {
 	return Snowflake{
 		timestamp: id >> timeShift,
