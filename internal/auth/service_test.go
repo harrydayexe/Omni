@@ -4,16 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
 
+var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+
 func TestLogin(t *testing.T) {
-	var testLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	var cases = []struct {
 		name              string
@@ -76,6 +77,60 @@ func TestLogin(t *testing.T) {
 			)
 
 			_, err := service.Login(context.Background(), c.id, c.password)
+			if err != c.expectedErr {
+				t.Errorf("Expected error to be %v, got %v", c.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestVerifyTokenBase(t *testing.T) {
+	var cases = []struct {
+		name        string
+		tokenString string
+		id          snowflake.Identifier
+		secretKey   string
+		expectedErr error
+	}{
+		{
+			name:        "Valid token",
+			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg0In0.RMBAJGkKahsECMiOpDcib__YU1CTCWEf4C_h7m_4HJs",
+			id:          snowflake.ParseId(1796290045997481984),
+			secretKey:   "omni-secret",
+			expectedErr: nil,
+		},
+		{
+			name:        "Invalid token",
+			tokenString: "eyJhbGxxxxxxxxiOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg0In0.RMBAJGkKahsECMiOpDcib__YU1CTCWEf4C_h7m_4HJs",
+			id:          snowflake.ParseId(1796290045997481984),
+			secretKey:   "omni-secret",
+			expectedErr: ErrTokenInvalid,
+		},
+		{
+			name:        "Invalid subject",
+			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg1In0.fZ4lcr1VcC8iAu45CCPHRAXvERtwE0RzKkdWU3HFvAk",
+			id:          snowflake.ParseId(1796290045997481984),
+			secretKey:   "omni-secret",
+			expectedErr: ErrTokenInvalid,
+		},
+		{
+			name:        "Expired token",
+			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzg1ODQ2ODUsInN1YiI6IjE3OTYyOTAwNDU5OTc0ODE5ODQifQ.Vy565OuUSSOdT9vusvmKNDaWPAcQVS7wlrE537sH2AA",
+			id:          snowflake.ParseId(1796290045997481984),
+			secretKey:   "omni-secret",
+			expectedErr: ErrTokenInvalid,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			service := NewAuthService(
+				[]byte(c.secretKey),
+				nil,
+				testLogger,
+			)
+
+			err := service.verifyToken(context.Background(), c.tokenString, c.id)
 			if err != c.expectedErr {
 				t.Errorf("Expected error to be %v, got %v", c.expectedErr, err)
 			}

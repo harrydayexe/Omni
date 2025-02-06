@@ -20,6 +20,7 @@ var ErrTokenGenFail = errors.New("failed to generate token")
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrPasswordTooLong = errors.New("password too long")
 var ErrPasswordGen = errors.New("failed to generate password hash")
+var ErrTokenInvalid = errors.New("invalid token")
 
 type Authable interface {
 	// VerifyToken checks if the given token is valid
@@ -45,7 +46,8 @@ func NewAuthService(secretKey []byte, db storage.Querier, logger *slog.Logger) *
 }
 
 func (a *AuthService) VerifyToken(ctx context.Context, tokenString string) error {
-	return a.verifyToken(tokenString)
+	return nil
+	// return a.verifyToken(ctx, tokenString)
 }
 
 func (a *AuthService) Login(
@@ -71,7 +73,7 @@ func (a *AuthService) Login(
 	}
 
 	// Create a token for the user
-	token, err := a.createToken(id)
+	token, err := a.createToken(ctx, id)
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to create token", slog.Any("error", err))
 		return "", ErrTokenGenFail
@@ -94,33 +96,46 @@ func (a *AuthService) Signup(ctx context.Context, password string) ([]byte, erro
 	return hash, nil
 }
 
-func (a *AuthService) createToken(id snowflake.Identifier) (string, error) {
+// createToken generates a token for a given id
+func (a *AuthService) createToken(ctx context.Context, id snowflake.Identifier) (string, error) {
+	a.logger.DebugContext(ctx, "creating token", slog.Any("id", id))
+
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		Subject:   fmt.Sprintf("%d", id.Id().ToInt()),
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString(a.secretKey)
 	if err != nil {
+		a.logger.InfoContext(ctx, "failed to generate token", slog.Any("error", err))
 		return "", err
 	}
 
 	return tokenString, nil
 }
 
-func (a *AuthService) verifyToken(tokenString string) error {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return a.secretKey, nil
-	})
+// verifyToken checks that a token is valid for a given id
+func (a *AuthService) verifyToken(ctx context.Context, tokenString string, id snowflake.Identifier) error {
+	a.logger.DebugContext(ctx, "verifying token", slog.String("token", tokenString), slog.Any("id", id))
 
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&jwt.RegisteredClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return a.secretKey, nil
+		},
+		jwt.WithSubject(fmt.Sprintf("%d", id.Id().ToInt())),
+		jwt.WithExpirationRequired(),
+	)
 	if err != nil {
-		return err
+		a.logger.InfoContext(ctx, "invalid token", slog.Any("error", err))
+		return ErrTokenInvalid
 	}
 
 	if !token.Valid {
-		return fmt.Errorf("invalid token")
+		a.logger.InfoContext(ctx, "invalid token")
+		return ErrTokenInvalid
 	}
 
 	return nil
