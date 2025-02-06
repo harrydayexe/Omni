@@ -8,4 +8,5 @@ type Config struct {
 	ConnMaxLifetime int    `env:"CONNECTION_MAX_LIFETIME" envDefault:"3"`
 	MaxOpenConns    int    `env:"MAX_OPEN_CONNECTIONS" envDefault:"10"`
 	MaxIdleConns    int    `env:"MAX_IDLE_CONNECTIONS" envDefault:"10"`
+	JWTSecret       string `env:"JWT_SECRET,required"`
 }
