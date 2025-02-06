@@ -19,7 +19,7 @@ type Querier interface {
 	FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error)
 	FindPostByID(ctx context.Context, id int64) (Post, error)
 	GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPostsByIDPagedParams) ([]GetUserAndPostsByIDPagedRow, error)
-	GetUserByID(ctx context.Context, id int64) (User, error)
+	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	UpdateComment(ctx context.Context, arg UpdateCommentParams) error
 	UpdatePost(ctx context.Context, arg UpdatePostParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error

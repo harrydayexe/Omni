@@ -43,34 +43,35 @@ func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
 }
 
 const findCommentAndUserByID = `-- name: FindCommentAndUserByID :one
-SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM comments 
+SELECT users.id, users.username, comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at FROM comments 
 INNER JOIN users 
 ON comments.user_id = users.id 
 WHERE comments.id = ?
 `
 
 type FindCommentAndUserByIDRow struct {
-	Comment Comment `json:"comment"`
-	User    User    `json:"user"`
+	ID       int64   `json:"id"`
+	Username string  `json:"username"`
+	Comment  Comment `json:"comment"`
 }
 
 func (q *Queries) FindCommentAndUserByID(ctx context.Context, id int64) (FindCommentAndUserByIDRow, error) {
 	row := q.queryRow(ctx, q.findCommentAndUserByIDStmt, findCommentAndUserByID, id)
 	var i FindCommentAndUserByIDRow
 	err := row.Scan(
+		&i.ID,
+		&i.Username,
 		&i.Comment.ID,
 		&i.Comment.PostID,
 		&i.Comment.UserID,
 		&i.Comment.Content,
 		&i.Comment.CreatedAt,
-		&i.User.ID,
-		&i.User.Username,
 	)
 	return i, err
 }
 
 const findCommentsAndUserByPostIDPaged = `-- name: FindCommentsAndUserByPostIDPaged :many
-SELECT comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at, users.id, users.username FROM comments 
+SELECT users.id, users.username, comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at FROM comments 
 INNER JOIN users 
 ON comments.user_id = users.id 
 WHERE comments.post_id = ? AND comments.created_at > ? 
@@ -85,8 +86,9 @@ type FindCommentsAndUserByPostIDPagedParams struct {
 }
 
 type FindCommentsAndUserByPostIDPagedRow struct {
-	Comment Comment `json:"comment"`
-	User    User    `json:"user"`
+	ID       int64   `json:"id"`
+	Username string  `json:"username"`
+	Comment  Comment `json:"comment"`
 }
 
 func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error) {
@@ -99,13 +101,13 @@ func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg Find
 	for rows.Next() {
 		var i FindCommentsAndUserByPostIDPagedRow
 		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
 			&i.Comment.ID,
 			&i.Comment.PostID,
 			&i.Comment.UserID,
 			&i.Comment.Content,
 			&i.Comment.CreatedAt,
-			&i.User.ID,
-			&i.User.Username,
 		); err != nil {
 			return nil, err
 		}

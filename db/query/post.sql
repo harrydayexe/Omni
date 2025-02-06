@@ -2,7 +2,7 @@
 SELECT * FROM posts WHERE id = ?;
 
 -- name: GetUserAndPostsByIDPaged :many
-SELECT sqlc.embed(users), sqlc.embed(posts) FROM users 
+SELECT users.id, users.username, sqlc.embed(posts) FROM users 
 LEFT JOIN posts ON users.id = posts.user_id
 WHERE users.id = ? AND posts.created_at > sqlc.arg(created_after) 
 ORDER BY posts.created_at ASC

@@ -6,6 +6,9 @@ OmniRead:
 OmniWrite:
 	go build -o tmp/ ./cmd/OmniWrite
 
+OmniAuth:
+	go build -o tmp/ ./cmd/OmniAuth
+
 OmniView:
 	go build -o tmp/ ./cmd/OmniView
 

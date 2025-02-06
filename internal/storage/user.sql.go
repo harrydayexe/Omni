@@ -36,9 +36,14 @@ const getUserByID = `-- name: GetUserByID :one
 SELECT id, username FROM users WHERE id = ?
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+type GetUserByIDRow struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
 	row := q.queryRow(ctx, q.getUserByIDStmt, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
 }

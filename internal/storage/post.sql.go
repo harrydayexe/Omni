@@ -77,8 +77,9 @@ type GetUserAndPostsByIDPagedParams struct {
 }
 
 type GetUserAndPostsByIDPagedRow struct {
-	User User `json:"user"`
-	Post Post `json:"post"`
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Post     Post   `json:"post"`
 }
 
 func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPostsByIDPagedParams) ([]GetUserAndPostsByIDPagedRow, error) {
@@ -91,8 +92,8 @@ func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPo
 	for rows.Next() {
 		var i GetUserAndPostsByIDPagedRow
 		if err := rows.Scan(
-			&i.User.ID,
-			&i.User.Username,
+			&i.ID,
+			&i.Username,
 			&i.Post.ID,
 			&i.Post.UserID,
 			&i.Post.CreatedAt,

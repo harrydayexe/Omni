@@ -190,7 +190,7 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 				ID:        row.Comment.ID,
 				PostID:    row.Comment.PostID,
 				UserID:    row.Comment.UserID,
-				Username:  row.User.Username,
+				Username:  row.Username,
 				CreatedAt: row.Comment.CreatedAt,
 				Content:   row.Comment.Content,
 			}

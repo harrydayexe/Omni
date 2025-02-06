@@ -1,5 +1,5 @@
 -- name: FindCommentAndUserByID :one
-SELECT sqlc.embed(comments), sqlc.embed(users) FROM comments 
+SELECT users.id, users.username, sqlc.embed(comments) FROM comments 
 INNER JOIN users 
 ON comments.user_id = users.id 
 WHERE comments.id = ?;
@@ -14,7 +14,7 @@ UPDATE comments SET content=? WHERE id=?;
 DELETE FROM comments WHERE id = ?;
 
 -- name: FindCommentsAndUserByPostIDPaged :many
-SELECT sqlc.embed(comments), sqlc.embed(users) FROM comments 
+SELECT users.id, users.username, sqlc.embed(comments) FROM comments 
 INNER JOIN users 
 ON comments.user_id = users.id 
 WHERE comments.post_id = ? AND comments.created_at > sqlc.arg(created_after) 

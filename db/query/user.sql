@@ -1,5 +1,5 @@
 -- name: GetUserByID :one
-SELECT * FROM users WHERE id = ?;
+SELECT id, username FROM users WHERE id = ?;
 
 -- name: CreateUser :exec
 INSERT INTO users (id, username) VALUES (?, ?);

@@ -50,7 +50,10 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 			ID:       int64(gen.NextID().ToInt()),
 		}
 
-		err = db.CreateUser(r.Context(), storage.CreateUserParams(newUser))
+		err = db.CreateUser(r.Context(), storage.CreateUserParams{
+			ID:       newUser.ID,
+			Username: newUser.Username,
+		})
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to insert user", slog.Any("error", err))
 			http.Error(w, "failed to create user", http.StatusInternalServerError)
