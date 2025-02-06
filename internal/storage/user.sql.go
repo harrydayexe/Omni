@@ -32,6 +32,17 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const getPasswordByID = `-- name: GetPasswordByID :one
+SELECT password FROM users WHERE id = ?
+`
+
+func (q *Queries) GetPasswordByID(ctx context.Context, id int64) (string, error) {
+	row := q.queryRow(ctx, q.getPasswordByIDStmt, getPasswordByID, id)
+	var password string
+	err := row.Scan(&password)
+	return password, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, username FROM users WHERE id = ?
 `

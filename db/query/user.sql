@@ -1,6 +1,9 @@
 -- name: GetUserByID :one
 SELECT id, username FROM users WHERE id = ?;
 
+-- name: GetPasswordByID :one
+SELECT password FROM users WHERE id = ?;
+
 -- name: CreateUser :exec
 INSERT INTO users (id, username) VALUES (?, ?);
 
