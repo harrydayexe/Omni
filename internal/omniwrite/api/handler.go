@@ -23,6 +23,12 @@ func NewHandler(
 	AddPostRoutes(mux, logger, db, snowflakeGenerator, config)
 	AddCommentsRoutes(mux, logger, db, snowflakeGenerator, config)
 
+	utilities.AddHealthCheck(
+		mux,
+		logger,
+		dbconn,
+	)
+
 	var handler http.Handler = mux
 	return handler
 }
