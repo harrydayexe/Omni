@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/testcontainers/testcontainers-go v0.34.0
 	golang.org/x/crypto v0.24.0
 	gopkg.in/yaml.v2 v2.4.0

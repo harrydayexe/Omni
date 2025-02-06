@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"golang.org/x/crypto/bcrypt"
@@ -95,11 +95,12 @@ func (a *AuthService) Signup(ctx context.Context, password string) ([]byte, erro
 }
 
 func (a *AuthService) createToken(id snowflake.Identifier) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"sub": id.Id().ToInt(),
-			"exp": time.Now().Add(time.Hour * 24).Unix(),
-		})
+	claims := &jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+		Subject:   fmt.Sprintf("%d", id.Id().ToInt()),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString(a.secretKey)
 	if err != nil {
