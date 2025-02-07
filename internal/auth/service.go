@@ -23,7 +23,7 @@ var ErrPasswordGen = errors.New("failed to generate password hash")
 var ErrTokenInvalid = errors.New("invalid token")
 
 type Authable interface {
-	// VerifyToken checks if the given token is valid
+	// VerifyToken checks if the given token is valid for a given id
 	VerifyToken(context.Context, string) error
 	// Login checks if the password for a given user id matches the stored hash
 	Login(context.Context, snowflake.Identifier, string) (string, error)
@@ -46,8 +46,27 @@ func NewAuthService(secretKey []byte, db storage.Querier, logger *slog.Logger) *
 }
 
 func (a *AuthService) VerifyToken(ctx context.Context, tokenString string) error {
+	a.logger.DebugContext(ctx, "verifying token", slog.String("token", tokenString))
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&jwt.RegisteredClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return a.secretKey, nil
+		},
+		jwt.WithExpirationRequired(),
+	)
+	if err != nil {
+		a.logger.InfoContext(ctx, "invalid token", slog.Any("error", err))
+		return ErrTokenInvalid
+	}
+
+	if !token.Valid {
+		a.logger.InfoContext(ctx, "invalid token")
+		return ErrTokenInvalid
+	}
+
 	return nil
-	// return a.verifyToken(ctx, tokenString)
 }
 
 func (a *AuthService) Login(
@@ -113,30 +132,4 @@ func (a *AuthService) createToken(ctx context.Context, id snowflake.Identifier) 
 	}
 
 	return tokenString, nil
-}
-
-// verifyToken checks that a token is valid for a given id
-func (a *AuthService) verifyToken(ctx context.Context, tokenString string, id snowflake.Identifier) error {
-	a.logger.DebugContext(ctx, "verifying token", slog.String("token", tokenString), slog.Any("id", id))
-
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&jwt.RegisteredClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return a.secretKey, nil
-		},
-		jwt.WithSubject(fmt.Sprintf("%d", id.Id().ToInt())),
-		jwt.WithExpirationRequired(),
-	)
-	if err != nil {
-		a.logger.InfoContext(ctx, "invalid token", slog.Any("error", err))
-		return ErrTokenInvalid
-	}
-
-	if !token.Valid {
-		a.logger.InfoContext(ctx, "invalid token")
-		return ErrTokenInvalid
-	}
-
-	return nil
 }
