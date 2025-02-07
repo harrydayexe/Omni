@@ -10,16 +10,17 @@ import (
 )
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (id, username) VALUES (?, ?)
+INSERT INTO users (id, username, password) VALUES (?, ?, ?)
 `
 
 type CreateUserParams struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.exec(ctx, q.createUserStmt, createUser, arg.ID, arg.Username)
+	_, err := q.exec(ctx, q.createUserStmt, createUser, arg.ID, arg.Username, arg.Password)
 	return err
 }
 

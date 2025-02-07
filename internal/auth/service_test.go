@@ -88,24 +88,35 @@ func TestVerifyToken(t *testing.T) {
 	var cases = []struct {
 		name        string
 		tokenString string
+		id          snowflake.Identifier
 		secretKey   string
 		expectedErr error
 	}{
 		{
 			name:        "Valid token",
 			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg0In0.RMBAJGkKahsECMiOpDcib__YU1CTCWEf4C_h7m_4HJs",
+			id:          snowflake.ParseId(1796290045997481984),
 			secretKey:   "omni-secret",
 			expectedErr: nil,
 		},
 		{
 			name:        "Invalid token",
 			tokenString: "eyJhbGxxxxxxxxiOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg0In0.RMBAJGkKahsECMiOpDcib__YU1CTCWEf4C_h7m_4HJs",
+			id:          snowflake.ParseId(1796290045997481984),
+			secretKey:   "omni-secret",
+			expectedErr: ErrTokenInvalid,
+		},
+		{
+			name:        "Invalid subject",
+			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjMzMjk1NzkzNTg1LCJzdWIiOiIxNzk2MjkwMDQ1OTk3NDgxOTg1In0.fZ4lcr1VcC8iAu45CCPHRAXvERtwE0RzKkdWU3HFvAk",
+			id:          snowflake.ParseId(1796290045997481984),
 			secretKey:   "omni-secret",
 			expectedErr: ErrTokenInvalid,
 		},
 		{
 			name:        "Expired token",
 			tokenString: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzg1ODQ2ODUsInN1YiI6IjE3OTYyOTAwNDU5OTc0ODE5ODQifQ.Vy565OuUSSOdT9vusvmKNDaWPAcQVS7wlrE537sH2AA",
+			id:          snowflake.ParseId(1796290045997481984),
 			secretKey:   "omni-secret",
 			expectedErr: ErrTokenInvalid,
 		},
@@ -119,7 +130,7 @@ func TestVerifyToken(t *testing.T) {
 				testLogger,
 			)
 
-			err := service.VerifyToken(context.Background(), c.tokenString)
+			err := service.VerifyToken(context.Background(), c.tokenString, c.id)
 			if err != c.expectedErr {
 				t.Errorf("Expected error to be %v, got %v", c.expectedErr, err)
 			}

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
@@ -137,6 +138,36 @@ func DecodeJsonBody[T any](ctx context.Context, logger *slog.Logger, w http.Resp
 		msg := "Request body must only contain a single JSON object"
 		http.Error(w, msg, http.StatusBadRequest)
 		return fmt.Errorf("Request body must only contain a single JSON object")
+	}
+
+	return nil
+}
+
+// CheckBearerAuth checks the Authorization header of an http request and
+// verifies the token with the auth service against the given id
+func CheckBearerAuth(id snowflake.Snowflake, authService auth.Authable, logger *slog.Logger, w http.ResponseWriter, r *http.Request) error {
+	logger.DebugContext(r.Context(), "checking bearer auth")
+
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		msg := "Authorization header is missing"
+		logger.InfoContext(r.Context(), msg)
+		http.Error(w, msg, http.StatusUnauthorized)
+		return auth.ErrUnauthorized
+	}
+
+	authHeaderParts := strings.Split(authHeader, " ")
+	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
+		msg := "Authorization header format must be Bearer {token}"
+		logger.InfoContext(r.Context(), msg)
+		http.Error(w, msg, http.StatusUnauthorized)
+		return auth.ErrUnauthorized
+	}
+
+	err := authService.VerifyToken(r.Context(), authHeaderParts[1], id)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return err
 	}
 
 	return nil

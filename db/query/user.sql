@@ -5,7 +5,7 @@ SELECT id, username FROM users WHERE id = ?;
 SELECT password FROM users WHERE id = ?;
 
 -- name: CreateUser :exec
-INSERT INTO users (id, username) VALUES (?, ?);
+INSERT INTO users (id, username, password) VALUES (?, ?, ?);
 
 -- name: UpdateUser :exec
 UPDATE users SET username = ? WHERE id = ?;

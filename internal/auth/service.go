@@ -24,7 +24,7 @@ var ErrTokenInvalid = errors.New("invalid token")
 
 type Authable interface {
 	// VerifyToken checks if the given token is valid for a given id
-	VerifyToken(context.Context, string) error
+	VerifyToken(context.Context, string, snowflake.Identifier) error
 	// Login checks if the password for a given user id matches the stored hash
 	Login(context.Context, snowflake.Identifier, string) (string, error)
 	// Signup creates a hash for the given password
@@ -45,7 +45,7 @@ func NewAuthService(secretKey []byte, db storage.Querier, logger *slog.Logger) *
 	}
 }
 
-func (a *AuthService) VerifyToken(ctx context.Context, tokenString string) error {
+func (a *AuthService) VerifyToken(ctx context.Context, tokenString string, id snowflake.Identifier) error {
 	a.logger.DebugContext(ctx, "verifying token", slog.String("token", tokenString))
 
 	token, err := jwt.ParseWithClaims(
@@ -55,6 +55,7 @@ func (a *AuthService) VerifyToken(ctx context.Context, tokenString string) error
 			return a.secretKey, nil
 		},
 		jwt.WithExpirationRequired(),
+		jwt.WithSubject(fmt.Sprintf("%d", id.Id().ToInt())),
 	)
 	if err != nil {
 		a.logger.InfoContext(ctx, "invalid token", slog.Any("error", err))

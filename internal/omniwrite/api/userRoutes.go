@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -19,6 +20,7 @@ func AddUserRoutes(
 	logger *slog.Logger,
 	db storage.Querier,
 	snowflakeGenerator *snowflake.SnowflakeGenerator,
+	authService auth.Authable,
 	config *config.Config,
 ) {
 	stack := middleware.CreateStack(
@@ -26,33 +28,48 @@ func AddUserRoutes(
 		middleware.NewSetContentTypeJson(),
 	)
 
-	mux.Handle("POST /user", stack(handleInsertUser(logger, db, snowflakeGenerator, config)))
-	mux.Handle("PUT /user/{id}", stack(handleUpdateUser(logger, db, config)))
-	mux.Handle("DELETE /user/{id}", stack(handleDeleteUser(logger, db)))
+	mux.Handle("POST /user", stack(handleInsertUser(logger, db, snowflakeGenerator, authService, config)))
+	mux.Handle("PUT /user/{id}", stack(handleUpdateUser(logger, db, authService, config)))
+	mux.Handle("DELETE /user/{id}", stack(handleDeleteUser(logger, db, authService)))
 }
 
 // route: POST /user/
 // insert a new user into the database
-func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, config *config.Config) http.Handler {
+func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "insert user POST request received")
 
 		var u struct {
 			Username string `json:"username"`
+			Password string `json:"password"`
 		}
 		err := utilities.DecodeJsonBody(r.Context(), logger, w, r, &u)
 		if err != nil {
 			return
 		}
 
-		newUser := storage.User{
-			Username: u.Username,
+		// Hash Password
+		hash, err := authService.Signup(r.Context(), u.Password)
+		if errors.Is(err, auth.ErrPasswordTooLong) {
+			http.Error(w, "password too long", http.StatusBadRequest)
+			return
+		} else if err != nil {
+			http.Error(w, "failed to insert user", http.StatusInternalServerError)
+			return
+		}
+
+		newUser := struct {
+			ID       int64  `json:"id"`
+			Username string `json:"username"`
+		}{
 			ID:       int64(gen.NextID().ToInt()),
+			Username: u.Username,
 		}
 
 		err = db.CreateUser(r.Context(), storage.CreateUserParams{
 			ID:       newUser.ID,
 			Username: newUser.Username,
+			Password: string(hash),
 		})
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to insert user", slog.Any("error", err))
@@ -70,11 +87,16 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 
 // route: PUT /user/{id}
 // update a user by id
-func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Config) http.Handler {
+func handleUpdateUser(logger *slog.Logger, db storage.Querier, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "update user PUT request received")
 
 		id, err := utilities.ExtractIdParam(r, w, logger)
+		if err != nil {
+			return
+		}
+
+		err = utilities.CheckBearerAuth(id, authService, logger, w, r)
 		if err != nil {
 			return
 		}
@@ -121,11 +143,16 @@ func handleUpdateUser(logger *slog.Logger, db storage.Querier, config *config.Co
 
 // route: DELETE /user/{id}
 // delete a user by id
-func handleDeleteUser(logger *slog.Logger, db storage.Querier) http.Handler {
+func handleDeleteUser(logger *slog.Logger, db storage.Querier, authService auth.Authable) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "delete user DELETE request received")
 
 		id, err := utilities.ExtractIdParam(r, w, logger)
+		if err != nil {
+			return
+		}
+
+		err = utilities.CheckBearerAuth(id, authService, logger, w, r)
 		if err != nil {
 			return
 		}
