@@ -24,7 +24,6 @@ func AddAuthRoutes(
 
 	// Get the details of a post by id
 	mux.Handle("POST /login", stack(handleLogin(logger, authService)))
-	// mux.Handle("POST /signup", stack(handleSignup(logger)))
 }
 
 func handleLogin(logger *slog.Logger, authService auth.Authable) http.Handler {
@@ -52,11 +51,5 @@ func handleLogin(logger *slog.Logger, authService auth.Authable) http.Handler {
 				Token: token,
 			},
 		)
-	})
-}
-
-func handleSignup(logger *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.InfoContext(r.Context(), "signup POST request received")
 	})
 }
