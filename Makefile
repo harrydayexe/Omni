@@ -47,3 +47,7 @@ OmniRead-Image: OmniRead
 OmniWrite-Image: OmniWrite
 	docker build -t raspidb.local:5000/harrydayexe/omniwrite -f ./cmd/OmniWrite/Dockerfile .
 	docker push raspidb.local:5000/harrydayexe/omniwrite
+
+OmniAuth-Image: OmniAuth
+	docker build -t raspidb.local:5000/harrydayexe/omniauth -f ./cmd/OmniAuth/Dockerfile .
+	docker push raspidb.local:5000/harrydayexe/omniauth
