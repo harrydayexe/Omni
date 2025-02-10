@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
@@ -19,7 +20,7 @@ func NewHandler(
 ) http.Handler {
 	mux := http.NewServeMux()
 
-	AddUserRoutes(mux, logger, db, snowflakeGenerator, config)
+	AddUserRoutes(mux, logger, db, snowflakeGenerator, auth.NewAuthService([]byte(config.JWTSecret), db, logger), config)
 	AddPostRoutes(mux, logger, db, snowflakeGenerator, config)
 	AddCommentsRoutes(mux, logger, db, snowflakeGenerator, config)
 
