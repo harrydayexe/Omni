@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/cmd"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/omniauth/api"
@@ -40,8 +41,9 @@ func main() {
 	}
 
 	queries := storage.New(db)
+	authService := auth.NewAuthService([]byte(cfg.JWTSecret), queries, logger)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db, cfg), os.Stdout, cfg); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, authService, db), os.Stdout, cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
