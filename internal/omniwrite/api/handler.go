@@ -15,12 +15,13 @@ func NewHandler(
 	logger *slog.Logger,
 	db storage.Querier,
 	dbconn utilities.PingableDB,
+	authService auth.Authable,
 	snowflakeGenerator *snowflake.SnowflakeGenerator,
 	config *config.Config,
 ) http.Handler {
 	mux := http.NewServeMux()
 
-	AddUserRoutes(mux, logger, db, snowflakeGenerator, auth.NewAuthService([]byte(config.JWTSecret), db, logger), config)
+	AddUserRoutes(mux, logger, db, snowflakeGenerator, authService, config)
 	AddPostRoutes(mux, logger, db, snowflakeGenerator, config)
 	AddCommentsRoutes(mux, logger, db, snowflakeGenerator, config)
 

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/cmd"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/omniwrite/api"
@@ -28,7 +29,7 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	cfg, err := env.ParseAs[config.Config]()
+	cfg, err := env.ParseAs[config.AuthConfig]()
 	if err != nil {
 		logger.Error("failed to parse config", slog.Any("error", err))
 		panic(err)
@@ -42,19 +43,24 @@ func main() {
 	}
 
 	nodeId, err := utilities.GetNodeIDFromDeployment(logger, hostname)
+	if err != nil {
+		logger.Error("Failed to get node id", slog.Any("error", err))
+		panic(fmt.Errorf("failed to get node id: %w", err))
+	}
 
 	// Create snowflake generator
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(uint16(nodeId))
 
-	db, err := cmd.GetDBConnection(cfg)
+	db, err := cmd.GetDBConnection(cfg.Config)
 	if err != nil {
 		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)
 	}
 
 	queries := storage.New(db)
+	authService := auth.NewAuthService([]byte(cfg.JWTSecret), queries, logger)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db, snowflakeGenerator, &cfg), os.Stdout, cfg); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db, authService, snowflakeGenerator, &cfg.Config), os.Stdout, cfg.Config); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

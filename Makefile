@@ -25,18 +25,6 @@ CoverageReport:
 	-go test -coverprofile=tmp/c.out ./...
 	go tool cover -html="tmp/c.out" 
 
-migrate-up: compose-up
-	migrate -database "mysql://root:Password1!@tcp(localhost:3306)/omni" -path ./db/migrations up
-
-migrate-down:
-	migrate -database "mysql://root:Password1!@tcp(localhost:3306)/omni" -path ./db/migrations down
-
-compose-up:
-	docker-compose up -d
-
-compose-down:
-	docker-compose down
-
 sqlc:
 	sqlc generate
 
