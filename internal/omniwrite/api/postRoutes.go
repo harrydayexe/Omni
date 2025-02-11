@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -20,6 +21,7 @@ func AddPostRoutes(
 	logger *slog.Logger,
 	db storage.Querier,
 	snowflakeGenerator *snowflake.SnowflakeGenerator,
+	authService auth.Authable,
 	config *config.Config,
 ) {
 	stack := middleware.CreateStack(
@@ -27,14 +29,14 @@ func AddPostRoutes(
 		middleware.NewSetContentTypeJson(),
 	)
 
-	mux.Handle("POST /post", stack(handleInsertPost(logger, db, snowflakeGenerator, config)))
-	mux.Handle("PUT /post/{id}", stack(handleUpdatePost(logger, db, config)))
-	mux.Handle("DELETE /post/{id}", stack(handleDeletePost(logger, db)))
+	mux.Handle("POST /post", stack(handleInsertPost(logger, db, snowflakeGenerator, authService, config)))
+	mux.Handle("PUT /post/{id}", stack(handleUpdatePost(logger, db, authService, config)))
+	mux.Handle("DELETE /post/{id}", stack(handleDeletePost(logger, db, authService)))
 }
 
 // route: POST /post/
 // insert a new post into the database
-func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, config *config.Config) http.Handler {
+func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "insert post POST request received")
 
@@ -46,6 +48,11 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 			MarkdownUrl string    `json:"markdown_url"`
 		}
 		err := utilities.DecodeJsonBody(r.Context(), logger, w, r, &p)
+		if err != nil {
+			return
+		}
+
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(p.UserID)), authService, logger, w, r)
 		if err != nil {
 			return
 		}
@@ -76,7 +83,7 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 
 // route: PUT /post/{id}
 // update a post by id
-func handleUpdatePost(logger *slog.Logger, db storage.Querier, config *config.Config) http.Handler {
+func handleUpdatePost(logger *slog.Logger, db storage.Querier, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "update post PUT request received")
 
@@ -105,6 +112,12 @@ func handleUpdatePost(logger *slog.Logger, db storage.Querier, config *config.Co
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
+			return
+		}
+
+		// Check user is authorized to update post
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(currentPost.UserID)), authService, logger, w, r)
+		if err != nil {
 			return
 		}
 
@@ -138,7 +151,7 @@ func handleUpdatePost(logger *slog.Logger, db storage.Querier, config *config.Co
 
 // route: DELETE /post/{id}
 // delete a post by id
-func handleDeletePost(logger *slog.Logger, db storage.Querier) http.Handler {
+func handleDeletePost(logger *slog.Logger, db storage.Querier, authService auth.Authable) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "delete post DELETE request received")
 
@@ -148,7 +161,7 @@ func handleDeletePost(logger *slog.Logger, db storage.Querier) http.Handler {
 		}
 
 		// Check post exists
-		_, err = db.FindPostByID(r.Context(), int64(id.ToInt()))
+		post, err := db.FindPostByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				logger.InfoContext(r.Context(), "entity not found", slog.Any("id", id))
@@ -157,6 +170,12 @@ func handleDeletePost(logger *slog.Logger, db storage.Querier) http.Handler {
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
+			return
+		}
+
+		// Check user is authorized to delete post
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(post.UserID)), authService, logger, w, r)
+		if err != nil {
 			return
 		}
 
