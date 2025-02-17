@@ -1,6 +1,9 @@
 -- name: GetUserByID :one
 SELECT id, username FROM users WHERE id = ?;
 
+-- name: GetUserByUsername :one
+SELECT id FROM users WHERE username = ?;
+
 -- name: GetPasswordByID :one
 SELECT password FROM users WHERE id = ?;
 

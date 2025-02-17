@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -32,6 +33,9 @@ func (s *stubbedDB) PingContext(ctx context.Context) error {
 
 func TestInsertUserValid(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
+		GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+			return 0, sql.ErrNoRows
+		},
 		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
 			return nil
 		},
@@ -61,7 +65,7 @@ func TestInsertUserValid(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := NewHandler(
-		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
 		mockedAuthService,
@@ -82,6 +86,49 @@ func TestInsertUserValid(t *testing.T) {
 
 	if strings.HasPrefix(rr.Header().Get("Location"), "test.com/api/user/") {
 		t.Errorf("handler did not return Location header")
+	}
+}
+
+func TestInsertUserNoUsername(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{}
+
+	mockedAuthService := auth.StubbedAuthService{}
+
+	requestBody := map[string]string{
+		"password": "johndoe",
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/user", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		mockedAuthService,
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 	}
 }
 
@@ -230,6 +277,9 @@ func TestInsertUserBadFormedJsonRequest(t *testing.T) {
 
 func TestInsertUserDatabaseError(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
+		GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+			return 0, sql.ErrNoRows
+		},
 		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
 			return fmt.Errorf("database error")
 		},
