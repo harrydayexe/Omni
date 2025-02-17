@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/snowflake"
@@ -20,6 +21,7 @@ func AddCommentsRoutes(
 	logger *slog.Logger,
 	db storage.Querier,
 	snowflakeGenerator *snowflake.SnowflakeGenerator,
+	authService auth.Authable,
 	config *config.Config,
 ) {
 	stack := middleware.CreateStack(
@@ -27,14 +29,14 @@ func AddCommentsRoutes(
 		middleware.NewSetContentTypeJson(),
 	)
 
-	mux.Handle("POST /post/{id}/comment", stack(handleInsertComment(logger, db, snowflakeGenerator, config)))
-	mux.Handle("PUT /comment/{id}", stack(handleUpdateComment(logger, db, config)))
-	mux.Handle("DELETE /comment/{id}", stack(handleDeleteComment(logger, db)))
+	mux.Handle("POST /post/{id}/comment", stack(handleInsertComment(logger, db, snowflakeGenerator, authService, config)))
+	mux.Handle("PUT /comment/{id}", stack(handleUpdateComment(logger, db, authService, config)))
+	mux.Handle("DELETE /comment/{id}", stack(handleDeleteComment(logger, authService, db)))
 }
 
 // route: POST /post/{id}/comment
 // insert a new comment into the database
-func handleInsertComment(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, config *config.Config) http.Handler {
+func handleInsertComment(logger *slog.Logger, db storage.Querier, gen *snowflake.SnowflakeGenerator, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "insert comment POST request received")
 
@@ -49,6 +51,11 @@ func handleInsertComment(logger *slog.Logger, db storage.Querier, gen *snowflake
 			CreatedAt time.Time `json:"created_at"`
 		}
 		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &c)
+		if err != nil {
+			return
+		}
+
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(c.UserID)), authService, logger, w, r)
 		if err != nil {
 			return
 		}
@@ -78,7 +85,7 @@ func handleInsertComment(logger *slog.Logger, db storage.Querier, gen *snowflake
 
 // route: PUT /comment/{id}
 // update a comment by id
-func handleUpdateComment(logger *slog.Logger, db storage.Querier, config *config.Config) http.Handler {
+func handleUpdateComment(logger *slog.Logger, db storage.Querier, authService auth.Authable, config *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "update comment PUT request received")
 
@@ -105,6 +112,11 @@ func handleUpdateComment(logger *slog.Logger, db storage.Querier, config *config
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
+			return
+		}
+
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(currentCommentAndUser.Comment.UserID)), authService, logger, w, r)
+		if err != nil {
 			return
 		}
 
@@ -136,7 +148,7 @@ func handleUpdateComment(logger *slog.Logger, db storage.Querier, config *config
 
 // route: DELETE /comment/{id}
 // delete a comment by id
-func handleDeleteComment(logger *slog.Logger, db storage.Querier) http.Handler {
+func handleDeleteComment(logger *slog.Logger, authService auth.Authable, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "delete comment DELETE request received")
 
@@ -146,7 +158,7 @@ func handleDeleteComment(logger *slog.Logger, db storage.Querier) http.Handler {
 		}
 
 		// Check post exists
-		_, err = db.FindCommentAndUserByID(r.Context(), int64(id.ToInt()))
+		currentCommentAndUser, err := db.FindCommentAndUserByID(r.Context(), int64(id.ToInt()))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				logger.InfoContext(r.Context(), "entity not found", slog.Any("id", id))
@@ -155,6 +167,11 @@ func handleDeleteComment(logger *slog.Logger, db storage.Querier) http.Handler {
 			}
 			logger.ErrorContext(r.Context(), "failed to read entity from db", slog.Any("error", err))
 			http.Error(w, "failed to read entity from db", http.StatusInternalServerError)
+			return
+		}
+
+		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(currentCommentAndUser.Comment.UserID)), authService, logger, w, r)
+		if err != nil {
 			return
 		}
 

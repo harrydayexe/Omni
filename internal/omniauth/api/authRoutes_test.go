@@ -11,25 +11,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 )
-
-// Implement the auth.Authable interface
-type mockAuthService struct {
-	loginFn func(ctx context.Context, id snowflake.Identifier, password string) (string, error)
-}
-
-func (m *mockAuthService) VerifyToken(ctx context.Context, token string, id snowflake.Identifier) error {
-	return nil
-}
-
-func (m *mockAuthService) Login(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
-	return m.loginFn(ctx, id, password)
-}
-
-func (m *mockAuthService) Signup(ctx context.Context, password string) ([]byte, error) {
-	return nil, nil
-}
 
 func TestLogin(t *testing.T) {
 	var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
@@ -66,8 +50,8 @@ func TestLogin(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var authService = &mockAuthService{
-				loginFn: tc.loginFn,
+			var authService = auth.StubbedAuthService{
+				LoginFn: tc.loginFn,
 			}
 
 			reqBody := map[string]interface{}{

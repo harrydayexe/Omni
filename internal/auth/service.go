@@ -19,6 +19,7 @@ var ErrDbFailed = errors.New("failed to read from db")
 var ErrTokenGenFail = errors.New("failed to generate token")
 var ErrUnauthorized = errors.New("unauthorized")
 var ErrPasswordTooLong = errors.New("password too long")
+var ErrPasswordTooShort = errors.New("password too short")
 var ErrPasswordGen = errors.New("failed to generate password hash")
 var ErrTokenInvalid = errors.New("invalid token")
 
@@ -103,6 +104,10 @@ func (a *AuthService) Login(
 }
 
 func (a *AuthService) Signup(ctx context.Context, password string) ([]byte, error) {
+	if len(password) < 7 {
+		return nil, ErrPasswordTooShort
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if errors.Is(err, bcrypt.ErrPasswordTooLong) {
 		a.logger.InfoContext(ctx, "password too long")

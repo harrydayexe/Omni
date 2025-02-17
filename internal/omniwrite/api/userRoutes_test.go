@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
@@ -36,6 +37,12 @@ func TestInsertUserValid(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		SignupFn: func(ctx context.Context, password string) ([]byte, error) {
+			return []byte("hashed_password"), nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -57,6 +64,7 @@ func TestInsertUserValid(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -77,10 +85,114 @@ func TestInsertUserValid(t *testing.T) {
 	}
 }
 
+func TestInsertUserNoPassword(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{}
+
+	mockedAuthService := auth.StubbedAuthService{
+		SignupFn: func(ctx context.Context, password string) ([]byte, error) {
+			return nil, auth.ErrPasswordTooShort
+		},
+	}
+
+	requestBody := map[string]string{
+		"username": "johndoe",
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/user", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		mockedAuthService,
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+}
+
+func TestInsertUserPassTooLong(t *testing.T) {
+	mockedQueries := &storage.StubbedQueries{
+		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
+			return nil
+		},
+	}
+
+	mockedAuthService := auth.StubbedAuthService{
+		SignupFn: func(ctx context.Context, password string) ([]byte, error) {
+			return nil, auth.ErrPasswordTooLong
+		},
+	}
+
+	requestBody := map[string]string{
+		"username": "johndoe",
+	}
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/user", bytes.NewBuffer(jsonBody))
+
+	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
+	config := &config.Config{
+		Host: "test.com",
+		Port: 80,
+	}
+
+	rr := httptest.NewRecorder()
+	handler := NewHandler(
+		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		mockedQueries,
+		&stubbedDB{},
+		mockedAuthService,
+		snowflakeGenerator,
+		config,
+	)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusBadRequest)
+	}
+
+	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("handler did not return Content-Type header: got %v want %v", rr.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	}
+}
+
 func TestInsertUserBadFormedJsonRequest(t *testing.T) {
 	mockedQueries := &storage.StubbedQueries{
 		CreateUserFn: func(ctx context.Context, arg storage.CreateUserParams) error {
 			return nil
+		},
+	}
+
+	mockedAuthService := auth.StubbedAuthService{
+		SignupFn: func(ctx context.Context, password string) ([]byte, error) {
+			return []byte("hashed_password"), nil
 		},
 	}
 
@@ -99,6 +211,7 @@ func TestInsertUserBadFormedJsonRequest(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -122,6 +235,12 @@ func TestInsertUserDatabaseError(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		SignupFn: func(ctx context.Context, password string) ([]byte, error) {
+			return []byte("hashed_password"), nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -143,6 +262,7 @@ func TestInsertUserDatabaseError(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -172,6 +292,12 @@ func TestUpdateUserValid(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -181,6 +307,7 @@ func TestUpdateUserValid(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -193,6 +320,7 @@ func TestUpdateUserValid(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -228,6 +356,12 @@ func TestUpdateUserNotFound(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -237,6 +371,7 @@ func TestUpdateUserNotFound(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -249,6 +384,7 @@ func TestUpdateUserNotFound(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -280,6 +416,12 @@ func TestUpdateUserDbErrorOnRead(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -289,6 +431,7 @@ func TestUpdateUserDbErrorOnRead(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -301,6 +444,7 @@ func TestUpdateUserDbErrorOnRead(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -335,6 +479,12 @@ func TestUpdateUserDbErrorOnWrite(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -344,6 +494,7 @@ func TestUpdateUserDbErrorOnWrite(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -356,6 +507,7 @@ func TestUpdateUserDbErrorOnWrite(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -390,6 +542,12 @@ func TestUpdateUserInvalidId(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	requestBody := map[string]string{
 		"username": "johndoe",
 	}
@@ -399,6 +557,7 @@ func TestUpdateUserInvalidId(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("PUT", "/user/hello", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -411,6 +570,7 @@ func TestUpdateUserInvalidId(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -445,9 +605,16 @@ func TestUpdateUserInvalidJsonBody(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	jsonBody := []byte(`{"username"ohndoe"}`)
 
 	req := httptest.NewRequest("PUT", "/user/1796290045997481984", bytes.NewBuffer(jsonBody))
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -460,6 +627,7 @@ func TestUpdateUserInvalidJsonBody(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -489,7 +657,14 @@ func TestDeleteUserValid(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -502,6 +677,7 @@ func TestDeleteUserValid(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -528,7 +704,14 @@ func TestDeleteUserNotFound(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -541,6 +724,7 @@ func TestDeleteUserNotFound(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -572,7 +756,14 @@ func TestDeleteUserDbErrorOnRead(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -585,6 +776,7 @@ func TestDeleteUserDbErrorOnRead(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -619,7 +811,14 @@ func TestDeleteUserDbErrorOnWrite(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	req := httptest.NewRequest("DELETE", "/user/1796290045997481984", nil)
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -632,6 +831,7 @@ func TestDeleteUserDbErrorOnWrite(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)
@@ -666,7 +866,14 @@ func TestDeleteUserInvalidId(t *testing.T) {
 		},
 	}
 
+	mockedAuthService := auth.StubbedAuthService{
+		VerifyTokenFn: func(ctx context.Context, token string, id snowflake.Identifier) error {
+			return nil
+		},
+	}
+
 	req := httptest.NewRequest("DELETE", "/user/hello", nil)
+	req.Header.Add("Authorization", "Bearer $2a$10$L00CK5Aasuv4UXgXH36hj.xG00iiuDWTza1O8hiC7MdoBsKkDNm9y")
 
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(0)
 	config := &config.Config{
@@ -679,6 +886,7 @@ func TestDeleteUserInvalidId(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 		mockedQueries,
 		&stubbedDB{},
+		mockedAuthService,
 		snowflakeGenerator,
 		config,
 	)

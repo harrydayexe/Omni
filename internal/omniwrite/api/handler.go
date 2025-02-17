@@ -23,7 +23,7 @@ func NewHandler(
 
 	AddUserRoutes(mux, logger, db, snowflakeGenerator, authService, config)
 	AddPostRoutes(mux, logger, db, snowflakeGenerator, authService, config)
-	AddCommentsRoutes(mux, logger, db, snowflakeGenerator, config)
+	AddCommentsRoutes(mux, logger, db, snowflakeGenerator, authService, config)
 
 	utilities.AddHealthCheck(
 		mux,

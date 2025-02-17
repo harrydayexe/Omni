@@ -53,6 +53,9 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		if errors.Is(err, auth.ErrPasswordTooLong) {
 			http.Error(w, "password too long", http.StatusBadRequest)
 			return
+		} else if errors.Is(err, auth.ErrPasswordTooShort) {
+			http.Error(w, "password must be at least 8 characters long", http.StatusBadRequest)
+			return
 		} else if err != nil {
 			http.Error(w, "failed to insert user", http.StatusInternalServerError)
 			return
