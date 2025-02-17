@@ -137,3 +137,42 @@ func TestVerifyToken(t *testing.T) {
 		})
 	}
 }
+
+func TestSignUp(t *testing.T) {
+	var cases = []struct {
+		name        string
+		password    string
+		expectedErr error
+	}{
+		{
+			name:        "Valid password",
+			password:    "password",
+			expectedErr: nil,
+		},
+		{
+			name:        "Short password",
+			password:    "pass",
+			expectedErr: ErrPasswordTooShort,
+		},
+		{
+			name:        "Long password",
+			password:    "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+			expectedErr: ErrPasswordTooLong,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			service := NewAuthService(
+				[]byte("test-secret"),
+				nil,
+				testLogger,
+			)
+
+			_, err := service.Signup(context.Background(), c.password)
+			if err != c.expectedErr {
+				t.Errorf("Expected error to be %v, got %v", c.expectedErr, err)
+			}
+		})
+	}
+}
