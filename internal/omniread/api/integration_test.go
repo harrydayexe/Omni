@@ -26,6 +26,13 @@ func TestGetUser(t *testing.T) {
 			expectedBody:        `{"id":1796290045997481984,"username":"johndoe"}`,
 			expectedContentType: "application/json",
 		},
+		{
+			name:                "Get user by id not found",
+			id:                  1,
+			expectedCode:        404,
+			expectedBody:        "entity not found\n",
+			expectedContentType: "text/plain; charset=utf-8",
+		},
 	}
 
 	testLogger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{}))

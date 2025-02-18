@@ -36,12 +36,12 @@ func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 func IsDbError(ctx context.Context, logger *slog.Logger, w http.ResponseWriter, id snowflake.Snowflake, err error) bool {
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.InfoContext(ctx, "entity not found", slog.Any("id", id))
-		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, "entity not found", http.StatusNotFound)
 		return true
 	}
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to read entity from db", slog.Any("error", err))
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return true
 	}
 
