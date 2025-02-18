@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/harrydayexe/Omni/internal/omniview/api"
-	"github.com/harrydayexe/Omni/internal/templates"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +10,9 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+
+	"github.com/harrydayexe/Omni/internal/omniview/api"
+	"github.com/harrydayexe/Omni/internal/omniview/templates"
 )
 
 func main() {
@@ -29,7 +30,7 @@ func run(ctx context.Context, stdout io.Writer, args []string) error {
 	logger := slog.Default()
 
 	srv := NewServer(
-		templates.New("../../internal/templates"),
+		templates.New(logger),
 		logger,
 	)
 	httpServer := &http.Server{
