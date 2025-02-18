@@ -10,7 +10,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/utilities"
 )
 
-func TestGetUser(t *testing.T) {
+func TestGetUserAndGetPost(t *testing.T) {
 	var cases = []struct {
 		name                string
 		path                string
@@ -82,3 +82,14 @@ func TestGetUser(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Write integration tests for testing limits and pages etc
+// func TestGetPostsOfUser(t *testing.T) {
+// 	var cases = []struct {
+// 		name                string
+// 		path                string
+// 		expectedCode        int
+// 		expectedBody        string
+// 		expectedContentType string
+// 	}{}
+// }
