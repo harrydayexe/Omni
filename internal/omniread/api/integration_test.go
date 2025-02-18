@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/harrydayexe/Omni/internal/storage"
@@ -14,21 +13,35 @@ import (
 func TestGetUser(t *testing.T) {
 	var cases = []struct {
 		name                string
-		id                  int
+		path                string
 		expectedCode        int
 		expectedBody        string
 		expectedContentType string
 	}{
 		{
 			name:                "Get user by id success",
-			id:                  1796290045997481984,
+			path:                "/user/1796290045997481984",
 			expectedCode:        200,
 			expectedBody:        `{"id":1796290045997481984,"username":"johndoe"}`,
 			expectedContentType: "application/json",
 		},
 		{
 			name:                "Get user by id not found",
-			id:                  1,
+			path:                "/user/1",
+			expectedCode:        404,
+			expectedBody:        "entity not found\n",
+			expectedContentType: "text/plain; charset=utf-8",
+		},
+		{
+			name:                "Get post by id success",
+			path:                "/post/1796290045997481995",
+			expectedCode:        200,
+			expectedBody:        `{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"My first post","description":"First post description","markdown_url":"https://example.com/johndoe-first-post"}`,
+			expectedContentType: "application/json",
+		},
+		{
+			name:                "Get post by id not found",
+			path:                "/post/1",
 			expectedCode:        404,
 			expectedBody:        "entity not found\n",
 			expectedContentType: "text/plain; charset=utf-8",
@@ -39,6 +52,8 @@ func TestGetUser(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel() // Run the test case in parallel
+
 			db, cleanup, err := utilities.SetupTestContainer("../../../db/migrations/", "testdata.sql")
 			if err != nil {
 				t.Fatalf("failed to setup test container: %v", err)
@@ -48,8 +63,7 @@ func TestGetUser(t *testing.T) {
 			queries := storage.New(db)
 			handler := NewHandler(testLogger, queries, db)
 
-			path := "/user/" + strconv.Itoa(tc.id)
-			req := httptest.NewRequest("GET", path, nil)
+			req := httptest.NewRequest("GET", tc.path, nil)
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)
