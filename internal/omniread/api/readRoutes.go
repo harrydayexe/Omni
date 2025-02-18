@@ -73,6 +73,8 @@ func handleReadUser(logger *slog.Logger, db storage.Querier) http.Handler {
 	})
 }
 
+// TODO: Probably should change this to be paginated instead of time based
+
 // extract the from and limit query parameters from the request
 func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.ResponseWriter) (time.Time, int, error) {
 	var fromDate time.Time
