@@ -4,10 +4,20 @@ import (
 	"embed"
 	"html/template"
 	"log/slog"
+	"net/http"
 )
 
 //go:embed *.html
 var embeddedTemplates embed.FS
+
+//go:embed static/*
+var staticFiles embed.FS
+
+func AddStaticFileRoutes(
+	mux *http.ServeMux,
+) {
+	mux.Handle("/static/", http.FileServer(http.FS(staticFiles)))
+}
 
 type Templates struct {
 	Templates *template.Template

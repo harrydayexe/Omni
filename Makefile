@@ -14,7 +14,7 @@ OmniAuth: # Build the OmniAuth binary
 
 .PHONY: OmniView
 OmniView: # Build the OmniView binary
-	tailwindcss -i "./internal/omniview/templates/custom.css" -o "./internal/omniview/templates/style.css"
+	tailwindcss -i "./internal/omniview/templates/custom.css" -o "./internal/omniview/templates/static/style.css"
 	go build -o tmp/ ./cmd/OmniView
 
 .PHONY: LoadBalancer

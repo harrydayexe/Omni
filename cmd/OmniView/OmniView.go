@@ -13,6 +13,7 @@ import (
 
 	"github.com/harrydayexe/Omni/internal/omniview/api"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	templateModule "github.com/harrydayexe/Omni/internal/omniview/templates"
 )
 
 func main() {
@@ -73,6 +74,7 @@ func NewServer(
 		templates,
 		logger,
 	)
+	templateModule.AddStaticFileRoutes(mux)
 	var handler http.Handler = mux
 	return handler
 }
