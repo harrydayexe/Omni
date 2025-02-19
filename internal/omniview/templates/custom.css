@@ -1,0 +1,8 @@
+/* Custom CSS rules go in here */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #111827;
+}

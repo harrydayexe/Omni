@@ -1,41 +1,50 @@
 all: OmniRead OmniWrite OmniView
 
-OmniRead:
+.PHONY: OmniRead
+OmniRead: # Build the OmniRead binary
 	go build -o tmp/ ./cmd/OmniRead
 
-OmniWrite:
+.PHONY: OmniWrite
+OmniWrite: # Build the OmniWrite binary
 	go build -o tmp/ ./cmd/OmniWrite
 
-OmniAuth:
+.PHONY: OmniAuth
+OmniAuth: # Build the OmniAuth binary
 	go build -o tmp/ ./cmd/OmniAuth
 
-OmniView:
+.PHONY: OmniView
+OmniView: # Build the OmniView binary
+	tailwindcss -i "./internal/omniview/templates/custom.css" -o "./internal/omniview/templates/style.css"
 	go build -o tmp/ ./cmd/OmniView
 
-LoadBalancer:
+.PHONY: LoadBalancer
+LoadBalancer: # Build the LoadBalancer binary
 	go build -o tmp/ ./cmd/LoadBalancer
 
-Test:
+.PHONY: Test
+Test: # Run all tests
 	go test ./...
 
-Cover:
-	go test -cover ./...
-
-CoverageReport:
-	-go test -coverprofile=tmp/c.out ./...
+.PHONY: Cover
+Cover: # Run all tests with coverage
+	go test -coverprofile=tmp/c.out ./...
 	go tool cover -html="tmp/c.out" 
 
-sqlc:
+.PHONY: sqlc
+sqlc: # Generate sqlc code
 	sqlc generate
 
-OmniRead-Image: OmniRead
+.PHONY: OmniRead-Image
+OmniRead-Image: OmniRead # Build the OmniRead docker image
 	docker build -t raspidb.local:5000/harrydayexe/omniread -f ./cmd/OmniRead/Dockerfile .
 	docker push raspidb.local:5000/harrydayexe/omniread
 
-OmniWrite-Image: OmniWrite
+.PHONY: OmniWrite-Image
+OmniWrite-Image: OmniWrite # Build the OmniWrite docker image
 	docker build -t raspidb.local:5000/harrydayexe/omniwrite -f ./cmd/OmniWrite/Dockerfile .
 	docker push raspidb.local:5000/harrydayexe/omniwrite
 
-OmniAuth-Image: OmniAuth
+.PHONY: OmniAuth-Image
+OmniAuth-Image: OmniAuth # Build the OmniAuth docker image
 	docker build -t raspidb.local:5000/harrydayexe/omniauth -f ./cmd/OmniAuth/Dockerfile .
 	docker push raspidb.local:5000/harrydayexe/omniauth
