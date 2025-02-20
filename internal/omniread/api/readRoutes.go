@@ -222,13 +222,25 @@ func handleMostRecentPosts(logger *slog.Logger, db storage.Querier) http.Handler
 				http.Error(w, errorMessage, http.StatusBadRequest)
 				return
 			}
-			pageNum = int32(pageNumBig)
+			if pageNumBig < 1 {
+				pageNum = 0
+			} else {
+				pageNum = int32(pageNumBig - 1)
+			}
 		}
 
-		rows, err := db.GetPostsPaged(r.Context(), pageNum)
+		var offset = pageNum * 10
+
+		logger.InfoContext(r.Context(), "getting posts from db", slog.Int("offset", int(offset)))
+
+		rows, err := db.GetPostsPaged(r.Context(), offset)
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to find more posts from db", slog.Int("pageNum", int(pageNum)), slog.Any("error", err))
-			utilities.MarshallToResponse(r.Context(), logger, w, []interface{}{})
+			w.Write([]byte("[]"))
+			return
+		} else if len(rows) == 0 || rows == nil {
+			logger.InfoContext(r.Context(), "no posts found")
+			w.Write([]byte("[]"))
 			return
 		}
 
