@@ -54,6 +54,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getPasswordByIDStmt, err = db.PrepareContext(ctx, getPasswordByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPasswordByID: %w", err)
 	}
+	if q.getPostsPagedStmt, err = db.PrepareContext(ctx, getPostsPaged); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPostsPaged: %w", err)
+	}
 	if q.getUserAndPostsByIDPagedStmt, err = db.PrepareContext(ctx, getUserAndPostsByIDPaged); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserAndPostsByIDPaged: %w", err)
 	}
@@ -125,6 +128,11 @@ func (q *Queries) Close() error {
 	if q.getPasswordByIDStmt != nil {
 		if cerr := q.getPasswordByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPasswordByIDStmt: %w", cerr)
+		}
+	}
+	if q.getPostsPagedStmt != nil {
+		if cerr := q.getPostsPagedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPostsPagedStmt: %w", cerr)
 		}
 	}
 	if q.getUserAndPostsByIDPagedStmt != nil {
@@ -206,6 +214,7 @@ type Queries struct {
 	findCommentsAndUserByPostIDPagedStmt *sql.Stmt
 	findPostByIDStmt                     *sql.Stmt
 	getPasswordByIDStmt                  *sql.Stmt
+	getPostsPagedStmt                    *sql.Stmt
 	getUserAndPostsByIDPagedStmt         *sql.Stmt
 	getUserByIDStmt                      *sql.Stmt
 	getUserByUsernameStmt                *sql.Stmt
@@ -228,6 +237,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		findCommentsAndUserByPostIDPagedStmt: q.findCommentsAndUserByPostIDPagedStmt,
 		findPostByIDStmt:                     q.findPostByIDStmt,
 		getPasswordByIDStmt:                  q.getPasswordByIDStmt,
+		getPostsPagedStmt:                    q.getPostsPagedStmt,
 		getUserAndPostsByIDPagedStmt:         q.getUserAndPostsByIDPagedStmt,
 		getUserByIDStmt:                      q.getUserByIDStmt,
 		getUserByUsernameStmt:                q.getUserByUsernameStmt,

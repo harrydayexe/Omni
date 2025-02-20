@@ -32,6 +32,7 @@ func AddReadRoutes(
 	mux.Handle("GET /user/{id}", stack(handleReadUser(logger, db)))
 	mux.Handle("GET /user/{id}/posts", stack(handleReadUserPosts(logger, db)))
 	mux.Handle("GET /post/{id}/comments", stack(handleReadPostComments(logger, db)))
+	mux.Handle("GET /posts", stack(handleMostRecentPosts(logger, db)))
 	// TODO: Add new routes for things like getting a user and their posts together
 }
 
@@ -198,5 +199,39 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 			}
 		}
 		utilities.MarshallToResponse(r.Context(), logger, w, comments)
+	})
+}
+
+// route: GET /posts
+// return the most recent posts (paged by 10 at a time)
+func handleMostRecentPosts(logger *slog.Logger, db storage.Querier) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "get most recent posts GET request received")
+
+		var pageNum int32
+
+		pageVal := r.URL.Query().Get("page")
+		if pageVal == "" {
+			pageNum = 0
+		} else {
+			var err error
+			pageNumBig, err := strconv.Atoi(pageVal)
+			if err != nil {
+				logger.InfoContext(r.Context(), "failed to parse page from url query param", slog.Any("error", err))
+				errorMessage := "Url parameter could not be parsed properly."
+				http.Error(w, errorMessage, http.StatusBadRequest)
+				return
+			}
+			pageNum = int32(pageNumBig)
+		}
+
+		rows, err := db.GetPostsPaged(r.Context(), pageNum)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "failed to find more posts from db", slog.Int("pageNum", int(pageNum)), slog.Any("error", err))
+			utilities.MarshallToResponse(r.Context(), logger, w, []interface{}{})
+			return
+		}
+
+		utilities.MarshallToResponse(r.Context(), logger, w, rows)
 	})
 }

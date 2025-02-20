@@ -62,6 +62,49 @@ func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
 	return i, err
 }
 
+const getPostsPaged = `-- name: GetPostsPaged :many
+SELECT users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM posts
+JOIN users ON posts.user_id = users.id
+ORDER BY posts.created_at DESC
+LIMIT 10 OFFSET ?
+`
+
+type GetPostsPagedRow struct {
+	Username string `json:"username"`
+	Post     Post   `json:"post"`
+}
+
+func (q *Queries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPagedRow, error) {
+	rows, err := q.query(ctx, q.getPostsPagedStmt, getPostsPaged, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPostsPagedRow
+	for rows.Next() {
+		var i GetPostsPagedRow
+		if err := rows.Scan(
+			&i.Username,
+			&i.Post.ID,
+			&i.Post.UserID,
+			&i.Post.CreatedAt,
+			&i.Post.Title,
+			&i.Post.Description,
+			&i.Post.MarkdownUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserAndPostsByIDPaged = `-- name: GetUserAndPostsByIDPaged :many
 SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM users 
 LEFT JOIN posts ON users.id = posts.user_id

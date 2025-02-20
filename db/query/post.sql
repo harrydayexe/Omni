@@ -16,3 +16,9 @@ UPDATE posts SET title=?, description=?, markdown_url=? WHERE id=?;
 
 -- name: DeletePost :exec
 DELETE FROM posts WHERE id = ?;
+
+-- name: GetPostsPaged :many
+SELECT users.username, sqlc.embed(posts) FROM posts
+JOIN users ON posts.user_id = users.id
+ORDER BY posts.created_at DESC
+LIMIT 10 OFFSET ?;

@@ -13,6 +13,7 @@ type StubbedQueries struct {
 	FindCommentsAndUserByPostIDPagedFn func(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error)
 	FindPostByIDFn                     func(ctx context.Context, id int64) (Post, error)
 	GetPasswordByIDFn                  func(ctx context.Context, id int64) (string, error)
+	GetPostsPagedFn                    func(ctx context.Context, offset int32) ([]GetPostsPagedRow, error)
 	GetUserAndPostsByIDPagedFn         func(ctx context.Context, arg GetUserAndPostsByIDPagedParams) ([]GetUserAndPostsByIDPagedRow, error)
 	GetUserByIDFn                      func(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserByUsernameFn                func(ctx context.Context, username string) (int64, error)
@@ -59,6 +60,10 @@ func (q *StubbedQueries) FindPostByID(ctx context.Context, id int64) (Post, erro
 
 func (q *StubbedQueries) GetPasswordByID(ctx context.Context, id int64) (string, error) {
 	return q.GetPasswordByIDFn(ctx, id)
+}
+
+func (q *StubbedQueries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPagedRow, error) {
+	return q.GetPostsPagedFn(ctx, offset)
 }
 
 func (q *StubbedQueries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPostsByIDPagedParams) ([]GetUserAndPostsByIDPagedRow, error) {
