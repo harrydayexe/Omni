@@ -91,7 +91,7 @@ func extractPaginationParams(logger *slog.Logger, r *http.Request, w http.Respon
 		if err != nil {
 			logger.InfoContext(r.Context(), "failed to parse date from url query param", slog.Any("error", err))
 			errorMessage := "Url parameter could not be parsed properly."
-			http.Error(w, errorMessage, http.StatusBadRequest)
+			http.Error(w, errorMessage, http.StatusUnprocessableEntity)
 			return time.Time{}, 0, err
 		}
 	}

@@ -169,9 +169,9 @@ func TestInsertUserNoPassword(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
+	if status := rr.Code; status != http.StatusUnprocessableEntity {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusBadRequest)
+			status, http.StatusUnprocessableEntity)
 	}
 
 	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
@@ -220,9 +220,9 @@ func TestInsertUserPassTooLong(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
+	if status := rr.Code; status != http.StatusUnprocessableEntity {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusBadRequest)
+			status, http.StatusUnprocessableEntity)
 	}
 
 	if rr.Header().Get("Content-Type") != "text/plain; charset=utf-8" {

@@ -434,7 +434,7 @@ func TestGetPostsForUser(t *testing.T) {
 		{
 			name:                 "Date badly formed",
 			urlQuery:             userIdString + "/posts?from=202406T00%3A00%3A00Z",
-			expectedStatusCode:   http.StatusBadRequest,
+			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
@@ -667,7 +667,7 @@ func TestGetCommentsForPost(t *testing.T) {
 		{
 			name:                 "Date badly formed",
 			urlQuery:             postIdString + "/comments?from=202406T00%3A00%3A00Z",
-			expectedStatusCode:   http.StatusBadRequest,
+			expectedStatusCode:   http.StatusUnprocessableEntity,
 			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{

@@ -57,10 +57,10 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		// Hash Password
 		hash, err := authService.Signup(r.Context(), u.Password)
 		if errors.Is(err, auth.ErrPasswordTooLong) {
-			http.Error(w, "password too long", http.StatusBadRequest)
+			http.Error(w, "password too long", http.StatusUnprocessableEntity)
 			return
 		} else if errors.Is(err, auth.ErrPasswordTooShort) {
-			http.Error(w, "password must be at least 8 characters long", http.StatusBadRequest)
+			http.Error(w, "password must be at least 8 characters long", http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
 			http.Error(w, "failed to create user", http.StatusInternalServerError)
@@ -71,7 +71,7 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		_, err = db.GetUserByUsername(r.Context(), u.Username)
 		if err == nil {
 			logger.InfoContext(r.Context(), "user with that username already exists")
-			http.Error(w, "username is taken", http.StatusBadRequest)
+			http.Error(w, "username is taken", http.StatusUnprocessableEntity)
 		}
 
 		newUser := struct {
