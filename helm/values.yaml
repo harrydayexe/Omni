@@ -27,3 +27,5 @@ gateway:
   gatewayClassName: nginx
 
 namespace: omni
+# This should be stored as a secret but I don't have time to set that up
+jwt: omni-super-secret-key

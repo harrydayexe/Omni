@@ -36,13 +36,14 @@ func main() {
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		logger.Error("Failed to get hostname", slog.Any("error", err))
-		panic(fmt.Errorf("failed to get hostname: %w", err))
+	// Get the NODE_NAME environment variable
+	nodename, ok := os.LookupEnv("NODE_NAME")
+	if !ok {
+		logger.Error("NODE_NAME environment variable not set")
+		panic(fmt.Errorf("NODE_NAME environment variable not set"))
 	}
 
-	nodeId, err := utilities.GetNodeIDFromDeployment(logger, hostname)
+	nodeId, err := utilities.GetNodeIDFromDeployment(logger, nodename)
 	if err != nil {
 		logger.Error("Failed to get node id", slog.Any("error", err))
 		panic(fmt.Errorf("failed to get node id: %w", err))

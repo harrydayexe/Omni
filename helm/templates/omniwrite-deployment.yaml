@@ -34,6 +34,12 @@ spec:
               value: "10"
             - name: MAX_IDLE_CONNECTIONS
               value: "10"
+            - name: JWT_SECRET
+              value: "{{ .Values.jwt }}"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
