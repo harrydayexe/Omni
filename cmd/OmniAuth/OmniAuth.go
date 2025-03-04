@@ -34,7 +34,7 @@ func main() {
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	db, err := cmd.GetDBConnection(cfg.Config)
+	db, err := cmd.GetDBConnection(cfg.DatabaseConfig)
 	if err != nil {
 		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)

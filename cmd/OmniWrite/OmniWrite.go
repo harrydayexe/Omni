@@ -29,21 +29,14 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	cfg, err := env.ParseAs[config.AuthConfig]()
+	cfg, err := env.ParseAs[config.WriteConfig]()
 	if err != nil {
 		logger.Error("failed to parse config", slog.Any("error", err))
 		panic(err)
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	// Get the NODE_NAME environment variable
-	nodename, ok := os.LookupEnv("NODE_NAME")
-	if !ok {
-		logger.Error("NODE_NAME environment variable not set")
-		panic(fmt.Errorf("NODE_NAME environment variable not set"))
-	}
-
-	nodeId, err := utilities.GetNodeIDFromDeployment(logger, nodename)
+	nodeId, err := utilities.GetNodeIDFromDeployment(logger, cfg.NodeName)
 	if err != nil {
 		logger.Error("Failed to get node id", slog.Any("error", err))
 		panic(fmt.Errorf("failed to get node id: %w", err))
@@ -52,7 +45,7 @@ func main() {
 	// Create snowflake generator
 	snowflakeGenerator := snowflake.NewSnowflakeGenerator(uint16(nodeId))
 
-	db, err := cmd.GetDBConnection(cfg.Config)
+	db, err := cmd.GetDBConnection(cfg.DatabaseConfig)
 	if err != nil {
 		logger.Error("failed to connect to database: %v", slog.Any("error", err))
 		panic(err)

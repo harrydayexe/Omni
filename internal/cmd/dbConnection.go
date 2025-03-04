@@ -8,7 +8,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/config"
 )
 
-func GetDBConnection(config config.Config) (*sql.DB, error) {
+func GetDBConnection(config config.DatabaseConfig) (*sql.DB, error) {
 	db, err := sql.Open("mysql", config.DataSourceName)
 	if err != nil {
 		return nil, err

@@ -27,7 +27,7 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	cfg, err := env.ParseAs[config.Config]()
+	cfg, err := env.ParseAs[config.DatabaseConfig]()
 	if err != nil {
 		logger.Error("failed to parse config", slog.Any("error", err))
 		panic(err)
@@ -42,7 +42,7 @@ func main() {
 
 	queries := storage.New(db)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db), os.Stdout, cfg); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, queries, db), os.Stdout, cfg.Config); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

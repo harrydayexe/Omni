@@ -33,3 +33,69 @@ services:
     ]
     volumes:
       - ./db/migrations:/migrations
+
+  omni_view:
+    build:
+      context: ./
+      dockerfile: cmd/OmniView/Dockerfile
+    depends_on:
+      - omni_read
+      - omni_write
+      - omni_auth
+    environment:
+      HOST: "localhost"
+      PORT: "80"
+    ports:
+      - "8080:80"  # Adjust port mapping as needed
+
+  omni_read:
+    build:
+      context: ./
+      dockerfile: cmd/OmniRead/Dockerfile
+    depends_on:
+      - mariadb
+    environment:
+      HOST: "localhost"
+      PORT: "80"
+      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      CONNECTION_MAX_LIFETIME: "3"
+      MAX_OPEN_CONNECTIONS: "10"
+      MAX_IDLE_CONNECTIONS: "10"
+    ports:
+      - "8081:80"  # Adjust port mapping as needed
+
+  omni_auth:
+    build:
+      context: ./
+      dockerfile: cmd/OmniAuth/Dockerfile
+    depends_on:
+      - mariadb
+    environment:
+      HOST: "localhost"
+      PORT: "80"
+      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      CONNECTION_MAX_LIFETIME: "3"
+      MAX_OPEN_CONNECTIONS: "10"
+      MAX_IDLE_CONNECTIONS: "10"
+      JWT_SECRET: "omni-super-secret-key"
+      NODE_NAME: "dockercompose"
+    ports:
+      - "8082:80"
+
+  omni_write:
+    build:
+      context: ./
+      dockerfile: cmd/OmniWrite/Dockerfile
+    depends_on:
+      - mariadb
+    environment:
+      HOST: "localhost"
+      PORT: "80"
+      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      CONNECTION_MAX_LIFETIME: "3"
+      MAX_OPEN_CONNECTIONS: "10"
+      MAX_IDLE_CONNECTIONS: "10"
+      JWT_SECRET: "omni-super-secret-key"
+      NODE_NAME: "dockercompose"
+    ports:
+      - "8083:80"

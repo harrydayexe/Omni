@@ -22,6 +22,8 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: HOST
+              value: "{{ .Values.service.host }}"
             - name: PORT
               value: "80"
             - name: DATA_SOURCE_NAME

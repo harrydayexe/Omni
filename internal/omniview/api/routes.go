@@ -3,9 +3,11 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	"github.com/harrydayexe/Omni/internal/storage"
 )
 
 func AddRoutes(
@@ -15,20 +17,46 @@ func AddRoutes(
 ) {
 	loggingMiddleware := middleware.NewLoggingMiddleware(logger)
 
-	// mux.Handle("/images", http.FileServer(http.Dir("../../web/static/images")))
-	// mux.Handle("/styles.css", http.FileServer(http.Dir("../../web/static/styles.css")))
 	mux.Handle("/", loggingMiddleware(handleIndex(templates)))
-	mux.Handle("/hello", loggingMiddleware(handleHello(templates)))
+}
+
+type Content struct {
+	Head struct {
+		Title string
+	}
+	Title string
+	Posts []storage.GetPostsPagedRow
 }
 
 func handleIndex(t *templates.Templates) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Templates.ExecuteTemplate(w, "index.html", nil)
-	})
-}
+		// Demo posts data
+		content := Content{
+			Head: struct {
+				Title string
+			}{
+				Title: "Omni | Home",
+			},
+			Posts: []storage.GetPostsPagedRow{
+				{
+					Username: "harrydayexe",
+					Post: storage.Post{
+						Title:       "Test Post",
+						Description: "This is a test post",
+						CreatedAt:   time.Now(),
+					},
+				},
+				{
+					Username: "smellysprite",
+					Post: storage.Post{
+						Title:       "Test Post 2",
+						Description: "This is a second test post",
+						CreatedAt:   time.Now(),
+					},
+				},
+			},
+		}
 
-func handleHello(t *templates.Templates) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Templates.ExecuteTemplate(w, "hello.html", nil)
+		t.Templates.ExecuteTemplate(w, "outline.html", content)
 	})
 }

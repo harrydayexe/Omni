@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux go build -o OmniAuth ./cmd/OmniAuth
+RUN CGO_ENABLED=0 GOOS=linux go build -o OmniView ./cmd/OmniView
 
 # Stage 2: Final stage
 FROM alpine:edge
@@ -27,17 +27,13 @@ RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 WORKDIR /home/appuser/
 
 # Copy the binary from the build stage
-COPY --from=build /app/OmniAuth .
+COPY --from=build /app/OmniView .
 
 # Change ownership of the application binary to the non-root user
-RUN chown 1001:1001 OmniAuth && chmod +x OmniAuth
+RUN chown 1001:1001 OmniView && chmod +x OmniView
 
 # Set ENV variables
 ENV PORT=80
-ENV DATA_SOURCE_NAME="root:Password1!@tcp(localhost)/omni?parseTime=true"
-ENV CONN_MAX_LIFETIME=3
-ENV MAX_IDLE_CONNECTIONS=10
-ENV MAX_OPEN_CONNECTIONS=10
 
 EXPOSE 80
 
@@ -45,4 +41,4 @@ EXPOSE 80
 USER 1001
 
 # Set the entrypoint command
-ENTRYPOINT ["./OmniAuth"]
+ENTRYPOINT ["./OmniView"]
