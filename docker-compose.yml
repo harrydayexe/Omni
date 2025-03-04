@@ -9,18 +9,14 @@ services:
       - "3306:3306"
     expose:
       - "3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
     healthcheck:
       test: ['CMD', '/usr/local/bin/healthcheck.sh', '--innodb_initialized']
       start_period: 5s
       timeout: 5s
       interval: 5s
       retries: 5
-    # healthcheck:
-    #   test: ["CMD", "mysql", "ping", "-h", "127.0.0.1", "--silent"]
-    #   interval: 5s
-    #   timeout: 3s
-    #   retries: 2
-    #   start_period: 0s
 
   migrate:
     image: migrate/migrate:latest
@@ -99,3 +95,6 @@ services:
       NODE_NAME: "dockercompose"
     ports:
       - "8083:80"
+
+volumes:
+  mariadb_data:
