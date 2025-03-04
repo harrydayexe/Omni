@@ -21,6 +21,8 @@ const (
 )
 
 // Snowflake is a distributed unique ID.
+//
+// | 1 Bit Unused | 41 Bit Timestamp |  10 Bit NodeID  |   12 Bit Sequence ID |
 type Snowflake struct {
 	timestamp uint64
 	nodeId    uint16

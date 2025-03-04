@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
@@ -84,7 +85,7 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 
 		err = db.CreateUser(r.Context(), storage.CreateUserParams{
 			ID:       newUser.ID,
-			Username: newUser.Username,
+			Username: strings.ToLower(newUser.Username),
 			Password: string(hash),
 		})
 		if err != nil {
