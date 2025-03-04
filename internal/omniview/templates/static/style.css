@@ -1,4 +1,7 @@
 /*! tailwindcss v4.0.8 | MIT License | https://tailwindcss.com */
+.relative {
+  position: relative;
+}
 .container {
   width: 100%;
 }

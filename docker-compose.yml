@@ -41,6 +41,9 @@ services:
     environment:
       HOST: "localhost"
       PORT: "80"
+      WRITE_API_URL: "http://omni_write:80"
+      READ_API_URL: "http://omni_read:80"
+      AUTH_API_URL: "http://omni_auth:80"
     ports:
       - "8080:80"  # Adjust port mapping as needed
 
@@ -53,7 +56,7 @@ services:
     environment:
       HOST: "localhost"
       PORT: "80"
-      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"
       CONNECTION_MAX_LIFETIME: "3"
       MAX_OPEN_CONNECTIONS: "10"
       MAX_IDLE_CONNECTIONS: "10"
@@ -69,7 +72,7 @@ services:
     environment:
       HOST: "localhost"
       PORT: "80"
-      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"
       CONNECTION_MAX_LIFETIME: "3"
       MAX_OPEN_CONNECTIONS: "10"
       MAX_IDLE_CONNECTIONS: "10"
@@ -87,7 +90,7 @@ services:
     environment:
       HOST: "localhost"
       PORT: "80"
-      DATA_SOURCE_NAME: "mysql://root:Password1!@tcp(mariadb:3306)/omni"
+      DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"
       CONNECTION_MAX_LIFETIME: "3"
       MAX_OPEN_CONNECTIONS: "10"
       MAX_IDLE_CONNECTIONS: "10"

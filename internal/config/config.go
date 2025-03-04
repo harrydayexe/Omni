@@ -1,5 +1,7 @@
 package config
 
+import "net/url"
+
 // Config is a struct that holds the configuration for the Omni applications.
 type Config struct {
 	Host string `env:"HOST"`
@@ -26,4 +28,11 @@ type AuthConfig struct {
 type WriteConfig struct {
 	AuthConfig
 	NodeName string `env:"NODE_NAME,required"`
+}
+
+type ViewConfig struct {
+	Config
+	WriteApiUrl url.URL `env:"WRITE_API_URL,required"`
+	ReadApiUrl  url.URL `env:"READ_API_URL,required"`
+	AuthApiUrl  url.URL `env:"AUTH_API_URL,required"`
 }

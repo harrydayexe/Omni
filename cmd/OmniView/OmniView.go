@@ -11,6 +11,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/cmd"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/omniview/api"
+	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 )
 
@@ -26,14 +27,16 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	cfg, err := env.ParseAs[config.Config]()
+	cfg, err := env.ParseAs[config.ViewConfig]()
 	if err != nil {
 		logger.Error("failed to parse config", slog.Any("error", err))
 		panic(err)
 	}
 	logger.Info("config", slog.Any("config", cfg))
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, templates.New(logger)), os.Stdout, cfg); err != nil {
+	dataConnector := connector.NewAPIConnector(cfg, logger)
+
+	if err := cmd.Run(ctx, api.NewHandler(logger, templates.New(logger), dataConnector), os.Stdout, cfg.Config); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
