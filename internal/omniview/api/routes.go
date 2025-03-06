@@ -26,6 +26,7 @@ type Content struct {
 		Title string
 	}
 	Title string
+	Error string
 	Posts []storage.GetPostsPagedRow
 }
 
@@ -33,22 +34,20 @@ func handleIndex(t *templates.Templates, dataConnector connector.Connector) http
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get posts
 		posts, err := dataConnector.GetMostRecentPosts(r.Context(), 0)
-		if err != nil {
-			http.Error(w, "Failed to get posts", http.StatusInternalServerError)
-			// TODO: Need to handle HTMX error here
-			return
-		}
-
-		// Demo posts data
 		content := Content{
 			Head: struct {
 				Title string
 			}{
 				Title: "Omni | Home",
 			},
-			Posts: posts,
+		}
+		if err != nil {
+			content.Error = "An error occurred while fetching the most recent posts. Try again later."
 		}
 
-		t.Templates.ExecuteTemplate(w, "outline.html", content)
+		// Demo posts data
+		content.Posts = posts
+
+		t.Templates.ExecuteTemplate(w, "posts.html", content)
 	})
 }
