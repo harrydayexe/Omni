@@ -10,6 +10,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
+	"github.com/oxtoacart/bpool"
 )
 
 func AddRoutes(
@@ -19,12 +20,13 @@ func AddRoutes(
 	dataConnector connector.Connector,
 ) {
 	loggingMiddleware := middleware.NewLoggingMiddleware(logger)
+	var bufpool *bpool.BufferPool = bpool.NewBufferPool(64)
 
-	mux.Handle("GET /", loggingMiddleware(handleGetIndex(templates, dataConnector, logger)))
-	mux.Handle("GET /user/{id}", loggingMiddleware(handleGetUser(templates, dataConnector, logger)))
+	mux.Handle("GET /", loggingMiddleware(handleGetIndex(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /user/{id}", loggingMiddleware(handleGetUser(templates, dataConnector, bufpool, logger)))
 }
 
-func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, logger *slog.Logger) http.Handler {
+func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head struct {
 			Title string
@@ -53,14 +55,21 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, l
 		// Demo posts data
 		content.Posts = posts
 
-		err = t.Templates.ExecuteTemplate(w, "posts.html", content)
+		// Get buffer
+		buf := bufpool.Get()
+		defer bufpool.Put(buf)
+
+		err = t.Templates.ExecuteTemplate(buf, "posts.html", content)
 		if err != nil {
+			// TODO: Handle returning error page
 			logger.ErrorContext(r.Context(), "Error executing template", slog.String("error message", err.Error()))
 		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		buf.WriteTo(w)
 	})
 }
 
-func handleGetUser(t *templates.Templates, dataConnector connector.Connector, logger *slog.Logger) http.Handler {
+func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head struct {
 			Title string
@@ -123,11 +132,19 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, lo
 
 		// Wait for goroutines to finish
 		wg.Wait()
-
 		logger.InfoContext(r.Context(), "User data fetched", slog.Any("content", content))
-		err = t.Templates.ExecuteTemplate(w, "user.html", content)
+
+		// Get buffer
+		buf := bufpool.Get()
+		defer bufpool.Put(buf)
+
+		err = t.Templates.ExecuteTemplate(buf, "user.html", content)
 		if err != nil {
+			// TODO: Handle returning error page
 			logger.ErrorContext(r.Context(), "Error executing template", slog.String("error message", err.Error()))
 		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		buf.WriteTo(w)
 	})
 }

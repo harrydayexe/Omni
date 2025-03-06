@@ -7,6 +7,8 @@ require (
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
+	github.com/pkg/errors v0.9.1
 	github.com/testcontainers/testcontainers-go v0.35.0
 	golang.org/x/crypto v0.31.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -48,7 +50,6 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
