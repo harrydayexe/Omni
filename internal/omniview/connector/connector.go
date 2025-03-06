@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
-	"github.com/pkg/errors"
 )
 
 // Connector is an interface that defines the methods that a data provider for
@@ -42,16 +42,39 @@ func NewAPIConnector(cfg config.ViewConfig, logger *slog.Logger) *APIConnector {
 	}
 }
 
+// APIError is an error type that is returned when an API request fails.
+// It contains the status code of the response or the underlying error.
+// Only one is expected to be set per error.
+type APIError struct {
+	StatusCode int
+	Underlying error
+}
+
+func (e *APIError) Error() string {
+	if e.StatusCode != 0 {
+		return fmt.Errorf("API returned non-200 status code: %d", e.StatusCode).Error()
+	} else {
+		return fmt.Errorf("Connector error: %w", e.Underlying).Error()
+	}
+}
+
+func NewAPIError(statusCode int, underlying error) *APIError {
+	return &APIError{
+		StatusCode: statusCode,
+		Underlying: underlying,
+	}
+}
+
 func (c *APIConnector) GetRequest(ctx context.Context, url string) (*http.Response, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to send GET request to backend", slog.Any("error", err))
-		return nil, errors.Wrap(err, "http.Get")
+		return nil, NewAPIError(0, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		c.logger.ErrorContext(ctx, "GET request did not return 200", slog.Int("http status", resp.StatusCode))
-		return nil, errors.New("api returned non-200 status")
+		return nil, NewAPIError(resp.StatusCode, nil)
 	}
 
 	return resp, nil
@@ -62,7 +85,7 @@ func (c *APIConnector) GetPost(ctx context.Context, id snowflake.Identifier) (st
 	postUrl, err := c.cfg.ReadApiUrl.Parse("/post/" + strconv.FormatUint(id.Id().ToInt(), 10))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get post url", slog.Any("error", err))
-		return storage.Post{}, errors.Wrap(err, "c.cfg.ReadApiUrl.Parse")
+		return storage.Post{}, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, postUrl.String())
@@ -77,7 +100,7 @@ func (c *APIConnector) GetPost(ctx context.Context, id snowflake.Identifier) (st
 	err = decoder.Decode(&post)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode post", slog.Any("error", err))
-		return storage.Post{}, errors.Wrap(err, "Decode")
+		return storage.Post{}, NewAPIError(0, err)
 	}
 
 	return post, nil
@@ -88,7 +111,7 @@ func (c *APIConnector) GetUser(ctx context.Context, id snowflake.Identifier) (st
 	userUrl, err := c.cfg.ReadApiUrl.Parse("/user/" + strconv.FormatUint(id.Id().ToInt(), 10))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get user url", slog.Any("error", err))
-		return storage.User{}, errors.Wrap(err, "c.cfg.ReadApiUrl.Parse")
+		return storage.User{}, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, userUrl.String())
@@ -103,7 +126,7 @@ func (c *APIConnector) GetUser(ctx context.Context, id snowflake.Identifier) (st
 	err = userDecoder.Decode(&user)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode user", slog.Any("error", err))
-		return storage.User{}, errors.Wrap(err, "Decode")
+		return storage.User{}, NewAPIError(0, err)
 	}
 
 	return user, nil
@@ -114,7 +137,7 @@ func (c *APIConnector) GetUserPosts(ctx context.Context, id snowflake.Identifier
 	userPostsUrl, err := c.cfg.ReadApiUrl.Parse("/user/" + strconv.FormatUint(id.Id().ToInt(), 10) + "/posts")
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get user posts url", slog.Any("error", err))
-		return nil, errors.Wrap(err, "c.cfg.ReadApiUrl.Parse")
+		return nil, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, userPostsUrl.String())
@@ -129,7 +152,7 @@ func (c *APIConnector) GetUserPosts(ctx context.Context, id snowflake.Identifier
 	err = decoder.Decode(&posts)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode posts", slog.Any("error", err))
-		return nil, errors.Wrap(err, "Decode")
+		return nil, NewAPIError(0, err)
 	}
 
 	return posts, nil
@@ -140,7 +163,7 @@ func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]stor
 	postsUrl, err := c.cfg.ReadApiUrl.Parse("/posts?page=" + strconv.Itoa(page))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get posts url", slog.Any("error", err))
-		return nil, errors.Wrap(err, "c.cfg.ReadApiUrl.Parse")
+		return nil, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, postsUrl.String())
@@ -155,7 +178,7 @@ func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]stor
 	err = decoder.Decode(&posts)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode posts", slog.Any("error", err))
-		return nil, errors.Wrap(err, "Decode")
+		return nil, NewAPIError(0, err)
 	}
 
 	return posts, nil

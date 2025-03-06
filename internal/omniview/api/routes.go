@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
-	"sync"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
@@ -110,41 +110,72 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 			IsUserPage: true,
 		}
 
-		// Create waitGroup
-		var wg sync.WaitGroup
+		// Create error channel
+		errChan := make(chan error, 2)
+		// Create sub-context
+		subctx, cancel := context.WithCancel(r.Context())
 
 		// Get user
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
-			user, err := dataConnector.GetUser(r.Context(), snowflake)
+			user, err := dataConnector.GetUser(subctx, snowflake)
 			if err != nil {
-				// TODO: Handle this error
-				http.Error(w, "User not found", http.StatusNotFound)
+				// Cancel other routines
+				cancel()
+				errChan <- err
 				return
 			}
-
+			logger.InfoContext(r.Context(), "User data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.Head.Title = "Omni | " + user.Username
 			content.Username = user.Username
+			errChan <- nil
 		}()
 
 		// Get user posts
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
-			posts, err := dataConnector.GetUserPosts(r.Context(), snowflake)
+			posts, err := dataConnector.GetUserPosts(subctx, snowflake)
 			if err != nil {
-				// TODO: Handle this error
-				http.Error(w, "No posts found for user", http.StatusNotFound)
+				// Cancel other routines
+				cancel()
+				errChan <- err
 				return
 			}
 
+			logger.InfoContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.Posts = posts
+			errChan <- nil
 		}()
 
 		// Wait for goroutines to finish
-		wg.Wait()
-		logger.InfoContext(r.Context(), "User data fetched", slog.Any("content", content))
+		var firstErr error
+		for i := 0; i < 2; i++ {
+			// If the error channel has an error and it is the first error...
+			if err := <-errChan; err != nil && firstErr == nil {
+				logger.InfoContext(r.Context(), "An error occurred while fetching data", slog.String("error", err.Error()))
+				firstErr = err
+			}
+		}
+		logger.InfoContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetUser"))
+
+		// Handle firstErr
+		var ae *connector.APIError
+		if errors.As(firstErr, &ae) {
+			if ae.StatusCode == http.StatusNotFound {
+				// User not found
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("User not found", "The user you are looking for does not exist."),
+				)
+			} else {
+				// Error in getting backend data
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching user data."),
+				)
+			}
+			return
+		}
 
 		writeTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
 	})

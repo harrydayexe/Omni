@@ -11,8 +11,14 @@
 .flex {
   display: flex;
 }
+.inline-block {
+  display: inline-block;
+}
 .items-center {
   align-items: center;
+}
+.justify-center {
+  justify-content: center;
 }
 .border {
   border-style: var(--tw-border-style);
