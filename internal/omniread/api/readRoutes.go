@@ -132,6 +132,11 @@ func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 			return
 		}
 
+		_, err = db.GetUserByID(r.Context(), int64(id.ToInt()))
+		if utilities.IsDbError(r.Context(), logger, w, id, err) {
+			return
+		}
+
 		rows, err := db.GetUserAndPostsByIDPaged(r.Context(), storage.GetUserAndPostsByIDPagedParams{
 			ID:           int64(id.ToInt()),
 			CreatedAfter: fromDate,

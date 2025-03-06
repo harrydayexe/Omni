@@ -452,6 +452,15 @@ func TestGetPostsForUser(t *testing.T) {
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
+		{
+			name:                   "Unknown User",
+			urlQuery:               "1/posts",
+			errorToReturn:          sql.ErrNoRows,
+			expectedStatusCode:     http.StatusNotFound,
+			expectedJsonResponse:   "entity not found\n",
+			expectedRequestedLimit: 10,
+			expectedRequestedFrom:  time.UnixMilli(1704067200000),
+		},
 	}
 
 	var userObj = storage.GetUserByIDRow{
@@ -463,6 +472,13 @@ func TestGetPostsForUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			mockedQueries := &storage.StubbedQueries{
+				GetUserByIDFn: func(ctx context.Context, id int64) (storage.GetUserByIDRow, error) {
+					if id != userIdNum {
+						return storage.GetUserByIDRow{}, sql.ErrNoRows
+					}
+
+					return userObj, nil
+				},
 				GetUserAndPostsByIDPagedFn: func(ctx context.Context, arg storage.GetUserAndPostsByIDPagedParams) ([]storage.GetUserAndPostsByIDPagedRow, error) {
 					if int(arg.Limit) != tt.expectedRequestedLimit {
 						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", arg.Limit)
