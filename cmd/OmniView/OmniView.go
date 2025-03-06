@@ -36,7 +36,12 @@ func main() {
 
 	dataConnector := connector.NewAPIConnector(cfg, logger)
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, templates.New(logger), dataConnector), os.Stdout, cfg.Config); err != nil {
+	tmpls, err := templates.New(logger)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := cmd.Run(ctx, api.NewHandler(logger, tmpls, dataConnector), os.Stdout, cfg.Config); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

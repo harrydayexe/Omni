@@ -5,10 +5,15 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
-//go:embed *.html
-var embeddedTemplates embed.FS
+//go:embed partials/*.html
+var partialEmbeddedTemplates embed.FS
+
+//go:embed pages/*.html
+var pageEmbeddedTemplates embed.FS
 
 //go:embed static/*
 var staticFiles embed.FS
@@ -24,10 +29,17 @@ type Templates struct {
 }
 
 // New initializes and loads all templates
-func New(logger *slog.Logger) *Templates {
-	tmpls, err := template.ParseFS(embeddedTemplates, "*.html")
+func New(logger *slog.Logger) (*Templates, error) {
+	tmpls, err := template.ParseFS(pageEmbeddedTemplates, "pages/*.html")
 	if err != nil {
-		logger.Error("Error parsing templates", slog.Any("error", err))
+		logger.Error("Error parsing page templates", slog.Any("error", err))
+		return nil, errors.Wrap(err, "template.ParseFS")
 	}
-	return &Templates{Templates: tmpls}
+	tmpls, err = tmpls.ParseFS(partialEmbeddedTemplates, "partials/*.html")
+	if err != nil {
+		logger.Error("Error parsing partial templates", slog.Any("error", err))
+		return nil, errors.Wrap(err, "template.ParseFS")
+	}
+
+	return &Templates{Templates: tmpls}, nil
 }
