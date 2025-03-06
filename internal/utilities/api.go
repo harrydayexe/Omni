@@ -17,7 +17,7 @@ import (
 )
 
 // extract the id parameter from the http request
-// if the parameter cannot be parsed then an error is written to the http response
+// if the parameter cannot be parsed then an error is written to the http response (if the response is not nil)
 func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger) (snowflake.Snowflake, error) {
 	idString := r.PathValue("id")
 	logger.InfoContext(r.Context(), "extracting id from request", slog.String("idString", idString))
@@ -25,7 +25,9 @@ func ExtractIdParam(r *http.Request, w http.ResponseWriter, logger *slog.Logger)
 	if err != nil {
 		logger.InfoContext(r.Context(), "failed to parse id to int", slog.Any("error", err))
 		errorMessage := "Url parameter could not be parsed properly."
-		http.Error(w, errorMessage, http.StatusBadRequest)
+		if w != nil {
+			http.Error(w, errorMessage, http.StatusBadRequest)
+		}
 		return snowflake.ParseId(0), fmt.Errorf("failed to parse id to int: %w", err)
 	}
 

@@ -21,7 +21,7 @@ var staticFiles embed.FS
 func AddStaticFileRoutes(
 	mux *http.ServeMux,
 ) {
-	mux.Handle("/static/", http.FileServer(http.FS(staticFiles)))
+	mux.Handle("GET /static/", http.FileServer(http.FS(staticFiles)))
 }
 
 type Templates struct {
