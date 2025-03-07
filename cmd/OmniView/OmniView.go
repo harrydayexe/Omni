@@ -41,7 +41,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := cmd.Run(ctx, api.NewHandler(logger, tmpls, dataConnector), os.Stdout, cfg.Config); err != nil {
+	if err := cmd.Run(ctx, api.NewHandler(logger, tmpls, dataConnector, cfg), os.Stdout, cfg.Config); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

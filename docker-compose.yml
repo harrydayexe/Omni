@@ -44,6 +44,7 @@ services:
       WRITE_API_URL: "http://omni_write:80"
       READ_API_URL: "http://omni_read:80"
       AUTH_API_URL: "http://omni_auth:80"
+      JWT_SECRET: "omni-super-secret-key"
     ports:
       - "8080:80"  # Adjust port mapping as needed
 

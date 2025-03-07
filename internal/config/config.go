@@ -35,4 +35,5 @@ type ViewConfig struct {
 	WriteApiUrl url.URL `env:"WRITE_API_URL,required"`
 	ReadApiUrl  url.URL `env:"READ_API_URL,required"`
 	AuthApiUrl  url.URL `env:"AUTH_API_URL,required"`
+	JWTSecret   string  `env:"JWT_SECRET,required"`
 }

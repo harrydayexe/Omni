@@ -4,19 +4,17 @@ import (
 	"context"
 	"errors"
 	"html/template"
-	"io"
 	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/gomarkdown/markdown"
+	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -25,14 +23,18 @@ func AddRoutes(
 	templates *templates.Templates,
 	logger *slog.Logger,
 	dataConnector connector.Connector,
+	cfg config.ViewConfig,
 ) {
-	loggingMiddleware := middleware.NewLoggingMiddleware(logger)
+	stack := middleware.CreateStack(
+		middleware.NewLoggingMiddleware(logger),
+		middleware.NewJwtSecret(cfg.JWTSecret),
+	)
 	var bufpool *bpool.BufferPool = bpool.NewBufferPool(64)
 
-	mux.Handle("GET /", loggingMiddleware(handleGetIndex(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /user/{id}", loggingMiddleware(handleGetUser(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /post/{id}", loggingMiddleware(handleGetPost(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /login", loggingMiddleware(handleGetLogin(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /", stack(handleGetIndex(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /user/{id}", stack(handleGetUser(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
 }
 
 func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
@@ -53,6 +55,7 @@ func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name stri
 func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head       datamodels.Head
+		NavBar     datamodels.NavBar
 		Error      string
 		IsUserPage bool
 		Posts      []storage.GetPostsPagedRow
@@ -65,6 +68,10 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 		content := Content{
 			Head: datamodels.Head{
 				Title: "Omni | Home",
+			},
+			// TODO: Need to check if this should be shown
+			NavBar: datamodels.NavBar{
+				ShouldShowLogin: true,
 			},
 			IsUserPage: false,
 		}
@@ -83,6 +90,7 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head       datamodels.Head
+		NavBar     datamodels.NavBar
 		Error      string
 		Username   string
 		IsUserPage bool
@@ -106,6 +114,10 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 			Head: datamodels.Head{
 				Title: "Omni | User",
 			},
+			// TODO: Need to check if this should be shown
+			NavBar: datamodels.NavBar{
+				ShouldShowLogin: true,
+			},
 			IsUserPage: true,
 		}
 
@@ -123,7 +135,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 				errChan <- err
 				return
 			}
-			logger.InfoContext(r.Context(), "User data fetched", slog.Int64("id", int64(snowflake.ToInt())))
+			logger.DebugContext(r.Context(), "User data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.Head.Title = "Omni | " + user.Username
 			content.Username = user.Username
 			errChan <- nil
@@ -139,7 +151,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 				return
 			}
 
-			logger.InfoContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
+			logger.DebugContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.Posts = posts
 			errChan <- nil
 		}()
@@ -153,7 +165,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 				firstErr = err
 			}
 		}
-		logger.InfoContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetUser"))
+		logger.DebugContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetUser"))
 
 		// Handle firstErr
 		var ae *connector.APIError
@@ -189,8 +201,9 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		Content     template.HTML
 	}
 	type Content struct {
-		Head datamodels.Head
-		Post Post
+		Head   datamodels.Head
+		NavBar datamodels.NavBar
+		Post   Post
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /post", slog.String("id", r.PathValue("id")))
@@ -209,6 +222,10 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 			Head: datamodels.Head{
 				Title: "Omni | Post",
 			},
+			// TODO: Need to check if this should be shown
+			NavBar: datamodels.NavBar{
+				ShouldShowLogin: true,
+			},
 		}
 		var post storage.Post
 
@@ -226,7 +243,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 				errChan <- err
 				return
 			}
-			logger.InfoContext(r.Context(), "Post data fetched", slog.Int64("id", int64(snowflake.ToInt())))
+			logger.DebugContext(r.Context(), "Post data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			post = postResp
 			// Finally return with no error
 			errChan <- nil
@@ -241,7 +258,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 				firstErr = err
 			}
 		}
-		logger.InfoContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetPost"))
+		logger.DebugContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetPost"))
 
 		// Handle firstErr
 		var ae *connector.APIError
@@ -265,7 +282,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		}
 
 		// Get markdown data
-		html, err := fetchMarkdownData(r.Context(), logger, post.MarkdownUrl)
+		html, err := FetchMarkdownData(r.Context(), logger, post.MarkdownUrl)
 		if errors.As(err, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
@@ -285,7 +302,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 			return
 		}
 
-		logger.InfoContext(r.Context(), "Setting page content")
+		logger.DebugContext(r.Context(), "Setting page content")
 		content.Post = Post{
 			Title:       post.Title,
 			Description: post.Description,
@@ -298,42 +315,32 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 	})
 }
 
-func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (string, error) {
-	logger.InfoContext(ctx, "Fetching markdown data", slog.String("url", url))
-	resp, err := http.Get(url)
-	if err != nil {
-		logger.InfoContext(ctx, "Failed to fetch markdown data", slog.String("error", err.Error()))
-		return "", connector.NewAPIError(0, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logger.InfoContext(ctx, "Failed to fetch markdown data", slog.Int("status", resp.StatusCode))
-		return "", connector.NewAPIError(resp.StatusCode, nil)
-	}
-
-	rawMdBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.InfoContext(ctx, "Failed to read markdown data", slog.String("error", err.Error()))
-		return "", connector.NewAPIError(0, err)
-	}
-
-	logger.InfoContext(ctx, "Markdown data fetched", slog.Int("length", len(rawMdBytes)))
-	maybeUnsafeHTML := markdown.ToHTML(rawMdBytes, nil, nil)
-	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
-
-	return string(html), nil
-}
-
-func handleGetLogin(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetLogin(
+	t *templates.Templates,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
 	type Content struct {
-		Head datamodels.Head
+		Head   datamodels.Head
+		NavBar datamodels.NavBar
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /login")
+
+		// Check the header and redirect if necessary
+		if time, prs := HasValidAuthHeader(r, logger); prs {
+			w.Header().Add("Expires", time)
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
 		content := Content{
 			Head: datamodels.Head{
 				Title: "Omni | Login",
+			},
+			// TODO: Need to check if this should be shown
+			NavBar: datamodels.NavBar{
+				ShouldShowLogin: true,
 			},
 		}
 

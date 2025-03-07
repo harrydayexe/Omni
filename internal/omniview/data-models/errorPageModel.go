@@ -2,8 +2,9 @@ package datamodels
 
 // ErrorPageModel is the data model for the error page template
 type ErrorPageModel struct {
-	Head  struct{ Title string }
-	Error struct {
+	Head   struct{ Title string }
+	NavBar NavBar
+	Error  struct {
 		Title   string
 		Message string
 	}
@@ -16,6 +17,9 @@ func NewErrorPageModel(title, message string) ErrorPageModel {
 			Title string
 		}{
 			Title: "Omni | " + title,
+		},
+		NavBar: NavBar{
+			ShouldShowLogin: false,
 		},
 		Error: struct {
 			Title   string
