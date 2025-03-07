@@ -10,8 +10,26 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
+	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
+	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/oxtoacart/bpool"
 )
+
+func WriteTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
+	// Get buffer
+	buf := bufpool.Get()
+	defer bufpool.Put(buf)
+
+	err := t.Templates.ExecuteTemplate(buf, name, content)
+	if err != nil {
+		logger.ErrorContext(ctx, "Error executing template", slog.String("error message", err.Error()))
+		// NOTE: We are assuming here that this error page won't fail to render
+		_ = t.Templates.ExecuteTemplate(w, "errorpage.html", datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while rendering the page."))
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	buf.WriteTo(w)
+}
 
 // FetchMarkdownData fetches markdown data from a given url and returns the sanitized html
 func FetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (string, error) {

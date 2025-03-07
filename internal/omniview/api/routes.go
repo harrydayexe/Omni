@@ -37,21 +37,6 @@ func AddRoutes(
 	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
 }
 
-func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
-	// Get buffer
-	buf := bufpool.Get()
-	defer bufpool.Put(buf)
-
-	err := t.Templates.ExecuteTemplate(buf, name, content)
-	if err != nil {
-		logger.ErrorContext(ctx, "Error executing template", slog.String("error message", err.Error()))
-		// NOTE: We are assuming here that this error page won't fail to render
-		_ = t.Templates.ExecuteTemplate(w, "errorpage.html", datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while rendering the page."))
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	buf.WriteTo(w)
-}
-
 func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head       datamodels.Head
@@ -83,7 +68,7 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 		content.Posts = posts
 
 		// Write template
-		writeTemplateWithBuffer(r.Context(), logger, "posts.html", t, bufpool, w, content)
+		WriteTemplateWithBuffer(r.Context(), logger, "posts.html", t, bufpool, w, content)
 	})
 }
 
@@ -105,7 +90,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 				"User not found",
 				"The user you are looking for does not exist.",
 			)
-			writeTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
+			WriteTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
 			return
 		}
 
@@ -172,14 +157,14 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 		if errors.As(firstErr, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("User not found", "The user you are looking for does not exist."),
 				)
 			} else {
 				// Error in getting backend data
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching user data."),
@@ -188,7 +173,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 			return
 		}
 
-		writeTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
+		WriteTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
 	})
 }
 
@@ -214,7 +199,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 				"Post not found",
 				"The post you are looking for does not exist.",
 			)
-			writeTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
+			WriteTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
 			return
 		}
 
@@ -265,14 +250,14 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		if errors.As(firstErr, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Post not found", "The post you are looking for does not exist."),
 				)
 			} else {
 				// Error in getting backend data
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching post data."),
@@ -286,14 +271,14 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		if errors.As(err, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Markdown not found", "The markdown file for this post could not be read."),
 				)
 			} else {
 				// Error in getting backend data
-				writeTemplateWithBuffer(
+				WriteTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while processing markdown data."),
@@ -311,7 +296,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 			Content:     template.HTML(html),
 		}
 
-		writeTemplateWithBuffer(r.Context(), logger, "post.html", t, bufpool, w, content)
+		WriteTemplateWithBuffer(r.Context(), logger, "post.html", t, bufpool, w, content)
 	})
 }
 
@@ -344,6 +329,6 @@ func handleGetLogin(
 			},
 		}
 
-		writeTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)
+		WriteTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)
 	})
 }
