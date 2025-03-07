@@ -16,7 +16,7 @@ func NewHandler(
 	config config.ViewConfig,
 ) http.Handler {
 	mux := http.NewServeMux()
-	AddRoutes(
+	AddPageRoutes(
 		mux,
 		temps,
 		logger,

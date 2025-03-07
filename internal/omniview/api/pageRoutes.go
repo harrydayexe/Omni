@@ -18,7 +18,7 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-func AddRoutes(
+func AddPageRoutes(
 	mux *http.ServeMux,
 	templates *templates.Templates,
 	logger *slog.Logger,
