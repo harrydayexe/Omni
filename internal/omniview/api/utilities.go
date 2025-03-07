@@ -16,7 +16,7 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-func WriteTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
+func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
 	// Get buffer
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
@@ -32,7 +32,7 @@ func WriteTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name stri
 }
 
 // FetchMarkdownData fetches markdown data from a given url and returns the sanitized html
-func FetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (string, error) {
+func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (string, error) {
 	logger.DebugContext(ctx, "Fetching markdown data", slog.String("url", url))
 	resp, err := http.Get(url)
 	if err != nil {
@@ -61,7 +61,7 @@ func FetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (st
 
 // HasValidAuthHeader checks if the request has a valid Authorization header.
 // It does not check if the given header is valid for a given user id.
-func HasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
+func hasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
 	logger.DebugContext(r.Context(), "Checking for valid auth header")
 
 	authHeader := r.Header.Get("Authorization")
@@ -84,4 +84,8 @@ func HasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
 	}
 
 	return time, true
+}
+
+func isHTMXRequest(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
 }

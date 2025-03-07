@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/harrydayexe/Omni/internal/config"
-	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
@@ -18,26 +16,7 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-func AddPageRoutes(
-	mux *http.ServeMux,
-	templates *templates.Templates,
-	logger *slog.Logger,
-	dataConnector connector.Connector,
-	cfg config.ViewConfig,
-) {
-	stack := middleware.CreateStack(
-		middleware.NewLoggingMiddleware(logger),
-		middleware.NewJwtSecret(cfg.JWTSecret),
-	)
-	var bufpool *bpool.BufferPool = bpool.NewBufferPool(64)
-
-	mux.Handle("GET /", stack(handleGetIndex(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /user/{id}", stack(handleGetUser(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
-	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
-}
-
-func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head       datamodels.Head
 		NavBar     datamodels.NavBar
@@ -68,11 +47,11 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 		content.Posts = posts
 
 		// Write template
-		WriteTemplateWithBuffer(r.Context(), logger, "posts.html", t, bufpool, w, content)
+		writeTemplateWithBuffer(r.Context(), logger, "posts.html", t, bufpool, w, content)
 	})
 }
 
-func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
 		Head       datamodels.Head
 		NavBar     datamodels.NavBar
@@ -90,7 +69,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 				"User not found",
 				"The user you are looking for does not exist.",
 			)
-			WriteTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
+			writeTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
 			return
 		}
 
@@ -157,14 +136,14 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 		if errors.As(firstErr, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("User not found", "The user you are looking for does not exist."),
 				)
 			} else {
 				// Error in getting backend data
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching user data."),
@@ -173,11 +152,11 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 			return
 		}
 
-		WriteTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
+		writeTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
 	})
 }
 
-func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Post struct {
 		Title       string
 		Description string
@@ -199,7 +178,7 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 				"Post not found",
 				"The post you are looking for does not exist.",
 			)
-			WriteTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
+			writeTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
 			return
 		}
 
@@ -250,14 +229,14 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		if errors.As(firstErr, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Post not found", "The post you are looking for does not exist."),
 				)
 			} else {
 				// Error in getting backend data
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching post data."),
@@ -267,18 +246,18 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 		}
 
 		// Get markdown data
-		html, err := FetchMarkdownData(r.Context(), logger, post.MarkdownUrl)
+		html, err := fetchMarkdownData(r.Context(), logger, post.MarkdownUrl)
 		if errors.As(err, &ae) {
 			if ae.StatusCode == http.StatusNotFound {
 				// User not found
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Markdown not found", "The markdown file for this post could not be read."),
 				)
 			} else {
 				// Error in getting backend data
-				WriteTemplateWithBuffer(
+				writeTemplateWithBuffer(
 					r.Context(), logger,
 					"errorpage.html", t, bufpool, w,
 					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while processing markdown data."),
@@ -296,11 +275,11 @@ func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bu
 			Content:     template.HTML(html),
 		}
 
-		WriteTemplateWithBuffer(r.Context(), logger, "post.html", t, bufpool, w, content)
+		writeTemplateWithBuffer(r.Context(), logger, "post.html", t, bufpool, w, content)
 	})
 }
 
-func handleGetLogin(
+func handleGetLoginPage(
 	t *templates.Templates,
 	bufpool *bpool.BufferPool,
 	logger *slog.Logger,
@@ -313,7 +292,7 @@ func handleGetLogin(
 		logger.InfoContext(r.Context(), "GET request received for /login")
 
 		// Check the header and redirect if necessary
-		if time, prs := HasValidAuthHeader(r, logger); prs {
+		if time, prs := hasValidAuthHeader(r, logger); prs {
 			w.Header().Add("Expires", time)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -329,6 +308,6 @@ func handleGetLogin(
 			},
 		}
 
-		WriteTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)
+		writeTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)
 	})
 }
