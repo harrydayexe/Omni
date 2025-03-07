@@ -92,6 +92,7 @@ func (c *APIConnector) GetPost(ctx context.Context, id snowflake.Identifier) (st
 	if err != nil {
 		return storage.Post{}, err
 	}
+	defer resp.Body.Close()
 
 	var post storage.Post
 	decoder := json.NewDecoder(resp.Body)
@@ -118,6 +119,7 @@ func (c *APIConnector) GetUser(ctx context.Context, id snowflake.Identifier) (st
 	if err != nil {
 		return storage.User{}, err
 	}
+	defer resp.Body.Close()
 
 	var user storage.User
 	userDecoder := json.NewDecoder(resp.Body)
@@ -144,6 +146,7 @@ func (c *APIConnector) GetUserPosts(ctx context.Context, id snowflake.Identifier
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var posts []storage.Post
 	decoder := json.NewDecoder(resp.Body)
@@ -170,6 +173,7 @@ func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]stor
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var posts []storage.GetPostsPagedRow
 	decoder := json.NewDecoder(resp.Body)

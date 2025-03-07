@@ -3,15 +3,20 @@ package api
 import (
 	"context"
 	"errors"
+	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
+	"github.com/gomarkdown/markdown"
 	"github.com/harrydayexe/Omni/internal/middleware"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -26,6 +31,7 @@ func AddRoutes(
 
 	mux.Handle("GET /", loggingMiddleware(handleGetIndex(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /user/{id}", loggingMiddleware(handleGetUser(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /post/{id}", loggingMiddleware(handleGetPost(templates, dataConnector, bufpool, logger)))
 }
 
 func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
@@ -45,9 +51,7 @@ func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name stri
 
 func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
-		Head struct {
-			Title string
-		}
+		Head       datamodels.Head
 		Error      string
 		IsUserPage bool
 		Posts      []storage.GetPostsPagedRow
@@ -58,9 +62,7 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 		// Get posts
 		posts, err := dataConnector.GetMostRecentPosts(r.Context(), 0)
 		content := Content{
-			Head: struct {
-				Title string
-			}{
+			Head: datamodels.Head{
 				Title: "Omni | Home",
 			},
 			IsUserPage: false,
@@ -79,9 +81,7 @@ func handleGetIndex(t *templates.Templates, dataConnector connector.Connector, b
 
 func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
-		Head struct {
-			Title string
-		}
+		Head       datamodels.Head
 		Error      string
 		Username   string
 		IsUserPage bool
@@ -102,9 +102,7 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 
 		// Create content variable
 		content := Content{
-			Head: struct {
-				Title string
-			}{
+			Head: datamodels.Head{
 				Title: "Omni | User",
 			},
 			IsUserPage: true,
@@ -179,4 +177,149 @@ func handleGetUser(t *templates.Templates, dataConnector connector.Connector, bu
 
 		writeTemplateWithBuffer(r.Context(), logger, "user.html", t, bufpool, w, content)
 	})
+}
+
+func handleGetPost(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+	type Post struct {
+		Title       string
+		Description string
+		CreatedAt   string
+		Author      string
+		Content     template.HTML
+	}
+	type Content struct {
+		Head datamodels.Head
+		Post Post
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for /post", slog.String("id", r.PathValue("id")))
+		// Parse user id
+		snowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			content := datamodels.NewErrorPageModel(
+				"Post not found",
+				"The post you are looking for does not exist.",
+			)
+			writeTemplateWithBuffer(r.Context(), logger, "errorpage.html", t, bufpool, w, content)
+			return
+		}
+
+		content := Content{
+			Head: datamodels.Head{
+				Title: "Omni | Post",
+			},
+		}
+		var post storage.Post
+
+		// Create error channel
+		errChan := make(chan error, 1)
+		// Create sub-context
+		subctx, cancel := context.WithCancel(r.Context())
+
+		// Get user
+		go func() {
+			postResp, err := dataConnector.GetPost(subctx, snowflake)
+			if err != nil {
+				// Cancel other routines
+				cancel()
+				errChan <- err
+				return
+			}
+			logger.InfoContext(r.Context(), "Post data fetched", slog.Int64("id", int64(snowflake.ToInt())))
+			post = postResp
+			// Finally return with no error
+			errChan <- nil
+		}()
+
+		// Wait for goroutines to finish
+		var firstErr error
+		for i := 0; i < 1; i++ {
+			// If the error channel has an error and it is the first error...
+			if err := <-errChan; err != nil && firstErr == nil {
+				logger.InfoContext(r.Context(), "An error occurred while fetching data", slog.String("error", err.Error()))
+				firstErr = err
+			}
+		}
+		logger.InfoContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetPost"))
+
+		// Handle firstErr
+		var ae *connector.APIError
+		if errors.As(firstErr, &ae) {
+			if ae.StatusCode == http.StatusNotFound {
+				// User not found
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("Post not found", "The post you are looking for does not exist."),
+				)
+			} else {
+				// Error in getting backend data
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while fetching post data."),
+				)
+			}
+			return
+		}
+
+		// Get markdown data
+		html, err := fetchMarkdownData(r.Context(), logger, post.MarkdownUrl)
+		if errors.As(err, &ae) {
+			if ae.StatusCode == http.StatusNotFound {
+				// User not found
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("Markdown not found", "The markdown file for this post could not be read."),
+				)
+			} else {
+				// Error in getting backend data
+				writeTemplateWithBuffer(
+					r.Context(), logger,
+					"errorpage.html", t, bufpool, w,
+					datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while processing markdown data."),
+				)
+			}
+			return
+		}
+
+		logger.InfoContext(r.Context(), "Setting page content")
+		content.Post = Post{
+			Title:       post.Title,
+			Description: post.Description,
+			CreatedAt:   post.CreatedAt.Format(time.DateTime),
+			Author:      "Author", // TODO: Do a call to get this info
+			Content:     template.HTML(html),
+		}
+
+		writeTemplateWithBuffer(r.Context(), logger, "post.html", t, bufpool, w, content)
+	})
+}
+
+func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (string, error) {
+	logger.InfoContext(ctx, "Fetching markdown data", slog.String("url", url))
+	resp, err := http.Get(url)
+	if err != nil {
+		logger.InfoContext(ctx, "Failed to fetch markdown data", slog.String("error", err.Error()))
+		return "", connector.NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.InfoContext(ctx, "Failed to fetch markdown data", slog.Int("status", resp.StatusCode))
+		return "", connector.NewAPIError(resp.StatusCode, nil)
+	}
+
+	rawMdBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.InfoContext(ctx, "Failed to read markdown data", slog.String("error", err.Error()))
+		return "", connector.NewAPIError(0, err)
+	}
+
+	logger.InfoContext(ctx, "Markdown data fetched", slog.Int("length", len(rawMdBytes)))
+	maybeUnsafeHTML := markdown.ToHTML(rawMdBytes, nil, nil)
+	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+
+	return string(html), nil
 }
