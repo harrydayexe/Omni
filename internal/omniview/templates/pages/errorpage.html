@@ -5,7 +5,7 @@
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     {{ template "navbar" . }}
-    <div class="flex justify-center mt-4">
+    <main class="flex justify-center mt-4">
         <div role="alert" class="inline-block">
             <div class="bg-red-500 text-white font-bold rounded-t px-4 py-2">
                 Error: {{ .Error.Title }}
@@ -16,7 +16,7 @@
                 </p>
             </div>
         </div>
-    </div>
+    </main>
     {{ template "footer" . }}
 </body>
 

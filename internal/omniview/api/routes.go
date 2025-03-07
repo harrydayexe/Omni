@@ -32,6 +32,7 @@ func AddRoutes(
 	mux.Handle("GET /", loggingMiddleware(handleGetIndex(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /user/{id}", loggingMiddleware(handleGetUser(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}", loggingMiddleware(handleGetPost(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /login", loggingMiddleware(handleGetLogin(templates, dataConnector, bufpool, logger)))
 }
 
 func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
@@ -322,4 +323,20 @@ func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (st
 	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
 
 	return string(html), nil
+}
+
+func handleGetLogin(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+	type Content struct {
+		Head datamodels.Head
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for /login")
+		content := Content{
+			Head: datamodels.Head{
+				Title: "Omni | Login",
+			},
+		}
+
+		writeTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)
+	})
 }
