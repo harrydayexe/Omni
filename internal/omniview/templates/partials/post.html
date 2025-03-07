@@ -2,6 +2,8 @@
 <h1 class="text-3xl font-bold mb-4">{{ .Title }}</h1>
 <h2 class="text-xl font-bold mb-4">{{ .Author }} at {{ .CreatedAt }}</h2>
 <p class="text-gray-600 dark:text-gray-400">{{ .Description }}</p>
-</hr>
-{{.Content}}
+<hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+<div class="post-content">
+    {{.Content}}
+</div>
 {{ end }}

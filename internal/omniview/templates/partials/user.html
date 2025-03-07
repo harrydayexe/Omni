@@ -1,5 +1,11 @@
 {{ define "user" }}
 <h1 class="text-3xl font-bold mb-4">{{ .Username }}</h1>
-</hr>
+<hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+{{ if gt (len .Posts) 0 }}
 {{ template "posts" . }}
+{{ else }}
+<div class="bg-blue-100 border-t border-b border-blue-500 text-blue-700 px-4 py-3" role="alert">
+    <p class="text-sm">This user hasn't posted anything yet. Check back later!</p>
+</div>
+{{ end }}
 {{ end }}
