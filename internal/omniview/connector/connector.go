@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
@@ -26,6 +28,8 @@ type Connector interface {
 	// GetPostComments(ctx context.Context, id snowflake.Identifier) ([]storage.Comment, error)
 	// GetMostRecentPosts returns the most recent posts from the page
 	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
+	// Login logs a user in and returns a token
+	Login(ctx context.Context, username, password string) (auth.LoginResponse, error)
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -186,4 +190,47 @@ func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]stor
 	}
 
 	return posts, nil
+}
+
+func (c *APIConnector) Login(ctx context.Context, username, password string) (auth.LoginResponse, error) {
+	c.logger.InfoContext(ctx, "Login called", slog.String("username", username))
+	loginUrl, err := c.cfg.AuthApiUrl.Parse("/login")
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative login url", slog.Any("error", err))
+		return auth.LoginResponse{}, NewAPIError(0, err)
+	}
+
+	postData := auth.LoginRequest{
+		Username: username,
+		Password: password,
+	}
+	postDataBytes, err := json.Marshal(postData)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to marshal login request", slog.Any("error", err))
+		return auth.LoginResponse{}, NewAPIError(0, err)
+	}
+
+	resp, err := http.Post(loginUrl.String(), "application/json", bytes.NewBuffer(postDataBytes))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send POST request to backend", slog.Any("error", err))
+		return auth.LoginResponse{}, NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.logger.ErrorContext(ctx, "POST request did not return 200", slog.Int("http status", resp.StatusCode))
+		return auth.LoginResponse{}, NewAPIError(resp.StatusCode, nil)
+	}
+
+	var loginResponse auth.LoginResponse
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&loginResponse)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode login response", slog.Any("error", err))
+		return auth.LoginResponse{}, NewAPIError(0, err)
+	}
+
+	return loginResponse, nil
 }

@@ -25,6 +25,7 @@ func AddReadRoutes(
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewSetContentTypeJson(),
+		middleware.NewMaxBytesReader(),
 	)
 
 	// Get the details of a post by id

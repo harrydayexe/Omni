@@ -22,12 +22,14 @@ func addRoutes(
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewJwtSecret(cfg.JWTSecret),
+		middleware.NewMaxBytesReader(),
 	)
 
 	mux.Handle("GET /", stack(handleGetIndex(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /user/{id}", stack(handleGetUser(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
+	mux.Handle("POST /login", stack(handlePostLogin(templates, dataConnector, bufpool, logger)))
 }
 
 func handleGetIndex(
@@ -88,7 +90,23 @@ func handleGetLogin(
 			// TODO: Handle HTMX request
 			w.WriteHeader(http.StatusNotFound)
 		} else {
-			handleGetLogin(templates, bufpool, logger).ServeHTTP(w, r)
+			handleGetLoginPage(templates, bufpool, logger).ServeHTTP(w, r)
+		}
+	})
+}
+
+func handlePostLogin(
+	templates *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isHTMXRequest(r) {
+			handlePostLoginPartial(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
+		} else {
+			// TODO: Handle HTMX request
+			w.WriteHeader(http.StatusNotFound)
 		}
 	})
 }

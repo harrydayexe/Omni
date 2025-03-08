@@ -285,8 +285,9 @@ func handleGetLoginPage(
 	logger *slog.Logger,
 ) http.Handler {
 	type Content struct {
-		Head   datamodels.Head
-		NavBar datamodels.NavBar
+		Head      datamodels.Head
+		NavBar    datamodels.NavBar
+		LoginForm datamodels.LoginForm
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /login")
@@ -306,6 +307,7 @@ func handleGetLoginPage(
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
 			},
+			LoginForm: datamodels.NewLoginForm(),
 		}
 
 		writeTemplateWithBuffer(r.Context(), logger, "login.html", t, bufpool, w, content)

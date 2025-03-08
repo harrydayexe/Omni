@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -88,4 +89,22 @@ func hasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
 
 func isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
+}
+
+// formUrlEncoded is the content type for data sent from a form
+const formUrlEncoded = "application/x-www-form-urlencoded"
+
+// check that the content type header is application/json
+// adapted from https://www.alexedwards.net/blog/how-to-properly-parse-a-json-request-body
+func checkContentTypeHeader(logger *slog.Logger, r *http.Request, expected string) error {
+	ct := r.Header.Get("Content-Type")
+	if ct != "" {
+		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
+		if mediaType != expected {
+			msg := fmt.Sprintf("Content-Type header is not %s", expected)
+			logger.InfoContext(r.Context(), msg)
+			return fmt.Errorf("Content-Type header is not %s", expected)
+		}
+	}
+	return nil
 }

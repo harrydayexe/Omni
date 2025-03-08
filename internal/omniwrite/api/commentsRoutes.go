@@ -27,6 +27,7 @@ func AddCommentsRoutes(
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewSetContentTypeJson(),
+		middleware.NewMaxBytesReader(),
 	)
 
 	mux.Handle("POST /post/{id}/comment", stack(handleInsertComment(logger, db, snowflakeGenerator, authService, config)))

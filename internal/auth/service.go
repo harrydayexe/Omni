@@ -26,8 +26,8 @@ var ErrTokenInvalid = errors.New("invalid token")
 type Authable interface {
 	// VerifyToken checks if the given token is valid for a given id
 	VerifyToken(context.Context, string, snowflake.Identifier) error
-	// Login checks if the password for a given user id matches the stored hash
-	Login(context.Context, snowflake.Identifier, string) (string, error)
+	// Login checks if the password for a given username matches the stored hash
+	Login(context.Context, string, string) (string, error)
 	// Signup creates a hash for the given password
 	Signup(context.Context, string) ([]byte, error)
 }
@@ -73,11 +73,24 @@ func (a *AuthService) VerifyToken(ctx context.Context, tokenString string, id sn
 
 func (a *AuthService) Login(
 	ctx context.Context,
-	id snowflake.Identifier,
+	username string,
 	password string,
 ) (string, error) {
+	a.logger.DebugContext(ctx, "login", slog.String("username", username))
+
+	// Get user id from the username
+	id, err := a.db.GetUserByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			a.logger.InfoContext(ctx, "user not found", slog.Any("username", username))
+			return "", ErrUserNotFound
+		}
+		a.logger.ErrorContext(ctx, "failed to read user from db", slog.Any("error", err))
+		return "", ErrDbFailed
+	}
+
 	// Check if user with id exists and retrieve their password hash
-	hash, err := a.db.GetPasswordByID(ctx, int64(id.Id().ToInt()))
+	hash, err := a.db.GetPasswordByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			a.logger.InfoContext(ctx, "user not found", slog.Any("id", id))
@@ -94,7 +107,7 @@ func (a *AuthService) Login(
 	}
 
 	// Create a token for the user
-	token, err := a.createToken(ctx, id)
+	token, err := a.createToken(ctx, snowflake.ParseId(uint64(id)))
 	if err != nil {
 		a.logger.ErrorContext(ctx, "failed to create token", slog.Any("error", err))
 		return "", ErrTokenGenFail

@@ -21,7 +21,7 @@ func TestLogin(t *testing.T) {
 	var cases = []struct {
 		name         string
 		loginFn      func(ctx context.Context, id snowflake.Identifier, password string) (string, error)
-		id           uint64
+		username     string
 		password     string
 		expectedCode int
 		expectedBody string
@@ -31,7 +31,7 @@ func TestLogin(t *testing.T) {
 			loginFn: func(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
 				return "$2a$10$RV8G09OWcyqjj6n0S/OZaegrth8X24p5ai/pQMbjZlr.v9iu5QKT6", nil
 			},
-			id:           1796290045997481984,
+			username:     "username",
 			password:     "password",
 			expectedCode: http.StatusOK,
 			expectedBody: `{"access_token":"$2a$10$RV8G09OWcyqjj6n0S/OZaegrth8X24p5ai/pQMbjZlr.v9iu5QKT6","token_type":"Bearer","expires_in":86400}`,
@@ -41,7 +41,7 @@ func TestLogin(t *testing.T) {
 			loginFn: func(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
 				return "", fmt.Errorf("invalid login")
 			},
-			id:           1796290045997481984,
+			username:     "username",
 			password:     "invalid",
 			expectedCode: http.StatusUnauthorized,
 			expectedBody: "Unauthorized\n",
@@ -55,7 +55,7 @@ func TestLogin(t *testing.T) {
 			}
 
 			reqBody := map[string]interface{}{
-				"id":       tc.id,
+				"username": tc.username,
 				"password": tc.password,
 			}
 			jsonBody, err := json.Marshal(reqBody)

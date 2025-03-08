@@ -27,6 +27,7 @@ func AddPostRoutes(
 	stack := middleware.CreateStack(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewSetContentTypeJson(),
+		middleware.NewMaxBytesReader(),
 	)
 
 	mux.Handle("POST /post", stack(handleInsertPost(logger, db, snowflakeGenerator, authService, config)))
