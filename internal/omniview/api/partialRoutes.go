@@ -61,9 +61,6 @@ func handlePostLoginPartial(
 				content.Errors["Login"] = "An error occurred while logging in. Please try again later."
 			}
 		}
-		// Write the login form with or without the errors
-		writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
-
 		cookie := http.Cookie{
 			Name:     authCookieName,
 			Value:    resp.Token,
@@ -73,6 +70,9 @@ func handlePostLoginPartial(
 			Secure:   false, // NOTE: Set to true in production when using HTTPS
 		}
 		http.SetCookie(w, &cookie)
+
+		// Write the login form with or without the errors
+		writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
 		writeTemplateWithBuffer(r.Context(), logger, "login-success", t, bufpool, w, nil)
 	})
 }

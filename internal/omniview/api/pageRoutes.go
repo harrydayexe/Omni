@@ -27,13 +27,13 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for index")
+
 		// Get posts
 		posts, err := dataConnector.GetMostRecentPosts(r.Context(), 0)
 		content := Content{
 			Head: datamodels.Head{
 				Title: "Omni | Home",
 			},
-			// TODO: Need to check if this should be shown
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
 			},
@@ -41,6 +41,10 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 		}
 		if err != nil {
 			content.Error = "An error occurred while fetching the most recent posts. Try again later."
+		}
+
+		if _, prs := hasValidAuthToken(r, logger); prs {
+			content.NavBar.ShouldShowLogin = false
 		}
 
 		// Demo posts data
@@ -78,11 +82,14 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			Head: datamodels.Head{
 				Title: "Omni | User",
 			},
-			// TODO: Need to check if this should be shown
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
 			},
 			IsUserPage: true,
+		}
+
+		if _, prs := hasValidAuthToken(r, logger); prs {
+			content.NavBar.ShouldShowLogin = false
 		}
 
 		// Create error channel
@@ -186,12 +193,15 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			Head: datamodels.Head{
 				Title: "Omni | Post",
 			},
-			// TODO: Need to check if this should be shown
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
 			},
 		}
 		var post storage.Post
+
+		if _, prs := hasValidAuthToken(r, logger); prs {
+			content.NavBar.ShouldShowLogin = false
+		}
 
 		// Create error channel
 		errChan := make(chan error, 1)
@@ -303,7 +313,6 @@ func handleGetLoginPage(
 			Head: datamodels.Head{
 				Title: "Omni | Login",
 			},
-			// TODO: Need to check if this should be shown
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
 			},

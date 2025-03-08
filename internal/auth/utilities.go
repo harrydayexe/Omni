@@ -8,6 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Checks if a given token is valid and returns the expiration time as a
+// formatted RFC1123 string.
 func IsValidToken(
 	ctx context.Context,
 	tokenString string,
