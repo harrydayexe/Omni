@@ -4,8 +4,9 @@ import "net/url"
 
 // Config is a struct that holds the configuration for the Omni applications.
 type Config struct {
-	Host string `env:"HOST"`
-	Port int    `env:"PORT" envDefault:"80"`
+	VerboseMode bool   `env:"VERBOSE" envDefault:"false"`
+	Host        string `env:"HOST"`
+	Port        int    `env:"PORT" envDefault:"80"`
 }
 
 // DatabaseConfig is a struct that holds the configuration for connecting to a database.

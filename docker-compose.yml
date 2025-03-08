@@ -39,6 +39,7 @@ services:
       - omni_write
       - omni_auth
     environment:
+      VERBOSE: "true"
       HOST: "localhost"
       PORT: "80"
       WRITE_API_URL: "http://omni_write:80"
@@ -55,6 +56,7 @@ services:
     depends_on:
       - mariadb
     environment:
+      VERBOSE: "true"
       HOST: "localhost"
       PORT: "80"
       DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"
@@ -71,6 +73,7 @@ services:
     depends_on:
       - mariadb
     environment:
+      VERBOSE: "true"
       HOST: "localhost"
       PORT: "80"
       DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"
@@ -89,6 +92,7 @@ services:
     depends_on:
       - mariadb
     environment:
+      VERBOSE: "true"
       HOST: "localhost"
       PORT: "80"
       DATA_SOURCE_NAME: "root:Password1!@tcp(mariadb:3306)/omni?parseTime=true"

@@ -17,6 +17,10 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
+// AuthCookieName is the name of the cookie that stores the auth token
+const authCookieName = "auth_token"
+
+// writeTemplateWithBuffer writes a template to a buffer and then writes the buffer to the response writer
 func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
 	// Get buffer
 	buf := bufpool.Get()
@@ -62,24 +66,16 @@ func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (st
 
 // HasValidAuthHeader checks if the request has a valid Authorization header.
 // It does not check if the given header is valid for a given user id.
-func hasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
+func hasValidAuthToken(r *http.Request, logger *slog.Logger) (string, bool) {
 	logger.DebugContext(r.Context(), "Checking for valid auth header")
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		msg := "Authorization header is missing"
-		logger.InfoContext(r.Context(), msg)
+	cookie, err := r.Cookie(authCookieName)
+	if err != nil {
+		logger.InfoContext(r.Context(), "No auth cookie", slog.String("error", err.Error()))
 		return "", false
 	}
 
-	authHeaderParts := strings.Split(authHeader, " ")
-	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		msg := "Authorization header format must be Bearer {token}"
-		logger.InfoContext(r.Context(), msg)
-		return "", false
-	}
-
-	time, err := auth.IsValidToken(r.Context(), authHeaderParts[1], logger)
+	time, err := auth.IsValidToken(r.Context(), cookie.Value, logger)
 	if err != nil {
 		return "", false
 	}
@@ -87,6 +83,7 @@ func hasValidAuthHeader(r *http.Request, logger *slog.Logger) (string, bool) {
 	return time, true
 }
 
+// isHTMXRequest checks if the request is an htmx request based on the HX-Request header
 func isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }

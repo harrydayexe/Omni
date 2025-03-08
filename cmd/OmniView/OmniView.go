@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -17,22 +16,20 @@ import (
 
 func main() {
 	ctx := context.Background()
-	verbose := flag.Bool("v", false, "verbose")
+
+	cfg, err := env.ParseAs[config.ViewConfig]()
+	if err != nil {
+		panic(err)
+	}
 
 	var logLevel slog.Leveler
-	if *verbose {
+	if cfg.VerboseMode {
 		logLevel = slog.LevelDebug
 	} else {
 		logLevel = slog.LevelInfo
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
-
-	cfg, err := env.ParseAs[config.ViewConfig]()
-	if err != nil {
-		logger.Error("failed to parse config", slog.Any("error", err))
-		panic(err)
-	}
-	logger.Info("config", slog.Any("config", cfg))
+	logger.Info("Config", slog.Any("config", cfg))
 
 	dataConnector := connector.NewAPIConnector(cfg, logger)
 

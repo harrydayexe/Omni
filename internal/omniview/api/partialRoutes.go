@@ -65,7 +65,7 @@ func handlePostLoginPartial(
 		writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
 
 		cookie := http.Cookie{
-			Name:     "auth_token",
+			Name:     authCookieName,
 			Value:    resp.Token,
 			Path:     "/",
 			Expires:  time.Now().Add(time.Duration(resp.Expires * int(time.Second))),

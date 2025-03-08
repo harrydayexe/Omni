@@ -19,7 +19,13 @@ func IsValidToken(
 		tokenString,
 		&jwt.RegisteredClaims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return ctx.Value("jwt-secret"), nil
+			jwtSecret, ok := ctx.Value("jwt-secret").(string)
+			if !ok {
+				// handle the error, e.g., log or return an error
+				panic("jwt-secret could not be cast to a string")
+			}
+			byteSecret := []byte(jwtSecret)
+			return byteSecret, nil
 		},
 		jwt.WithExpirationRequired(),
 	)
