@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
@@ -30,6 +31,7 @@ func addRoutes(
 	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
 	mux.Handle("POST /login", stack(handlePostLogin(templates, dataConnector, bufpool, logger)))
+	mux.Handle("DELETE /logout", stack(handleDeleteLogout(logger)))
 }
 
 func handleGetIndex(
@@ -39,12 +41,7 @@ func handleGetIndex(
 	logger *slog.Logger,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isHTMXRequest(r) {
-			// TODO: Handle HTMX request
-			w.WriteHeader(http.StatusNotFound)
-		} else {
-			handleGetIndexPage(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
-		}
+		handleGetIndexPage(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
 	})
 }
 
@@ -108,5 +105,25 @@ func handlePostLogin(
 			// TODO: Handle HTMX request
 			w.WriteHeader(http.StatusNotFound)
 		}
+	})
+}
+
+func handleDeleteLogout(
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "DELETE request received for /logout")
+
+		cookie := http.Cookie{
+			Name:     authCookieName,
+			Value:    "",
+			Path:     "/",
+			Expires:  time.UnixMicro(0),
+			HttpOnly: true,
+			Secure:   false, // NOTE: Set to true in production when using HTTPS
+		}
+		http.SetCookie(w, &cookie)
+		w.Header().Add("HX-Redirect", "/")
+		w.WriteHeader(http.StatusOK)
 	})
 }

@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet" />
     <!-- HTMX via CDN -->
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <!-- Alpine.js via CDN -->
+    <script src="//unpkg.com/alpinejs" defer></script>
     <script type="text/javascript">
         document.addEventListener("DOMContentLoaded", (event) => {
             document.body.addEventListener('htmx:beforeSwap', function (evt) {
@@ -28,6 +30,23 @@
                 }
             });
         });
+    </script>
+    <script type="text/javascript">
+        function onRemoved(cookie) {
+            console.log(`Removed: ${cookie}`);
+        }
+
+        function onError(error) {
+            console.log(`Error removing cookie: ${error}`);
+        }
+
+        function removeCookie(tabs) {
+            let removing = browser.cookies.remove({
+                url: tabs[0].url,
+                name: "auth_token",
+            });
+            removing.then(onRemoved, onError);
+        }
     </script>
 </head>
 {{end}}
