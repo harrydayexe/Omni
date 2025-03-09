@@ -2,9 +2,13 @@
 <!-- Header Bar -->
 <header class="bg-white dark:bg-gray-800 p-4 shadow-md">
     <div class="container mx-auto flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-orange-500" style="font-family: 'Roboto Mono', monospace;">
-            Omni
-        </h1>
+        <a href="/">
+            <div>
+                <h1 class="text-2xl font-bold text-orange-500" style="font-family: 'Roboto Mono', monospace;">
+                    Omni
+                </h1>
+            </div>
+        </a>
         {{ if .ShouldShowLogin }}
         {{ if .IsLoggedIn }}
         <svg width="24" height="24" viewBox="0 0 16 16" class="fill-black dark:fill-white"
