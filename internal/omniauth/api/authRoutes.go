@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -35,8 +36,14 @@ func handleLogin(logger *slog.Logger, authService auth.Authable) http.Handler {
 		}
 
 		token, err := authService.Login(r.Context(), u.Username, u.Password)
-		if err != nil {
+		if errors.Is(err, auth.ErrUserNotFound) {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		} else if errors.Is(err, auth.ErrUnauthorized) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		} else if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
