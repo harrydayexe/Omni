@@ -11,6 +11,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
 	"github.com/oxtoacart/bpool"
@@ -181,7 +182,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /post", slog.String("id", r.PathValue("id")))
 		// Parse user id
-		snowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
 		if err != nil {
 			content := datamodels.NewErrorPageModel(
 				"Post not found",
@@ -201,34 +202,57 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			},
 		}
 		var post storage.Post
+		var user storage.User
 
 		if _, prs := hasValidAuthToken(r, logger); prs {
 			content.NavBar.IsLoggedIn = true
 		}
 
 		// Create error channel
-		errChan := make(chan error, 1)
+		errChan := make(chan error, 2)
+		userIdChan := make(chan int64)
 		// Create sub-context
 		subctx, cancel := context.WithCancel(r.Context())
 
-		// Get user
+		// Get post
 		go func() {
-			postResp, err := dataConnector.GetPost(subctx, snowflake)
+			postResp, err := dataConnector.GetPost(subctx, postSnowflake)
 			if err != nil {
 				// Cancel other routines
 				cancel()
 				errChan <- err
 				return
 			}
-			logger.DebugContext(r.Context(), "Post data fetched", slog.Int64("id", int64(snowflake.ToInt())))
+			logger.DebugContext(r.Context(), "Post data fetched", slog.Int64("id", int64(postSnowflake.ToInt())))
 			post = postResp
 			// Finally return with no error
 			errChan <- nil
+			userIdChan <- post.UserID
+		}()
+
+		// Get user
+		go func() {
+			select {
+			case <-subctx.Done():
+				errChan <- subctx.Err()
+				return
+			case userId := <-userIdChan:
+				userResp, err := dataConnector.GetUser(subctx, snowflake.ParseId(uint64(userId)))
+				if err != nil {
+					// Cancel other routines
+					cancel()
+					errChan <- err
+					return
+				}
+				logger.DebugContext(r.Context(), "User data fetched", slog.Int64("id", userId))
+				user = userResp
+				errChan <- nil
+			}
 		}()
 
 		// Wait for goroutines to finish
 		var firstErr error
-		for i := 0; i < 1; i++ {
+		for i := 0; i < 2; i++ {
 			// If the error channel has an error and it is the first error...
 			if err := <-errChan; err != nil && firstErr == nil {
 				logger.InfoContext(r.Context(), "An error occurred while fetching data", slog.String("error", err.Error()))
@@ -284,7 +308,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			Title:       post.Title,
 			Description: post.Description,
 			CreatedAt:   post.CreatedAt.Format(time.DateTime),
-			Author:      "Author", // TODO: Do a call to get this info
+			Author:      user.Username,
 			Content:     template.HTML(html),
 		}
 
