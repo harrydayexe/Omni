@@ -303,8 +303,7 @@ func handleGetLoginPage(
 		logger.InfoContext(r.Context(), "GET request received for /login")
 
 		// Check the header and redirect if necessary
-		if time, prs := hasValidAuthToken(r, logger); prs {
-			w.Header().Add("Expires", time)
+		if _, prs := hasValidAuthToken(r, logger); prs {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}

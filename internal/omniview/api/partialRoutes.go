@@ -34,7 +34,7 @@ func handlePostLoginPartial(
 		isErr := false
 		username, uprs := r.Form["username"]
 		if !uprs || len(username) == 0 || len(username[0]) == 0 {
-			logger.InfoContext(r.Context(), "username is empty")
+			logger.DebugContext(r.Context(), "username is empty")
 			content.Errors["Username"] = "Username is required"
 			isErr = true
 		} else {
@@ -42,7 +42,7 @@ func handlePostLoginPartial(
 		}
 		password, pprs := r.Form["password"]
 		if !pprs || len(password) == 0 || len(password[0]) < 7 {
-			logger.InfoContext(r.Context(), "password is not at least 8 characters")
+			logger.DebugContext(r.Context(), "password is not at least 8 characters")
 			content.Errors["Password"] = "Password must be at least 8 characters"
 			isErr = true
 		}
@@ -55,11 +55,16 @@ func handlePostLoginPartial(
 		resp, err := dataConnector.Login(r.Context(), username[0], password[0])
 		var ae *connector.APIError
 		if errors.As(err, &ae) {
+			logger.DebugContext(r.Context(), "API error occurred while logging in", slog.String("error", ae.Error()))
 			if ae.StatusCode == http.StatusUnauthorized {
 				content.Errors["Login"] = "Invalid username or password"
+			} else if ae.StatusCode == http.StatusNotFound {
+				content.Errors["Username"] = "User not found"
 			} else {
 				content.Errors["Login"] = "An error occurred while logging in. Please try again later."
 			}
+			writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
+			return
 		}
 		cookie := http.Cookie{
 			Name:     authCookieName,

@@ -1,5 +1,5 @@
 {{ define "login-form" }}
-<div id="login-container">
+<div id="login-container" h-screen flex items-center justify-center>
     <form id="login-form" hx-post="/login" hx-swap="outerHTML"
         class="max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow">
         <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
@@ -29,14 +29,17 @@
                 Log In
             </button>
         </div>
+        {{ if (.Errors) }}
+        {{ if (.Errors.Login) }}
+        <div class="error text-center text-red-500 text-sm mt-4">{{ .Errors.Login }}</div>
+        {{ end }}
+        {{ end }}
     </form>
-    <!-- Dedicated container for out-of-band messages -->
-    <div id="login-messages" class="max-w-md mx-auto"></div>
 </div>
 {{ end }}
 
 {{ define "login-success" }}
-<div id="login-messages" class="max-w-md mx-auto" hx-swap-oob="innerHTML:#login-messages" role="alert">
+<div id="login-messages" class="max-w-md mx-auto" hx-swap-oob="afterend:#login-form" role="alert">
     <div class="p-4 mb-4 text-green-700 bg-green-100 rounded-lg mt-8" role="alert">
         <div class="flex items-center">
             <svg class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20"
