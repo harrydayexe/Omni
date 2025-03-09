@@ -172,6 +172,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 		Description string
 		CreatedAt   string
 		Author      string
+		AuthorID    int64
 		Content     template.HTML
 	}
 	type Content struct {
@@ -309,6 +310,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			Description: post.Description,
 			CreatedAt:   post.CreatedAt.Format(time.DateTime),
 			Author:      user.Username,
+			AuthorID:    user.ID,
 			Content:     template.HTML(html),
 		}
 
