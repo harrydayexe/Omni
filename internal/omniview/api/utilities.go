@@ -22,6 +22,7 @@ const authCookieName = "auth_token"
 
 // writeTemplateWithBuffer writes a template to a buffer and then writes the buffer to the response writer
 func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Get buffer
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
@@ -31,8 +32,8 @@ func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name stri
 		logger.ErrorContext(ctx, "Error executing template", slog.String("error message", err.Error()))
 		// NOTE: We are assuming here that this error page won't fail to render
 		_ = t.Templates.ExecuteTemplate(w, "errorpage.html", datamodels.NewErrorPageModel("Internal Server Error", "An error occurred while rendering the page."))
+		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	buf.WriteTo(w)
 }
 

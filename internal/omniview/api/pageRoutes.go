@@ -36,6 +36,7 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 			},
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
+				IsLoggedIn:      false,
 			},
 			IsUserPage: false,
 		}
@@ -44,7 +45,7 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 		}
 
 		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.ShouldShowLogin = false
+			content.NavBar.IsLoggedIn = true
 		}
 
 		// Demo posts data
@@ -84,12 +85,13 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			},
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
+				IsLoggedIn:      false,
 			},
 			IsUserPage: true,
 		}
 
 		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.ShouldShowLogin = false
+			content.NavBar.IsLoggedIn = true
 		}
 
 		// Create error channel
@@ -195,12 +197,13 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			},
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
+				IsLoggedIn:      false,
 			},
 		}
 		var post storage.Post
 
 		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.ShouldShowLogin = false
+			content.NavBar.IsLoggedIn = true
 		}
 
 		// Create error channel
@@ -314,6 +317,7 @@ func handleGetLoginPage(
 			},
 			NavBar: datamodels.NavBar{
 				ShouldShowLogin: true,
+				IsLoggedIn:      false,
 			},
 			LoginForm: datamodels.NewLoginForm(),
 		}

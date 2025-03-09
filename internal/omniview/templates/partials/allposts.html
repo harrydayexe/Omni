@@ -21,7 +21,8 @@
         {{ if $.IsUserPage }}
         {{.CreatedAt}}
         {{ else }}
-        Posted by <strong>{{.Username}}</strong> on {{.Post.CreatedAt}}
+        Posted by <a class="hover:underline" href="/user/{{ .Post.UserID }}"><strong>{{.Username}}</strong></a> on
+        {{.Post.CreatedAt}}
         {{ end }}
     </div>
     <div class="mt-2 text-gray-800 dark:text-gray-300">
