@@ -3,9 +3,9 @@
 
 {{ template "head" .Head }}
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     {{ template "navbar" .NavBar }}
-    <main class="p-4 container mx-auto">
+    <main class="p-4 container mx-auto flex-grow">
         {{ template "user" . }}
     </main>
     {{ template "footer" . }}
