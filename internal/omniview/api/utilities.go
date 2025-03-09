@@ -21,8 +21,9 @@ import (
 const authCookieName = "auth_token"
 
 // writeTemplateWithBuffer writes a template to a buffer and then writes the buffer to the response writer
-func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
+func writeTemplateWithBuffer(ctx context.Context, logger *slog.Logger, statusCode int, name string, t *templates.Templates, bufpool *bpool.BufferPool, w http.ResponseWriter, content interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(statusCode)
 	// Get buffer
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)

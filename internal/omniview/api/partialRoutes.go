@@ -48,7 +48,7 @@ func handlePostLoginPartial(
 		}
 
 		if isErr {
-			writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "login-form", t, bufpool, w, content)
 			return
 		}
 
@@ -63,7 +63,7 @@ func handlePostLoginPartial(
 			} else {
 				content.Errors["Login"] = "An error occurred while logging in. Please try again later."
 			}
-			writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "login-form", t, bufpool, w, content)
 			return
 		}
 		cookie := http.Cookie{
@@ -77,7 +77,7 @@ func handlePostLoginPartial(
 		http.SetCookie(w, &cookie)
 
 		// Write the login form with or without the errors
-		writeTemplateWithBuffer(r.Context(), logger, "login-form", t, bufpool, w, content)
-		writeTemplateWithBuffer(r.Context(), logger, "login-success", t, bufpool, w, nil)
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-form", t, bufpool, w, content)
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, nil)
 	})
 }
