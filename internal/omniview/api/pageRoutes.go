@@ -326,12 +326,6 @@ func handleGetLoginPage(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /login")
 
-		// Check the header and redirect if necessary
-		if _, prs := hasValidAuthToken(r, logger); prs {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-
 		content := datamodels.NewFormPage("Login")
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)

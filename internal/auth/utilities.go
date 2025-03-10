@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/harrydayexe/Omni/internal/middleware"
 )
 
 // Checks if a given token is valid and returns the expiration time as a
@@ -21,7 +22,7 @@ func IsValidToken(
 		tokenString,
 		&jwt.RegisteredClaims{},
 		func(token *jwt.Token) (interface{}, error) {
-			jwtSecret, ok := ctx.Value("jwt-secret").(string)
+			jwtSecret, ok := ctx.Value(middleware.JWTCtxKey).(string)
 			if !ok {
 				// handle the error, e.g., log or return an error
 				panic("jwt-secret could not be cast to a string")

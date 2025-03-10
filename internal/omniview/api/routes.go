@@ -24,6 +24,7 @@ func addRoutes(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewJwtSecret(cfg.JWTSecret),
 		middleware.NewMaxBytesReader(),
+		newIsLoggedInMiddleware(logger),
 	)
 
 	mux.Handle("GET /", stack(handleGetIndex(templates, dataConnector, bufpool, logger)))
