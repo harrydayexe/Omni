@@ -29,6 +29,8 @@ func newIsLoggedInMiddleware(logger *slog.Logger) middleware.Middleware {
 
 				next.ServeHTTP(w, newReq)
 			} else {
+				ctx := context.WithValue(r.Context(), isLoggedInCtxKey, false)
+				newReq := r.WithContext(ctx)
 				if r.URL.Path == "/post/new" {
 					http.Redirect(w, r, "/login", http.StatusFound)
 					return
@@ -36,7 +38,7 @@ func newIsLoggedInMiddleware(logger *slog.Logger) middleware.Middleware {
 					http.Redirect(w, r, "/login", http.StatusFound)
 					return
 				}
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, newReq)
 			}
 		})
 	}

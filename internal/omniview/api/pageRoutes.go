@@ -35,18 +35,11 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 			Head: datamodels.Head{
 				Title: "Omni | Home",
 			},
-			NavBar: datamodels.NavBar{
-				ShouldShowLogin: true,
-				IsLoggedIn:      false,
-			},
+			NavBar:     datamodels.NewNavBar(r.Context()),
 			IsUserPage: false,
 		}
 		if err != nil {
 			content.Error = "An error occurred while fetching the most recent posts. Try again later."
-		}
-
-		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.IsLoggedIn = true
 		}
 
 		// Demo posts data
@@ -84,15 +77,8 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			Head: datamodels.Head{
 				Title: "Omni | User",
 			},
-			NavBar: datamodels.NavBar{
-				ShouldShowLogin: true,
-				IsLoggedIn:      false,
-			},
+			NavBar:     datamodels.NewNavBar(r.Context()),
 			IsUserPage: true,
-		}
-
-		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.IsLoggedIn = true
 		}
 
 		// Create error channel
@@ -197,17 +183,10 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			Head: datamodels.Head{
 				Title: "Omni | Post",
 			},
-			NavBar: datamodels.NavBar{
-				ShouldShowLogin: true,
-				IsLoggedIn:      false,
-			},
+			NavBar: datamodels.NewNavBar(r.Context()),
 		}
 		var post storage.Post
 		var user storage.User
-
-		if _, prs := hasValidAuthToken(r, logger); prs {
-			content.NavBar.IsLoggedIn = true
-		}
 
 		// Create error channel
 		errChan := make(chan error, 2)
@@ -326,7 +305,7 @@ func handleGetLoginPage(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /login")
 
-		content := datamodels.NewFormPage("Login")
+		content := datamodels.NewFormPage(r.Context(), "Login")
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
@@ -345,7 +324,7 @@ func handleGetCreatePostPage(
 			return
 		}
 
-		content := datamodels.NewFormPage("New Post")
+		content := datamodels.NewFormPage(r.Context(), "New Post")
 		content.NavBar.IsLoggedIn = true
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost.html", templates, bufpool, w, content)

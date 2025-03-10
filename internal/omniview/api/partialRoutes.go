@@ -137,7 +137,7 @@ func handlePostCreatePostPartial(
 			if isHTMXRequest {
 				writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "newpostform", t, bufpool, w, content)
 			} else {
-				pageContent := datamodels.NewFormPage("New Post")
+				pageContent := datamodels.NewFormPage(r.Context(), "New Post")
 				pageContent.Form = content
 				if _, prs := hasValidAuthToken(r, logger); prs {
 					pageContent.NavBar.IsLoggedIn = true

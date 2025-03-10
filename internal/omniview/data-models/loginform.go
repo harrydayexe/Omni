@@ -1,19 +1,20 @@
 package datamodels
 
+import (
+	"golang.org/x/net/context"
+)
+
 type FormPage struct {
 	Head   Head
 	NavBar NavBar
 	Form   Form
 }
 
-func NewFormPage(pageType string) FormPage {
+func NewFormPage(ctx context.Context, pageType string) FormPage {
 	return FormPage{
-		Head: Head{Title: "Omni | " + pageType},
-		NavBar: NavBar{
-			ShouldShowLogin: true,
-			IsLoggedIn:      false,
-		},
-		Form: NewForm(),
+		Head:   Head{Title: "Omni | " + pageType},
+		NavBar: NewNavBar(ctx),
+		Form:   NewForm(),
 	}
 }
 
