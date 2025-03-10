@@ -28,6 +28,10 @@
                 </svg>
                 <div x-show="open" x-transition @click.away="open = false"
                     class="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 shadow-lg rounded">
+                    <a href="/user/{{ .ID }}"
+                        class="block w-full text-left px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                        Profile
+                    </a>
                     <button hx-delete="/logout" hx-swap="none"
                         hx-confirm="Are you sure you wish to log out of your account?"
                         class="block w-full text-left px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
