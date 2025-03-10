@@ -61,7 +61,13 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 			MarkdownUrl: p.MarkdownUrl,
 		}
 
-		err = db.CreatePost(r.Context(), storage.CreatePostParams(newPost))
+		err = db.CreatePost(r.Context(), storage.CreatePostParams{
+			ID:          newPost.ID,
+			UserID:      newPost.UserID,
+			Title:       newPost.Title,
+			Description: newPost.Description,
+			MarkdownUrl: newPost.MarkdownUrl,
+		})
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to insert post", slog.Any("error", err))
 			http.Error(w, "failed to create post", http.StatusInternalServerError)

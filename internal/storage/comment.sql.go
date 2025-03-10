@@ -75,7 +75,7 @@ SELECT users.id, users.username, comments.id, comments.post_id, comments.user_id
 INNER JOIN users 
 ON comments.user_id = users.id 
 WHERE comments.post_id = ? AND comments.created_at > ? 
-ORDER BY comments.created_at ASC
+ORDER BY comments.created_at DESC
 LIMIT ?
 `
 

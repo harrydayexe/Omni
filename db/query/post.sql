@@ -5,7 +5,7 @@ SELECT * FROM posts WHERE id = ?;
 SELECT users.id, users.username, sqlc.embed(posts) FROM users 
 LEFT JOIN posts ON users.id = posts.user_id
 WHERE users.id = ? AND posts.created_at > sqlc.arg(created_after) 
-ORDER BY posts.created_at ASC
+ORDER BY posts.created_at DESC
 LIMIT ?;
 
 -- name: CreatePost :exec
