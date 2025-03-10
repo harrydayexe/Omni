@@ -11,6 +11,7 @@ import (
 
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
+	"github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
@@ -30,6 +31,8 @@ type Connector interface {
 	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
 	// Login logs a user in and returns a token
 	Login(ctx context.Context, username, password string) (auth.LoginResponse, error)
+	// CreatePost creates a post and returns the new post
+	CreatePost(ctx context.Context, newPost datamodels.NewPost) (storage.Post, error)
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -218,7 +221,7 @@ func (c *APIConnector) Login(ctx context.Context, username, password string) (au
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.logger.ErrorContext(ctx, "POST request did not return 200", slog.Int("http status", resp.StatusCode))
+		c.logger.InfoContext(ctx, "POST request did not return 200", slog.Int("http status", resp.StatusCode))
 		return auth.LoginResponse{}, NewAPIError(resp.StatusCode, nil)
 	}
 
@@ -233,4 +236,60 @@ func (c *APIConnector) Login(ctx context.Context, username, password string) (au
 	}
 
 	return loginResponse, nil
+}
+
+func (c *APIConnector) CreatePost(
+	ctx context.Context,
+	newPost datamodels.NewPost,
+) (storage.Post, error) {
+	c.logger.InfoContext(ctx, "CreatePost called", slog.Any("newPost", newPost))
+
+	if ctx.Value("jwt-token") == nil {
+		c.logger.ErrorContext(ctx, "no auth token in context")
+		return storage.Post{}, NewAPIError(0, fmt.Errorf("no auth token in context"))
+	}
+
+	newPostUrl, err := c.cfg.WriteApiUrl.Parse("/post")
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative post url", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	bodyData, err := json.Marshal(newPost)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to marshal new post", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, newPostUrl.String(), bytes.NewBuffer(bodyData))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to create POST request", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send POST request to backend", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		c.logger.InfoContext(ctx, "POST request did not return 201", slog.Int("http status", resp.StatusCode))
+		return storage.Post{}, NewAPIError(resp.StatusCode, nil)
+	}
+
+	var post storage.Post
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&post)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode post", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	return post, nil
 }

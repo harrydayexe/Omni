@@ -319,11 +319,6 @@ func handleGetCreatePostPage(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /post/new")
 
-		if _, prs := hasValidAuthToken(r, logger); !prs {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
 		content := datamodels.NewFormPage(r.Context(), "New Post")
 		content.NavBar.IsLoggedIn = true
 

@@ -9,6 +9,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	writedatamodels "github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -92,11 +93,6 @@ func handlePostCreatePostPartial(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "POST request received for partial /post/new")
 
-		if _, prs := hasValidAuthToken(r, logger); !prs {
-			http.Redirect(w, r, "/login", http.StatusFound)
-			return
-		}
-
 		// Check that the post request has the correct content-type
 		err := checkContentTypeHeader(logger, r, formUrlEncoded)
 		if err != nil {
@@ -134,46 +130,47 @@ func handlePostCreatePostPartial(
 		}
 
 		if isErr {
-			if isHTMXRequest {
-				writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "newpostform", t, bufpool, w, content)
-			} else {
-				pageContent := datamodels.NewFormPage(r.Context(), "New Post")
-				pageContent.Form = content
-				if _, prs := hasValidAuthToken(r, logger); prs {
-					pageContent.NavBar.IsLoggedIn = true
-				}
-				writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "newpost.html", t, bufpool, w, pageContent)
-			}
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "New Post", isHTMXRequest,
+				t, bufpool, w, content,
+			)
 			return
 		}
 
-		// resp, err := dataConnector.Login(r.Context(), username[0], password[0])
-		// var ae *connector.APIError
-		// if errors.As(err, &ae) {
-		// 	logger.DebugContext(r.Context(), "API error occurred while logging in", slog.String("error", ae.Error()))
-		// 	if ae.StatusCode == http.StatusUnauthorized {
-		// 		content.Errors["Login"] = "Invalid username or password"
-		// 	} else if ae.StatusCode == http.StatusNotFound {
-		// 		content.Errors["Username"] = "User not found"
-		// 	} else {
-		// 		content.Errors["Login"] = "An error occurred while logging in. Please try again later."
-		// 	}
-		// 	writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "login-form", t, bufpool, w, content)
-		// 	return
-		// }
-		// cookie := http.Cookie{
-		// 	Name:     authCookieName,
-		// 	Value:    resp.Token,
-		// 	Path:     "/",
-		// 	Expires:  time.Now().Add(time.Duration(resp.Expires * int(time.Second))),
-		// 	HttpOnly: true,
-		// 	Secure:   false, // NOTE: Set to true in production when using HTTPS
-		// }
-		// http.SetCookie(w, &cookie)
-		//
-		// // Write the login form with or without the errors
-		// writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-form", t, bufpool, w, content)
-		// writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, nil)
+		newPost := writedatamodels.NewPost{
+			UserID:      r.Context().Value(UserIdCtxKey).(uint64),
+			CreatedAt:   time.Now(),
+			Title:       title[0],
+			Description: description[0],
+			MarkdownUrl: url[0],
+		}
+
+		resp, err := dataConnector.CreatePost(r.Context(), newPost)
+		var ae *connector.APIError
+		if errors.As(err, &ae) {
+			logger.DebugContext(r.Context(), "API error occurred while creating post", slog.String("error", ae.Error()))
+			content.Errors["General"] = "An error occurred while creating the post. Please try again later."
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "New Post", isHTMXRequest,
+				t, bufpool, w, content,
+			)
+			return
+		}
+
+		// Write the new post form with or without the errors
+		writeFormWithErrors(
+			r.Context(), logger,
+			http.StatusOK, "New Post", isHTMXRequest,
+			t, bufpool, w, content,
+		)
+		successContent := struct {
+			ID int64
+		}{
+			ID: resp.ID,
+		}
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost-success", t, bufpool, w, successContent)
 
 	})
 }
