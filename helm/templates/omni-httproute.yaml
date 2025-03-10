@@ -24,6 +24,20 @@ spec:
   - matches:
     - path:
         type: PathPrefix
+        value: /api/login
+      method: POST
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-authapi-service
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
         value: /api/
       method: POST
     filters:
@@ -62,4 +76,17 @@ spec:
           replacePrefixMatch: /
     backendRefs:
     - name: {{ .Chart.Name }}-writeapi-service
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: {{ .Chart.Name }}-viewapi-service
       port: 80

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-authapi-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}-authapi
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+  selector:
+    app: {{ .Chart.Name }}-authapi

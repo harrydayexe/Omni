@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}-writeapi-deployment
+  name: {{ .Chart.Name }}-authapi-deployment
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Chart.Name }}-writeapi
+    app: {{ .Chart.Name }}-authapi
 spec:
-  replicas: {{ .Values.omniwrite.replicaCount }}
+  replicas: {{ .Values.omniauth.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}-writeapi
+      app: {{ .Chart.Name }}-authapi
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}-writeapi
+        app: {{ .Chart.Name }}-authapi
     spec:
       containers:
-        - name: {{ .Chart.Name }}-writeapi
-          image: "{{ .Values.omniwrite.image.repository }}:{{ .Values.omniwrite.image.tag }}"
-          imagePullPolicy: {{ .Values.omniwrite.image.pullPolicy }}
+        - name: {{ .Chart.Name }}-authapi
+          image: "{{ .Values.omniauth.image.repository }}:{{ .Values.omniauth.image.tag }}"
+          imagePullPolicy: {{ .Values.omniauth.image.pullPolicy }}
           ports:
             - containerPort: 80
           env:
             - name: VERBOSE
-              value: "{{ .Values.omniwrite.verbose }}"
+              value: "{{ .Values.omniauth.verbose }}"
             - name: HOST
               value: "{{ .Values.service.host }}"
             - name: PORT

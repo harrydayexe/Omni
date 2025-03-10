@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-viewapi-deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}-viewapi
+spec:
+  replicas: {{ .Values.omniview.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-viewapi
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-viewapi
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-viewapi
+          image: "{{ .Values.omniview.image.repository }}:{{ .Values.omniview.image.tag }}"
+          imagePullPolicy: {{ .Values.omniview.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          env:
+            - name: VERBOSE
+              value: "{{ .Values.omniview.verbose }}"
+            - name: HOST
+              value: "{{ .Values.service.host }}"
+            - name: PORT
+              value: "80"
+            - name: WRITE_API_URL
+              value: "http://{{ .Chart.Name }}-writeapi-service:80"
+            - name: READ_API_URL
+              value: "http://{{ .Chart.Name }}-readapi-service:80"
+            - name: AUTH_API_URL
+              value: "http://{{ .Chart.Name }}-authapi-service:80"
+            - name: JWT_SECRET
+              value: "{{ .Values.jwt }}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
