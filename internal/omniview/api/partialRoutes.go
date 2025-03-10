@@ -18,6 +18,7 @@ func handlePostLoginPartial(
 	dataConnector connector.Connector,
 	bufpool *bpool.BufferPool,
 	logger *slog.Logger,
+	isHTMXRequest bool,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "POST request received for partial /login")
@@ -49,7 +50,11 @@ func handlePostLoginPartial(
 		}
 
 		if isErr {
-			writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "login-form", t, bufpool, w, content)
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "Login", isHTMXRequest,
+				t, bufpool, w, content,
+			)
 			return
 		}
 
@@ -64,7 +69,11 @@ func handlePostLoginPartial(
 			} else {
 				content.Errors["Login"] = "An error occurred while logging in. Please try again later."
 			}
-			writeTemplateWithBuffer(r.Context(), logger, http.StatusUnprocessableEntity, "login-form", t, bufpool, w, content)
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "Login", isHTMXRequest,
+				t, bufpool, w, content,
+			)
 			return
 		}
 		cookie := http.Cookie{
@@ -78,7 +87,11 @@ func handlePostLoginPartial(
 		http.SetCookie(w, &cookie)
 
 		// Write the login form with or without the errors
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-form", t, bufpool, w, content)
+		writeFormWithErrors(
+			r.Context(), logger,
+			http.StatusOK, "Login", isHTMXRequest,
+			t, bufpool, w, content,
+		)
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, nil)
 	})
 }

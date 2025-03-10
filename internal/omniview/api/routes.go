@@ -102,12 +102,13 @@ func handlePostLogin(
 	logger *slog.Logger,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isHTMXRequest(r) {
-			handlePostLoginPartial(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
-		} else {
-			// TODO: Handle HTMX request
-			w.WriteHeader(http.StatusNotFound)
-		}
+		handlePostLoginPartial(
+			templates,
+			dataConnector,
+			bufpool,
+			logger,
+			isHTMXRequest(r),
+		).ServeHTTP(w, r)
 	})
 }
 
