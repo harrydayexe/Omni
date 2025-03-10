@@ -1,0 +1,59 @@
+{{ define "newpostform" }}
+<div id="newpost-container">
+    <form id="new-post-form" hx-post="/posts/new" hx-swap="outerHTML"
+        class="bg-white dark:bg-gray-800 p-6 rounded shadow">
+
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Create a New Post</h2>
+        <!-- Title -->
+        <div class="mb-4">
+            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+            <input type="text" id="title" name="title" required maxlength="100"
+                placeholder="What should we call this project?" class="mt-1 p-2 w-full border rounded-md focus:ring focus:ring-blue-500 focus:border-blue-500 
+                dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600" {{ if (.Values) }} {{ if (.Values.Title) }}
+                value="{{ .Values.Title }}" {{ end }} {{ end }}>
+            {{ if (.Errors) }} {{ if (.Errors.Title) }}
+            <div class="error text-red-500 text-sm mt-1">{{ .Errors.Title }}</div>
+            {{ end }} {{ end }}
+        </div>
+
+        <!-- Description -->
+        <div class="mb-4">
+            <label for="description"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea id="description" name="description" required maxlength="255"
+                placeholder="Give your post a catchy description." class="mt-1 p-2 w-full border rounded-md focus:ring focus:ring-blue-500 focus:border-blue-500 
+                dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">{{ if (.Values) }}{{ .Values.Description }}{{
+                end }}</textarea>
+            {{ if (.Errors) }} {{ if (.Errors.Description) }}
+            <div class="error text-red-500 text-sm mt-1">{{ .Errors.Description }}</div>
+            {{ end }} {{ end }}
+        </div>
+
+        <!-- URL -->
+        <div class="mb-4">
+            <label for="url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Link to Markdown
+                File</label>
+            <input type="url" id="url" name="url" required class="mt-1 p-2 w-full border rounded-md focus:ring focus:ring-blue-500 focus:border-blue-500 
+                dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                placeholder="https://github.com/harrydayexe/dotfiles/README.md" {{ if (.Values) }} {{ if (.Values.URL)
+                }} value="{{ .Values.URL }}" {{ end }} {{ end }}>
+            {{ if (.Errors) }} {{ if (.Errors.URL) }}
+            <div class="error text-red-500 text-sm mt-1">{{ .Errors.URL }}</div>
+            {{ end }} {{ end }}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition">
+                Create Post
+            </button>
+        </div>
+
+        <!-- General Form Error -->
+        {{ if (.Errors) }} {{ if (.Errors.General) }}
+        <div class="error text-center text-red-500 text-sm mt-4">{{ .Errors.General }}</div>
+        {{ end }} {{ end }}
+    </form>
+    </section>
+    {{ end }}

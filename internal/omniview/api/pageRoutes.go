@@ -351,3 +351,32 @@ func handleGetLoginPage(
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
 }
+
+func handleGetCreatePostPage(
+	templates *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	type Content struct {
+		Head        datamodels.Head
+		NavBar      datamodels.NavBar
+		NewPostForm datamodels.LoginForm
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for /post/new")
+
+		content := Content{
+			Head: datamodels.Head{
+				Title: "Omni | New Post",
+			},
+			NavBar: datamodels.NavBar{
+				ShouldShowLogin: true,
+				IsLoggedIn:      true,
+			},
+			NewPostForm: datamodels.NewLoginForm(),
+		}
+
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost.html", templates, bufpool, w, content)
+	})
+}
