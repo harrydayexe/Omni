@@ -46,6 +46,7 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		if err != nil {
 			return
 		}
+		logger.DebugContext(r.Context(), "decoded json body", slog.Any("body", p))
 
 		err = utilities.CheckBearerAuth(snowflake.ParseId(p.UserID), authService, logger, w, r)
 		if err != nil {
@@ -64,6 +65,7 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		err = db.CreatePost(r.Context(), storage.CreatePostParams{
 			ID:          newPost.ID,
 			UserID:      newPost.UserID,
+			CreatedAt:   newPost.CreatedAt,
 			Title:       newPost.Title,
 			Description: newPost.Description,
 			MarkdownUrl: newPost.MarkdownUrl,
@@ -73,6 +75,7 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 			http.Error(w, "failed to create post", http.StatusInternalServerError)
 			return
 		}
+		logger.DebugContext(r.Context(), "inserted post into db", slog.Any("post", newPost))
 
 		strId := strconv.Itoa(int(newPost.ID))
 		strPort := strconv.Itoa(config.Port)

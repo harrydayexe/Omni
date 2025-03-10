@@ -254,12 +254,14 @@ func (c *APIConnector) CreatePost(
 		c.logger.ErrorContext(ctx, "failed to parse relative post url", slog.Any("error", err))
 		return storage.Post{}, NewAPIError(0, err)
 	}
+	c.logger.DebugContext(ctx, "created new post url", slog.String("url", newPostUrl.String()))
 
 	bodyData, err := json.Marshal(newPost)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to marshal new post", slog.Any("error", err))
 		return storage.Post{}, NewAPIError(0, err)
 	}
+	c.logger.DebugContext(ctx, "created body data", slog.String("data", string(bodyData)))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, newPostUrl.String(), bytes.NewBuffer(bodyData))
 	if err != nil {
@@ -268,6 +270,7 @@ func (c *APIConnector) CreatePost(
 	}
 	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
 	req.Header.Add("Content-Type", "application/json")
+	c.logger.DebugContext(ctx, "created POST request")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -275,11 +278,13 @@ func (c *APIConnector) CreatePost(
 		return storage.Post{}, NewAPIError(0, err)
 	}
 	defer resp.Body.Close()
+	c.logger.DebugContext(ctx, "sent POST request successfully")
 
 	if resp.StatusCode != http.StatusCreated {
 		c.logger.InfoContext(ctx, "POST request did not return 201", slog.Int("http status", resp.StatusCode))
 		return storage.Post{}, NewAPIError(resp.StatusCode, nil)
 	}
+	c.logger.DebugContext(ctx, "POST request returned 201")
 
 	var post storage.Post
 	decoder := json.NewDecoder(resp.Body)
@@ -290,6 +295,7 @@ func (c *APIConnector) CreatePost(
 		c.logger.ErrorContext(ctx, "failed to decode post", slog.Any("error", err))
 		return storage.Post{}, NewAPIError(0, err)
 	}
+	c.logger.DebugContext(ctx, "decoded post", slog.Any("post", post))
 
 	return post, nil
 }
