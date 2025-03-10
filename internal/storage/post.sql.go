@@ -45,7 +45,7 @@ func (q *Queries) DeletePost(ctx context.Context, id int64) error {
 }
 
 const findPostByID = `-- name: FindPostByID :one
-SELECT id, user_id, created_at, title, description, markdown_url FROM posts WHERE id = ?
+SELECT id, user_id, created_at, title, markdown_url, description FROM posts WHERE id = ?
 `
 
 func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
@@ -56,14 +56,14 @@ func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
 		&i.UserID,
 		&i.CreatedAt,
 		&i.Title,
-		&i.Description,
 		&i.MarkdownUrl,
+		&i.Description,
 	)
 	return i, err
 }
 
 const getPostsPaged = `-- name: GetPostsPaged :many
-SELECT users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM posts
+SELECT users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.markdown_url, posts.description FROM posts
 JOIN users ON posts.user_id = users.id
 ORDER BY posts.created_at DESC
 LIMIT 10 OFFSET ?
@@ -89,8 +89,8 @@ func (q *Queries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPa
 			&i.Post.UserID,
 			&i.Post.CreatedAt,
 			&i.Post.Title,
-			&i.Post.Description,
 			&i.Post.MarkdownUrl,
+			&i.Post.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -106,10 +106,10 @@ func (q *Queries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPa
 }
 
 const getUserAndPostsByIDPaged = `-- name: GetUserAndPostsByIDPaged :many
-SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.description, posts.markdown_url FROM users 
+SELECT users.id, users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.markdown_url, posts.description FROM users 
 LEFT JOIN posts ON users.id = posts.user_id
 WHERE users.id = ? AND posts.created_at > ? 
-ORDER BY posts.created_at ASC
+ORDER BY posts.created_at DESC
 LIMIT ?
 `
 
@@ -141,8 +141,8 @@ func (q *Queries) GetUserAndPostsByIDPaged(ctx context.Context, arg GetUserAndPo
 			&i.Post.UserID,
 			&i.Post.CreatedAt,
 			&i.Post.Title,
-			&i.Post.Description,
 			&i.Post.MarkdownUrl,
+			&i.Post.Description,
 		); err != nil {
 			return nil, err
 		}

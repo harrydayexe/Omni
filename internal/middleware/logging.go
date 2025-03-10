@@ -27,9 +27,14 @@ func NewLoggingMiddleware(logger *slog.Logger) Middleware {
 				statusCode:     http.StatusOK,
 			}
 
+			logger.InfoContext(r.Context(), "handling incoming request",
+				slog.String("method", r.Method),
+				slog.String("path", r.URL.Path),
+			)
+
 			next.ServeHTTP(wrapped, r)
 
-			logger.InfoContext(r.Context(), "incoming request",
+			logger.InfoContext(r.Context(), "finished handling request",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.Int("status_code", wrapped.statusCode),

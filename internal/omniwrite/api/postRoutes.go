@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
@@ -41,33 +41,33 @@ func handleInsertPost(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "insert post POST request received")
 
-		var p struct {
-			UserID      int64     `json:"user_id"`
-			CreatedAt   time.Time `json:"created_at"`
-			Title       string    `json:"title"`
-			Description string    `json:"description"`
-			MarkdownUrl string    `json:"markdown_url"`
-		}
+		var p datamodels.NewPost
 		err := utilities.DecodeJsonBody(r.Context(), logger, w, r, &p)
 		if err != nil {
 			return
 		}
 
-		err = utilities.CheckBearerAuth(snowflake.ParseId(uint64(p.UserID)), authService, logger, w, r)
+		err = utilities.CheckBearerAuth(snowflake.ParseId(p.UserID), authService, logger, w, r)
 		if err != nil {
 			return
 		}
 
 		newPost := storage.Post{
 			ID:          int64(gen.NextID().ToInt()),
-			UserID:      p.UserID,
+			UserID:      int64(p.UserID),
 			CreatedAt:   p.CreatedAt,
 			Title:       p.Title,
 			Description: p.Description,
 			MarkdownUrl: p.MarkdownUrl,
 		}
 
-		err = db.CreatePost(r.Context(), storage.CreatePostParams(newPost))
+		err = db.CreatePost(r.Context(), storage.CreatePostParams{
+			ID:          newPost.ID,
+			UserID:      newPost.UserID,
+			Title:       newPost.Title,
+			Description: newPost.Description,
+			MarkdownUrl: newPost.MarkdownUrl,
+		})
 		if err != nil {
 			logger.ErrorContext(r.Context(), "failed to insert post", slog.Any("error", err))
 			http.Error(w, "failed to create post", http.StatusInternalServerError)

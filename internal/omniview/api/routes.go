@@ -24,10 +24,13 @@ func addRoutes(
 		middleware.NewLoggingMiddleware(logger),
 		middleware.NewJwtSecret(cfg.JWTSecret),
 		middleware.NewMaxBytesReader(),
+		newIsLoggedInMiddleware(logger),
 	)
 
 	mux.Handle("GET /", stack(handleGetIndex(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /user/{id}", stack(handleGetUser(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /post/new", stack(handleGetCreatePost(templates, dataConnector, bufpool, logger)))
+	mux.Handle("POST /post/new", stack(handlePostCreatePost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
 	mux.Handle("POST /login", stack(handlePostLogin(templates, dataConnector, bufpool, logger)))
@@ -125,5 +128,27 @@ func handleDeleteLogout(
 		http.SetCookie(w, &cookie)
 		w.Header().Add("HX-Redirect", "/")
 		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func handleGetCreatePost(
+	templates *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handleGetCreatePostPage(templates, bufpool, logger).ServeHTTP(w, r)
+	})
+}
+
+func handlePostCreatePost(
+	templates *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlePostCreatePostPartial(templates, dataConnector, bufpool, logger, isHTMXRequest(r)).ServeHTTP(w, r)
 	})
 }

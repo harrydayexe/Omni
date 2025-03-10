@@ -21,8 +21,8 @@ type Post struct {
 	UserID      int64     `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	Title       string    `json:"title"`
-	Description string    `json:"description"`
 	MarkdownUrl string    `json:"markdown_url"`
+	Description string    `json:"description"`
 }
 
 type User struct {

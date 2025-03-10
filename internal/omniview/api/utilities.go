@@ -13,6 +13,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
+	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/oxtoacart/bpool"
 )
@@ -68,21 +69,21 @@ func fetchMarkdownData(ctx context.Context, logger *slog.Logger, url string) (st
 
 // HasValidAuthHeader checks if the request has a valid Authorization header.
 // It does not check if the given header is valid for a given user id.
-func hasValidAuthToken(r *http.Request, logger *slog.Logger) (string, bool) {
+func hasValidAuthToken(r *http.Request, logger *slog.Logger) (snowflake.Identifier, string, bool) {
 	logger.DebugContext(r.Context(), "Checking for valid auth header")
 
 	cookie, err := r.Cookie(authCookieName)
 	if err != nil {
 		logger.InfoContext(r.Context(), "No auth cookie", slog.String("error", err.Error()))
-		return "", false
+		return snowflake.Snowflake{}, "", false
 	}
 
-	time, err := auth.IsValidToken(r.Context(), cookie.Value, logger)
+	id, err := auth.IsValidToken(r.Context(), cookie.Value, logger)
 	if err != nil {
-		return "", false
+		return snowflake.Snowflake{}, "", false
 	}
 
-	return time, true
+	return id, cookie.Value, true
 }
 
 // isHTMXRequest checks if the request is an htmx request based on the HX-Request header
@@ -106,4 +107,37 @@ func checkContentTypeHeader(logger *slog.Logger, r *http.Request, expected strin
 		}
 	}
 	return nil
+}
+
+func writeFormWithErrors(
+	ctx context.Context,
+	logger *slog.Logger,
+	statusCode int,
+	name string,
+	isHTMXRequest bool,
+	t *templates.Templates,
+	bufpool *bpool.BufferPool,
+	w http.ResponseWriter,
+	content datamodels.Form,
+) {
+	templateName := strings.ToLower(name)
+	templateName = strings.ReplaceAll(templateName, " ", "")
+	if isHTMXRequest {
+		writeTemplateWithBuffer(
+			ctx, logger,
+			statusCode, templateName+"form",
+			t, bufpool, w,
+			content,
+		)
+	} else {
+		pageContent := datamodels.NewFormPage(ctx, name)
+		pageContent.Form = content
+		writeTemplateWithBuffer(
+			ctx, logger,
+			statusCode, templateName+".html",
+			t, bufpool, w,
+			pageContent,
+		)
+	}
+
 }

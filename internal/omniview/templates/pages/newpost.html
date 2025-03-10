@@ -5,8 +5,9 @@
 
 <body class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     {{ template "navbar" .NavBar }}
-    <main class="flex-grow container mx-auto my-8">
-        {{ template "login-form" .Form }}
+    <!-- Main Content -->
+    <main class="p-4 container mx-auto flex-grow">
+        {{ template "newpostform" .Form }}
     </main>
     {{ template "footer" . }}
 </body>

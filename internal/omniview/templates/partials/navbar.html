@@ -11,21 +11,33 @@
         </a>
         {{ if .ShouldShowLogin }}
         {{ if .IsLoggedIn }}
-        <div x-data="{ open: false }" class="relative">
-            <svg @click="open = ! open" width="24" height="24" viewBox="0 0 16 16"
-                class="cursor-pointer fill-black dark:fill-white hover:fill-orange-500 dark:hover:fill-orange-400 transition-colors duration-150"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                    d="M8 7C9.65685 7 11 5.65685 11 4C11 2.34315 9.65685 1 8 1C6.34315 1 5 2.34315 5 4C5 5.65685 6.34315 7 8 7Z" />
-                <path d="M14 12C14 10.3431 12.6569 9 11 9H5C3.34315 9 2 10.3431 2 12V15H14V12Z" />
-            </svg>
-            <div x-show="open" x-transition @click.away="open = false"
-                class="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 shadow-lg rounded">
-                <button hx-delete="/logout" hx-swap="none"
-                    hx-confirm="Are you sure you wish to log out of your account?"
-                    class="block w-full text-left px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
-                    Log out
-                </button>
+        <div class="flex items-center space-x-4">
+            <!-- "+ Post" Button -->
+            <a href="/post/new"
+                class="text-black dark:text-white hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-150 text-2xl font-bold">
+                +
+            </a>
+            <!-- User Dropdown -->
+            <div x-data="{ open: false }" class="relative">
+                <svg @click="open = ! open" width="24" height="24" viewBox="0 0 16 16"
+                    class="cursor-pointer fill-black dark:fill-white hover:fill-orange-500 dark:hover:fill-orange-400 transition-colors duration-150"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M8 7C9.65685 7 11 5.65685 11 4C11 2.34315 9.65685 1 8 1C6.34315 1 5 2.34315 5 4C5 5.65685 6.34315 7 8 7Z" />
+                    <path d="M14 12C14 10.3431 12.6569 9 11 9H5C3.34315 9 2 10.3431 2 12V15H14V12Z" />
+                </svg>
+                <div x-show="open" x-transition @click.away="open = false"
+                    class="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 shadow-lg rounded">
+                    <a href="/user/{{ .ID }}"
+                        class="block w-full text-left px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                        Profile
+                    </a>
+                    <button hx-delete="/logout" hx-swap="none"
+                        hx-confirm="Are you sure you wish to log out of your account?"
+                        class="block w-full text-left px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                        Log out
+                    </button>
+                </div>
             </div>
         </div>
         {{ else }}

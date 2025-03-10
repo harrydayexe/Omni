@@ -3,9 +3,11 @@ package auth
 import (
 	"context"
 	"log/slog"
-	"time"
+	"strconv"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
 // Checks if a given token is valid and returns the expiration time as a
@@ -14,14 +16,14 @@ func IsValidToken(
 	ctx context.Context,
 	tokenString string,
 	logger *slog.Logger,
-) (string, error) {
+) (snowflake.Identifier, error) {
 	logger.DebugContext(ctx, "validating token", slog.String("token", tokenString))
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&jwt.RegisteredClaims{},
 		func(token *jwt.Token) (interface{}, error) {
-			jwtSecret, ok := ctx.Value("jwt-secret").(string)
+			jwtSecret, ok := ctx.Value(middleware.JWTCtxKey).(string)
 			if !ok {
 				// handle the error, e.g., log or return an error
 				panic("jwt-secret could not be cast to a string")
@@ -33,19 +35,23 @@ func IsValidToken(
 	)
 	if err != nil {
 		logger.DebugContext(ctx, "token is not valid", slog.Any("error", err))
-		return "", ErrTokenInvalid
+		return snowflake.Snowflake{}, ErrTokenInvalid
 	}
 
 	if !token.Valid {
 		logger.DebugContext(ctx, "token is not valid")
-		return "", ErrTokenInvalid
+		return snowflake.Snowflake{}, ErrTokenInvalid
 	}
 
-	exp, err := token.Claims.GetExpirationTime()
+	sub, err := token.Claims.GetSubject()
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to get expiration time after verifying token", slog.Any("error", err))
-		return "", ErrTokenInvalid
+		logger.ErrorContext(ctx, "failed to get subject after verifying token", slog.Any("error", err))
+		return snowflake.Snowflake{}, ErrTokenInvalid
 	}
 
-	return exp.Format(time.RFC1123), nil
+	idNum, err := strconv.Atoi(sub)
+
+	id := snowflake.ParseId(uint64(idNum))
+
+	return id, nil
 }
