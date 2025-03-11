@@ -97,7 +97,7 @@ func handlePostLoginPartial(
 			t, bufpool, w, content,
 		)
 		successContent := datamodels.NewFormSuccess("Login successful", "/")
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, successContent)
+		writeTemplateWithBuffer(r.Context(), logger, 0, "login-success", t, bufpool, w, successContent)
 	})
 }
 
@@ -188,7 +188,7 @@ func handlePostCreatePostPartial(
 		}{
 			ID: resp.ID,
 		}
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost-success", t, bufpool, w, successContent)
+		writeTemplateWithBuffer(r.Context(), logger, 0, "newpost-success", t, bufpool, w, successContent)
 
 	})
 }
@@ -293,7 +293,7 @@ func handlePostSignupPartial(
 			http.StatusOK, "Sign Up", isHTMXRequest,
 			t, bufpool, w, content,
 		)
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, successContent)
+		writeTemplateWithBuffer(r.Context(), logger, 0, "login-success", t, bufpool, w, successContent)
 		logger.DebugContext(r.Context(), "Finished writing signup response")
 	})
 }
