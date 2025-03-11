@@ -16,8 +16,28 @@
         </div>
         <div class="mb-6">
             <label for="password" class="block text-gray-700 dark:text-gray-300 mb-2">Password</label>
-            <input type="password" id="password" name="password" required
-                class="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:border-blue-300">
+            <div class="relative">
+                <input type="password" id="password" name="password" required
+                    class="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:border-blue-300">
+                <button type="button" onclick="togglePassword()"
+                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600">
+                    Show
+                </button>
+            </div>
+            <script>
+                function togglePassword() {
+                    var passwordInput = document.getElementById('password');
+                    // Find the button by traversing the DOM relative to the input's container.
+                    var toggleBtn = passwordInput.parentElement.querySelector('button');
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggleBtn.textContent = 'Hide';
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleBtn.textContent = 'Show';
+                    }
+                }
+            </script>
             {{ if (.Errors) }}
             {{ if (.Errors.Password) }}
             <div class="error text-red-500 text-sm mt-1">{{ .Errors.Password }}</div>
