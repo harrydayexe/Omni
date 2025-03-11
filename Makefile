@@ -53,3 +53,6 @@ OmniAuth-Image: OmniAuth # Build the OmniAuth docker image
 OmniView-Image: OmniView # Build the OmniView docker image
 	docker build -t raspidb.local:5000/harrydayexe/omniview -f ./cmd/OmniView/Dockerfile .
 	docker push raspidb.local:5000/harrydayexe/omniview
+
+.PHONY: Push-Images
+Push-Images: OmniView-Image OmniRead-Image OmniAuth-Image OmniWrite-Image
