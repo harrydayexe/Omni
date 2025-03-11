@@ -122,6 +122,9 @@ func writeFormWithErrors(
 ) {
 	templateName := strings.ToLower(name)
 	templateName = strings.ReplaceAll(templateName, " ", "")
+	if templateName == "signup" {
+		templateName = "login"
+	}
 	if isHTMXRequest {
 		writeTemplateWithBuffer(
 			ctx, logger,

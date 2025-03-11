@@ -11,6 +11,7 @@ import (
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
@@ -41,10 +42,7 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "insert user POST request received")
 
-		var u struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}
+		var u datamodels.NewUserRequest
 		err := utilities.DecodeJsonBody(r.Context(), logger, w, r, &u)
 		if err != nil {
 			return
@@ -73,13 +71,11 @@ func handleInsertUser(logger *slog.Logger, db storage.Querier, gen *snowflake.Sn
 		_, err = db.GetUserByUsername(r.Context(), u.Username)
 		if err == nil {
 			logger.InfoContext(r.Context(), "user with that username already exists")
-			http.Error(w, "username is taken", http.StatusUnprocessableEntity)
+			http.Error(w, "username is taken", http.StatusConflict)
+			return
 		}
 
-		newUser := struct {
-			ID       int64  `json:"id"`
-			Username string `json:"username"`
-		}{
+		newUser := datamodels.NewUserResponse{
 			ID:       int64(gen.NextID().ToInt()),
 			Username: u.Username,
 		}

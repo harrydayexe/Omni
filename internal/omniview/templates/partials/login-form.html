@@ -1,8 +1,8 @@
 {{ define "loginform" }}
 <div id="login-container">
-    <form id="login-form" hx-post="/login" hx-swap="outerHTML"
+    <form id="login-form" hx-post="{{ .Values.HXDest }}" hx-swap="outerHTML"
         class="max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow">
-        <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+        <h2 class="text-2xl font-bold mb-6 text-center">{{ .Values.Title }}</h2>
         <div class="mb-4">
             <label for="username" class="block text-gray-700 dark:text-gray-300 mb-2">Username</label>
             <input type="text" id="username" name="username" required
@@ -26,7 +26,7 @@
         </div>
         <div class="flex justify-center">
             <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded">
-                Log In
+                {{ .Values.Title }}
             </button>
         </div>
         {{ if (.Errors) }}
@@ -49,7 +49,7 @@
                     clip-rule="evenodd"></path>
             </svg>
             <div>
-                <span class="font-medium">Success!</span> You have logged in successfully.
+                <span class="font-medium">Success!</span>{{ .Message }}
             </div>
             <div class="ml-auto">
                 {{ template "spinner" }}
@@ -59,7 +59,7 @@
     <script>
         // Wait 2 seconds before redirecting
         setTimeout(function () {
-            window.location.href = "/";
+            window.location.href = "{{ .RedirectURL }}";
         }, 500);
     </script>
 </div>
