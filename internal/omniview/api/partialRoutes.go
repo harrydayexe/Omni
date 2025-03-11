@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -241,74 +240,11 @@ func handlePostSignupPartial(
 			return
 		}
 
-		// Create storage for userid
-		var userId int64
-		// Create error channel
-		errChan := make(chan error, 2)
-		loginChan := make(chan error)
-		cookieChan := make(chan http.Cookie)
-
-		// Create sub-context
-		subctx, cancel := context.WithCancel(r.Context())
-
-		// Signup
-		go func() {
-			resp, err := dataConnector.Signup(r.Context(), username[0], password[0])
-			if err != nil {
-				// Cancel other routines
-				cancel()
-				errChan <- err
-				return
-			}
-			logger.DebugContext(subctx, "Signup call finished", slog.Int64("id", resp.ID))
-			// Finally return with no error
-			errChan <- nil
-			loginChan <- nil
-			userId = resp.ID
-		}()
-
-		// Get the login cookie
-		go func() {
-			// Wait for the signup to finish
-			select {
-			case <-subctx.Done():
-				logger.DebugContext(subctx, "Signup call cancelled")
-				// Signup failed
-				errChan <- subctx.Err()
-				return
-			case err := <-loginChan:
-				if err != nil {
-					logger.DebugContext(subctx, "Signup call finished with error")
-					// Signup failed
-					errChan <- err
-					return
-				}
-				logger.DebugContext(subctx, "Signup finished, calling login")
-				resp, err := dataConnector.Login(subctx, username[0], password[0])
-				if err != nil {
-					// Log in failed
-					cancel() // Probably don't need to cancel here but lets be safe
-					errChan <- err
-					return
-				}
-				logger.DebugContext(subctx, "Login call finished")
-				cookie := http.Cookie{
-					Name:     authCookieName,
-					Value:    resp.Token,
-					Path:     "/",
-					Expires:  time.Now().Add(time.Duration(resp.Expires * int(time.Second))),
-					HttpOnly: true,
-					Secure:   false, // NOTE: Set to true in production when using HTTPS
-				}
-				errChan <- nil
-				cookieChan <- cookie
-			}
-		}()
-
-		// Wait for the signup call to finish or error
-		firstErr := <-errChan
+		// Sign the user up
+		resp, err := dataConnector.Signup(r.Context(), username[0], password[0])
+		logger.DebugContext(r.Context(), "Signup call finished")
 		var ae *connector.APIError
-		if errors.As(firstErr, &ae) {
+		if errors.As(err, &ae) {
 			logger.DebugContext(r.Context(), "API error occurred while signing up", slog.String("error", ae.Error()))
 			if ae.StatusCode == http.StatusUnprocessableEntity {
 				content.Errors["Login"] = "Invalid username or password"
@@ -325,28 +261,39 @@ func handlePostSignupPartial(
 			return
 		}
 
+		// Create the data for the success message
+		successContent := datamodels.NewFormSuccess(
+			"Account created successfully",
+			"/user/"+strconv.Itoa(int(resp.ID)),
+		)
+
+		// Now login the user
+		loginResp, err := dataConnector.Login(r.Context(), username[0], password[0])
+		logger.DebugContext(r.Context(), "Login call finished")
+		if err != nil {
+			// This is not a massively critical error,
+			// we should just redirect the user to the login page
+			logger.InfoContext(r.Context(), "Error occurred while logging in user after signup", slog.String("error", err.Error()))
+			successContent.RedirectURL = "/login"
+		} else {
+			cookie := http.Cookie{
+				Name:     authCookieName,
+				Value:    loginResp.Token,
+				Path:     "/",
+				Expires:  time.Now().Add(time.Duration(loginResp.Expires * int(time.Second))),
+				HttpOnly: true,
+				Secure:   false, // NOTE: Set to true in production when using HTTPS
+			}
+			http.SetCookie(w, &cookie)
+		}
+
 		// Write the login form with or without the errors
 		writeFormWithErrors(
 			r.Context(), logger,
 			http.StatusOK, "Sign Up", isHTMXRequest,
 			t, bufpool, w, content,
 		)
-		successContent := datamodels.NewFormSuccess(
-			"Account created successfully",
-			"/user/"+strconv.Itoa(int(userId)),
-		)
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, successContent)
 		logger.DebugContext(r.Context(), "Finished writing signup response")
-
-		// Now block for the cookie call to finish
-		secondErr := <-errChan
-		logger.Debug("Got second error")
-		if secondErr != nil {
-			logger.InfoContext(r.Context(), "Error occurred while getting login cookie", slog.String("error", secondErr.Error()))
-			return
-		}
-		cookie := <-cookieChan
-		logger.DebugContext(r.Context(), "Got login cookie")
-		http.SetCookie(w, &cookie)
 	})
 }
