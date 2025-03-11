@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
@@ -31,6 +32,8 @@ func handlePostLoginPartial(
 		}
 
 		content := datamodels.NewForm()
+		content.Values["Title"] = "Login"
+		content.Values["HXDest"] = "/login"
 
 		r.ParseForm()
 		isErr := false
@@ -76,6 +79,7 @@ func handlePostLoginPartial(
 			)
 			return
 		}
+		logger.DebugContext(r.Context(), "Login call finished")
 		cookie := http.Cookie{
 			Name:     authCookieName,
 			Value:    resp.Token,
@@ -92,7 +96,8 @@ func handlePostLoginPartial(
 			http.StatusOK, "Login", isHTMXRequest,
 			t, bufpool, w, content,
 		)
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login-success", t, bufpool, w, nil)
+		successContent := datamodels.NewFormSuccess("Login successful", "/")
+		writeTemplateWithBuffer(r.Context(), logger, 0, "login-success", t, bufpool, w, successContent)
 	})
 }
 
@@ -183,7 +188,112 @@ func handlePostCreatePostPartial(
 		}{
 			ID: resp.ID,
 		}
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost-success", t, bufpool, w, successContent)
+		writeTemplateWithBuffer(r.Context(), logger, 0, "newpost-success", t, bufpool, w, successContent)
 
+	})
+}
+
+func handlePostSignupPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+	isHTMXRequest bool,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "POST request received for partial /signup")
+
+		// Check that the post request has the correct content-type
+		err := checkContentTypeHeader(logger, r, formUrlEncoded)
+		if err != nil {
+			http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		content := datamodels.NewForm()
+		content.Values["Title"] = "Sign Up"
+		content.Values["HXDest"] = "/signup"
+
+		r.ParseForm()
+		isErr := false
+		username, uprs := r.Form["username"]
+		if !uprs || len(username) == 0 || len(username[0]) == 0 {
+			logger.DebugContext(r.Context(), "username is empty")
+			content.Errors["Username"] = "Username is required"
+			isErr = true
+		} else {
+			content.Values["Username"] = username[0]
+		}
+		password, pprs := r.Form["password"]
+		if !pprs || len(password) == 0 || len(password[0]) < 7 {
+			logger.DebugContext(r.Context(), "password is not at least 8 characters")
+			content.Errors["Password"] = "Password must be at least 8 characters"
+			isErr = true
+		}
+
+		if isErr {
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "Sign Up", isHTMXRequest,
+				t, bufpool, w, content,
+			)
+			return
+		}
+
+		// Sign the user up
+		resp, err := dataConnector.Signup(r.Context(), username[0], password[0])
+		logger.DebugContext(r.Context(), "Signup call finished")
+		var ae *connector.APIError
+		if errors.As(err, &ae) {
+			logger.DebugContext(r.Context(), "API error occurred while signing up", slog.String("error", ae.Error()))
+			if ae.StatusCode == http.StatusUnprocessableEntity {
+				content.Errors["Login"] = "Invalid username or password"
+			} else if ae.StatusCode == http.StatusConflict {
+				content.Errors["Username"] = "Username taken"
+			} else {
+				content.Errors["Login"] = "An error occurred while signing up. Please try again later."
+			}
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "Sign Up", isHTMXRequest,
+				t, bufpool, w, content,
+			)
+			return
+		}
+
+		// Create the data for the success message
+		successContent := datamodels.NewFormSuccess(
+			"Account created successfully",
+			"/user/"+strconv.Itoa(int(resp.ID)),
+		)
+
+		// Now login the user
+		loginResp, err := dataConnector.Login(r.Context(), username[0], password[0])
+		logger.DebugContext(r.Context(), "Login call finished")
+		if err != nil {
+			// This is not a massively critical error,
+			// we should just redirect the user to the login page
+			logger.InfoContext(r.Context(), "Error occurred while logging in user after signup", slog.String("error", err.Error()))
+			successContent.RedirectURL = "/login"
+		} else {
+			cookie := http.Cookie{
+				Name:     authCookieName,
+				Value:    loginResp.Token,
+				Path:     "/",
+				Expires:  time.Now().Add(time.Duration(loginResp.Expires * int(time.Second))),
+				HttpOnly: true,
+				Secure:   false, // NOTE: Set to true in production when using HTTPS
+			}
+			http.SetCookie(w, &cookie)
+		}
+
+		// Write the login form with or without the errors
+		writeFormWithErrors(
+			r.Context(), logger,
+			http.StatusOK, "Sign Up", isHTMXRequest,
+			t, bufpool, w, content,
+		)
+		writeTemplateWithBuffer(r.Context(), logger, 0, "login-success", t, bufpool, w, successContent)
+		logger.DebugContext(r.Context(), "Finished writing signup response")
 	})
 }

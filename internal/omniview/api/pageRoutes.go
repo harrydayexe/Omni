@@ -306,6 +306,8 @@ func handleGetLoginPage(
 		logger.InfoContext(r.Context(), "GET request received for /login")
 
 		content := datamodels.NewFormPage(r.Context(), "Login")
+		content.Form.Values["Title"] = "Login"
+		content.Form.Values["HXDest"] = "/login"
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
@@ -323,5 +325,21 @@ func handleGetCreatePostPage(
 		content.NavBar.IsLoggedIn = true
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost.html", templates, bufpool, w, content)
+	})
+}
+
+func handleGetSignupPage(
+	t *templates.Templates,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for /signup")
+
+		content := datamodels.NewFormPage(r.Context(), "Sign Up")
+		content.Form.Values["Title"] = "Sign Up"
+		content.Form.Values["HXDest"] = "/signup"
+
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
 }

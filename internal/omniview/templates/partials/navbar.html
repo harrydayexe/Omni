@@ -41,9 +41,15 @@
             </div>
         </div>
         {{ else }}
-        <a class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded" href="/login">
-            Log in
-        </a>
+        <div class="flex items-center space-x-4">
+            <a class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded" href="/login">
+                Log in
+            </a>
+            <a class="border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-bold py-2 px-4 rounded"
+                href="/signup">
+                Sign Up
+            </a>
+        </div>
         {{ end }}
         {{ end }}
     </div>

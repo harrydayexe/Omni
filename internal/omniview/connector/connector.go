@@ -31,6 +31,8 @@ type Connector interface {
 	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
 	// Login logs a user in and returns a token
 	Login(ctx context.Context, username, password string) (auth.LoginResponse, error)
+	// Signup signs a user up and returns the user object
+	Signup(ctx context.Context, username, password string) (datamodels.NewUserResponse, error)
 	// CreatePost creates a post and returns the new post
 	CreatePost(ctx context.Context, newPost datamodels.NewPost) (storage.Post, error)
 }
@@ -236,6 +238,52 @@ func (c *APIConnector) Login(ctx context.Context, username, password string) (au
 	}
 
 	return loginResponse, nil
+}
+
+func (c *APIConnector) Signup(
+	ctx context.Context,
+	username, password string,
+) (datamodels.NewUserResponse, error) {
+	c.logger.InfoContext(ctx, "Signup called", slog.String("username", username))
+	signupUrl, err := c.cfg.WriteApiUrl.Parse("/user")
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative signup url", slog.Any("error", err))
+		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+	}
+
+	postData := datamodels.NewUserRequest{
+		Username: username,
+		Password: password,
+	}
+	postDataBytes, err := json.Marshal(postData)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to marshal signup request", slog.Any("error", err))
+		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+	}
+
+	resp, err := http.Post(signupUrl.String(), "application/json", bytes.NewBuffer(postDataBytes))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send POST request to backend", slog.Any("error", err))
+		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		c.logger.InfoContext(ctx, "POST request did not return 201", slog.Int("http status", resp.StatusCode))
+		return datamodels.NewUserResponse{}, NewAPIError(resp.StatusCode, nil)
+	}
+
+	var signupResponse datamodels.NewUserResponse
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&signupResponse)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode signup response", slog.Any("error", err))
+		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+	}
+
+	return signupResponse, nil
 }
 
 func (c *APIConnector) CreatePost(
