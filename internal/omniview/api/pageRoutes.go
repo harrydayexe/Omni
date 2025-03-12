@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	datamodelsread "github.com/harrydayexe/Omni/internal/omniread/datamodels"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
@@ -99,7 +100,7 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			User: datamodels.User{
 				Username: "",
 				AllPosts: datamodels.NewAllPosts(
-					"", []storage.GetPostsPagedRow{}, true,
+					"", datamodelsread.AllPosts{}, true,
 					0, 0,
 				),
 			},
@@ -136,10 +137,10 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			}
 
 			logger.DebugContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
-			content.User.AllPosts.Posts = Map(
+			content.User.AllPosts.Posts = utilities.Map(
 				posts,
-				func(post storage.Post) storage.GetPostsPagedRow {
-					return storage.GetPostsPagedRow{
+				func(post storage.Post) datamodelsread.PostAndUsername {
+					return datamodelsread.PostAndUsername{
 						Username: "",
 						Post:     post,
 					}
@@ -378,12 +379,4 @@ func handleGetSignupPage(
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
-}
-
-func Map[T, V any](ts []T, fn func(T) V) []V {
-	result := make([]V, len(ts))
-	for i, t := range ts {
-		result[i] = fn(t)
-	}
-	return result
 }

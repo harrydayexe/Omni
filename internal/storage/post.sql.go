@@ -63,15 +63,20 @@ func (q *Queries) FindPostByID(ctx context.Context, id int64) (Post, error) {
 }
 
 const getPostsPaged = `-- name: GetPostsPaged :many
-SELECT users.username, posts.id, posts.user_id, posts.created_at, posts.title, posts.markdown_url, posts.description FROM posts
+SELECT 
+    users.username,
+    posts.id, posts.user_id, posts.created_at, posts.title, posts.markdown_url, posts.description,
+    CEIL(COUNT(*) OVER() / 10.0) AS total_pages
+FROM posts
 JOIN users ON posts.user_id = users.id
 ORDER BY posts.created_at DESC
 LIMIT 10 OFFSET ?
 `
 
 type GetPostsPagedRow struct {
-	Username string `json:"username"`
-	Post     Post   `json:"post"`
+	Username   string `json:"username"`
+	Post       Post   `json:"post"`
+	TotalPages int32  `json:"total_pages"`
 }
 
 func (q *Queries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPagedRow, error) {
@@ -91,6 +96,7 @@ func (q *Queries) GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPa
 			&i.Post.Title,
 			&i.Post.MarkdownUrl,
 			&i.Post.Description,
+			&i.TotalPages,
 		); err != nil {
 			return nil, err
 		}

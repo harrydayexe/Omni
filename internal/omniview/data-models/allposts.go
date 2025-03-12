@@ -1,6 +1,8 @@
 package datamodels
 
-import "github.com/harrydayexe/Omni/internal/storage"
+import (
+	"github.com/harrydayexe/Omni/internal/omniread/datamodels"
+)
 
 // AllPosts contains the data to drive the "posts" template
 type AllPosts struct {
@@ -9,7 +11,7 @@ type AllPosts struct {
 	// Defines if the page is for all posts or just one user's posts
 	IsUserPage bool
 	// The collection of posts to render
-	Posts []storage.GetPostsPagedRow
+	Posts []datamodels.PostAndUsername
 	// Determines whether to show the previous page button
 	HasPrevious bool
 	// Determines whether to show the next page button
@@ -25,7 +27,7 @@ type AllPosts struct {
 // and nextNum is set. If positive, the bools are true, otherwise they are false
 func NewAllPosts(
 	error string,
-	posts []storage.GetPostsPagedRow,
+	posts datamodels.AllPosts,
 	isUserPage bool,
 	prevNum,
 	nextNum int,
@@ -36,14 +38,14 @@ func NewAllPosts(
 		hasPrev = true
 		prevNumP = prevNum
 	}
-	if nextNum > 0 {
+	if nextNum > 0 && nextNum <= posts.TotalPages {
 		hasNext = true
 		nextNumP = nextNum
 	}
 
 	return AllPosts{
 		Error:              error,
-		Posts:              posts,
+		Posts:              posts.Posts,
 		IsUserPage:         isUserPage,
 		HasPrevious:        hasPrev,
 		HasNext:            hasNext,

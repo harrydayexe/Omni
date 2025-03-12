@@ -29,7 +29,7 @@ type Connector interface {
 	// GetPostComments returns all comments on a post
 	GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) (datamodelsread.CommentsForPostReturn, error)
 	// GetMostRecentPosts returns the most recent posts from the page
-	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
+	GetMostRecentPosts(ctx context.Context, page int) (datamodelsread.AllPosts, error)
 	// Login logs a user in and returns a token
 	Login(ctx context.Context, username, password string) (auth.LoginResponse, error)
 	// Signup signs a user up and returns the user object
@@ -199,28 +199,28 @@ func (c *APIConnector) GetPostComments(ctx context.Context, id snowflake.Identif
 	return comments, nil
 }
 
-func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error) {
+func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) (datamodelsread.AllPosts, error) {
 	c.logger.InfoContext(ctx, "GetMostRecentPosts called", slog.Int("page num", page))
 	postsUrl, err := c.cfg.ReadApiUrl.Parse("/posts?page=" + strconv.Itoa(page))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get posts url", slog.Any("error", err))
-		return nil, NewAPIError(0, err)
+		return datamodelsread.AllPosts{}, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, postsUrl.String())
 	if err != nil {
-		return nil, err
+		return datamodelsread.AllPosts{}, err
 	}
 	defer resp.Body.Close()
 
-	var posts []storage.GetPostsPagedRow
+	var posts datamodelsread.AllPosts
 	decoder := json.NewDecoder(resp.Body)
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(&posts)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode posts", slog.Any("error", err))
-		return nil, NewAPIError(0, err)
+		return datamodelsread.AllPosts{}, NewAPIError(0, err)
 	}
 
 	return posts, nil

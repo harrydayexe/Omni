@@ -234,7 +234,9 @@ func handleMostRecentPosts(logger *slog.Logger, db storage.Querier) http.Handler
 			return
 		}
 
-		utilities.MarshallToResponse(r.Context(), logger, w, rows)
+		content := datamodels.NewAllPosts(rows)
+
+		utilities.MarshallToResponse(r.Context(), logger, w, content)
 	})
 }
 
