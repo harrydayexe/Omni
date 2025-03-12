@@ -181,6 +181,7 @@ func (c *APIConnector) GetPostComments(ctx context.Context, id snowflake.Identif
 
 	resp, err := c.GetRequest(ctx, postCommentsUrl.String())
 	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send GET request to backend", slog.Any("error", err))
 		return datamodelsread.CommentsForPostReturn{}, err
 	}
 	defer resp.Body.Close()
