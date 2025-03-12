@@ -54,4 +54,11 @@
 
     {{end}}
 </div>
+<script>
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.detail.requestConfig.verb === 'get' && event.detail.target.id === 'allposts-container') {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+    });
+</script>
 {{end}}
