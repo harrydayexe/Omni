@@ -36,7 +36,7 @@ func NewCommentsModel(
 ) CommentsModel {
 	if err != nil {
 		return CommentsModel{
-			Error:          err.Error(),
+			Error:          "An error occurred while retrieving the comments",
 			PostID:         postID,
 			NextPageNumber: nextPage,
 		}

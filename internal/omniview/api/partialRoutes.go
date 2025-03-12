@@ -11,6 +11,7 @@ import (
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	writedatamodels "github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
+	"github.com/harrydayexe/Omni/internal/utilities"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -295,5 +296,50 @@ func handlePostSignupPartial(
 		)
 		writeTemplateWithBuffer(r.Context(), logger, 0, "login-success", t, bufpool, w, successContent)
 		logger.DebugContext(r.Context(), "Finished writing signup response")
+	})
+}
+
+func handleGetCommentsPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for partial /post/{id}/comments")
+
+		// Parse user id
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			content := datamodels.NewErrorPageModel(
+				"Post not found",
+				"The post you are looking for does not exist.",
+			)
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "errorpage.html", t, bufpool, w, content)
+			return
+		}
+
+		// Attempt to get page url query param
+		var pageNum int = 1
+		pageQuery := r.URL.Query().Get("page")
+		if pageQuery != "" {
+			logger.DebugContext(r.Context(), "Page number specified", slog.String("pageQueryParam", pageQuery))
+			pageNumTemp, err := strconv.Atoi(pageQuery)
+			if err == nil {
+				logger.DebugContext(r.Context(), "Page number parsed", slog.Int("pageNum", pageNumTemp))
+				pageNum = pageNumTemp
+			}
+		}
+
+		// Get Comments
+		commentResp, err := dataConnector.GetPostComments(r.Context(), postSnowflake, pageNum)
+		commentModel := datamodels.NewCommentsModel(err, commentResp, int64(postSnowflake.ToInt()), int32(pageNum))
+		if err != nil {
+			logger.InfoContext(r.Context(), "Error occurred while retrieving comments", slog.String("error", err.Error()))
+		} else {
+			logger.DebugContext(r.Context(), "Successfully retrieved comments")
+		}
+
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "comment-list", t, bufpool, w, commentModel)
 	})
 }

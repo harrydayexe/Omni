@@ -1,20 +1,20 @@
 {{ define "comments" }}
 <section class="comments mt-12">
     <h3 class="text-2xl font-semibold mb-6">Comments</h3>
-    {{if .Error}}
-
-    <div role="alert">
-        <div class="bg-red-500 text-white font-bold rounded-t px-4 py-2">
-            Error
-        </div>
-        <div class="border border-t-0 border-red-400 rounded-b bg-red-100 px-4 py-3 text-red-700">
-            <p>{{.Error}}</p>
-        </div>
-    </div>
-
-    {{else}}
     <div id="comment-list">
         {{ block "comment-list" . }}
+        {{if .Error}}
+
+        <div role="alert">
+            <div class="bg-red-500 text-white font-bold rounded-t px-4 py-2">
+                Error
+            </div>
+            <div class="border border-t-0 border-red-400 rounded-b bg-red-100 px-4 py-3 text-red-700">
+                <p>{{.Error}}</p>
+            </div>
+        </div>
+
+        {{else}}
         {{ range .Comments }}
         {{ block "comment" . }}
         <div class="comment border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
@@ -37,7 +37,7 @@
         </button>
         {{ end }}
         {{ end }}
+        {{ end }}
     </div>
-    {{ end }}
 </section>
 {{ end }}
