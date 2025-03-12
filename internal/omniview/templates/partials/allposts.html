@@ -1,37 +1,64 @@
 {{define "posts"}}
-{{if .Error}}
+<div id="allposts-container">
+    {{if .Error}}
 
-<div role="alert">
-    <div class="bg-red-500 text-white font-bold rounded-t px-4 py-2">
-        Error
+    <div role="alert">
+        <div class="bg-red-500 text-white font-bold rounded-t px-4 py-2">
+            Error
+        </div>
+        <div class="border border-t-0 border-red-400 rounded-b bg-red-100 px-4 py-3 text-red-700">
+            <p>{{.Error}}</p>
+        </div>
     </div>
-    <div class="border border-t-0 border-red-400 rounded-b bg-red-100 px-4 py-3 text-red-700">
-        <p>{{.Error}}</p>
+
+    {{else}}
+
+    {{range .Posts}}
+    <div class="post border border-gray-200 dark:border-gray-700 p-4 rounded mb-4">
+        <a href="/post/{{ .Post.ID }}" class="hover:underline">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {{ .Post.Title }}
+            </h2>
+        </a>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+            {{ if $.IsUserPage }}
+            {{.Post.CreatedAt}}
+            {{ else }}
+            Posted by <a class="hover:underline" href="/user/{{ .Post.UserID }}"><strong>{{.Username}}</strong></a> on
+            {{.Post.CreatedAt}}
+            {{ end }}
+        </div>
+        <div class="mt-2 text-gray-800 dark:text-gray-300">
+            {{.Post.Description}}
+        </div>
     </div>
+    {{end}}
+
+    <div class="flex justify-between mt-4">
+        {{ if .HasPrevious }}
+        <button hx-get="/?page={{ .PreviousPageNumber }}" hx-target="#allposts-container" hx-swap="outerHTML"
+            hx-push-url="true"
+            class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+            Previous
+        </button>
+        {{ else }}<div></div>{{ end }}
+
+        {{ if .HasNext }}
+        <button hx-get="/?page={{ .NextPageNumber }}" hx-target="#allposts-container" hx-swap="outerHTML"
+            hx-push-url="true"
+            class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+            Next
+        </button>
+        {{ else }}<div></div>{{ end }}
+    </div>
+
+    {{end}}
 </div>
-
-{{else}}
-
-{{range .Posts}}
-<div class="post border border-gray-200 dark:border-gray-700 p-4 rounded mb-4">
-    <a href="/post/{{ if $.IsUserPage }}{{ .ID }}{{ else }}{{ .Post.ID }}{{ end }}" class="hover:underline">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {{ if $.IsUserPage }}{{ .Title }}{{ else }}{{ .Post.Title }}{{ end }}
-        </h2>
-    </a>
-    <div class="text-sm text-gray-600 dark:text-gray-400">
-        {{ if $.IsUserPage }}
-        {{.CreatedAt}}
-        {{ else }}
-        Posted by <a class="hover:underline" href="/user/{{ .Post.UserID }}"><strong>{{.Username}}</strong></a> on
-        {{.Post.CreatedAt}}
-        {{ end }}
-    </div>
-    <div class="mt-2 text-gray-800 dark:text-gray-300">
-        {{ if $.IsUserPage }}{{.Description}}{{else}}{{.Post.Description}}{{end}}
-    </div>
-</div>
-{{end}}
-
-{{end}}
+<script>
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.detail.requestConfig.verb === 'get' && event.detail.target.id === 'allposts-container') {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+    });
+</script>
 {{end}}

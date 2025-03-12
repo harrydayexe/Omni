@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
@@ -17,47 +18,66 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetIndexPage(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+	isHTMXRequest bool,
+) http.Handler {
 	type Content struct {
-		Head       datamodels.Head
-		NavBar     datamodels.NavBar
-		Error      string
-		IsUserPage bool
-		Posts      []storage.GetPostsPagedRow
+		Head     datamodels.Head
+		NavBar   datamodels.NavBar
+		AllPosts datamodels.AllPosts
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.InfoContext(r.Context(), "GET request received for index")
+		logger.InfoContext(r.Context(), "GET request received for index", slog.Bool("isHTMXRequest", isHTMXRequest))
+
+		// Attempt to get page url query param
+		var pageNum int = 1
+		pageQuery := r.URL.Query().Get("page")
+		if pageQuery != "" {
+			logger.DebugContext(r.Context(), "Page number specified", slog.String("pageQueryParam", pageQuery))
+			pageNumTemp, err := strconv.Atoi(pageQuery)
+			if err == nil {
+				logger.DebugContext(r.Context(), "Page number parsed", slog.Int("pageNum", pageNumTemp))
+				pageNum = pageNumTemp
+			}
+		}
 
 		// Get posts
-		posts, err := dataConnector.GetMostRecentPosts(r.Context(), 0)
+		var errorMsg string
+		posts, err := dataConnector.GetMostRecentPosts(r.Context(), pageNum)
+		if err != nil {
+			errorMsg = "An error occurred while fetching the most recent posts. Try again later."
+		}
+
 		content := Content{
 			Head: datamodels.Head{
 				Title: "Omni | Home",
 			},
-			NavBar:     datamodels.NewNavBar(r.Context()),
-			IsUserPage: false,
+			NavBar: datamodels.NewNavBar(r.Context()),
+			AllPosts: datamodels.NewAllPosts(
+				errorMsg, posts, false,
+				pageNum-1, pageNum+1,
+			),
 		}
-		if err != nil {
-			content.Error = "An error occurred while fetching the most recent posts. Try again later."
-		}
-
-		// Demo posts data
-		content.Posts = posts
 
 		// Write template
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts.html", t, bufpool, w, content)
+		if isHTMXRequest {
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts", t, bufpool, w, content.AllPosts)
+		} else {
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts.html", t, bufpool, w, content)
+		}
 	})
 }
 
 func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
 	type Content struct {
-		Head       datamodels.Head
-		NavBar     datamodels.NavBar
-		Error      string
-		Username   string
-		IsUserPage bool
-		Posts      []storage.Post
+		Head   datamodels.Head
+		NavBar datamodels.NavBar
+		User   datamodels.User
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /user", slog.String("id", r.PathValue("id")))
@@ -77,8 +97,14 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			Head: datamodels.Head{
 				Title: "Omni | User",
 			},
-			NavBar:     datamodels.NewNavBar(r.Context()),
-			IsUserPage: true,
+			NavBar: datamodels.NewNavBar(r.Context()),
+			User: datamodels.User{
+				Username: "",
+				AllPosts: datamodels.NewAllPosts(
+					"", []storage.GetPostsPagedRow{}, true,
+					0, 0,
+				),
+			},
 		}
 
 		// Create error channel
@@ -97,7 +123,7 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			}
 			logger.DebugContext(r.Context(), "User data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.Head.Title = "Omni | " + user.Username
-			content.Username = user.Username
+			content.User.Username = user.Username
 			errChan <- nil
 		}()
 
@@ -112,7 +138,14 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			}
 
 			logger.DebugContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
-			content.Posts = posts
+			content.User.AllPosts.Posts = Map(
+				posts,
+				func(post storage.Post) storage.GetPostsPagedRow {
+					return storage.GetPostsPagedRow{
+						Username: "",
+						Post:     post,
+					}
+				})
 			errChan <- nil
 		}()
 
@@ -342,4 +375,12 @@ func handleGetSignupPage(
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "login.html", t, bufpool, w, content)
 	})
+}
+
+func Map[T, V any](ts []T, fn func(T) V) []V {
+	result := make([]V, len(ts))
+	for i, t := range ts {
+		result[i] = fn(t)
+	}
+	return result
 }
