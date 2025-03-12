@@ -21,19 +21,30 @@ type Post struct {
 
 // CommentModel is the data model for the "comments" partial template
 type CommentsModel struct {
-	Error    string
-	Comments []datamodels.CommentReturn
+	Error          string
+	Comments       []datamodels.CommentReturn
+	PostID         int64
+	NextPageNumber int32
 }
 
 // NewCommentsModel creates the data model from a list of comments and an error
-func NewCommentsModel(err error, comments []datamodels.CommentReturn) CommentsModel {
+func NewCommentsModel(
+	err error,
+	comments []datamodels.CommentReturn,
+	postID int64,
+	nextPage int32,
+) CommentsModel {
 	if err != nil {
 		return CommentsModel{
-			Error: err.Error(),
+			Error:          err.Error(),
+			PostID:         postID,
+			NextPageNumber: nextPage,
 		}
 	} else {
 		return CommentsModel{
-			Comments: comments,
+			Comments:       comments,
+			PostID:         postID,
+			NextPageNumber: nextPage,
 		}
 	}
 }

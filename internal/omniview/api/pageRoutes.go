@@ -238,7 +238,12 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 		// Get Comments
 		go func() {
 			commentResp, err := dataConnector.GetPostComments(subctx, postSnowflake, 1)
-			commentsModel = datamodels.NewCommentsModel(err, commentResp)
+			commentsModel = datamodels.NewCommentsModel(
+				err,
+				commentResp,
+				int64(postSnowflake.ToInt()),
+				2,
+			)
 			if err != nil {
 				// Don't need to cancel other routines as comments are not core content
 				logger.InfoContext(r.Context(), "An error occurred while fetching comments", slog.String("error", err.Error()))
