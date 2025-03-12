@@ -210,9 +210,11 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 		}
 		var post storage.Post
 		var user storage.User
+		var commentsModel datamodels.CommentsModel
 
 		// Create error channel
-		errChan := make(chan error, 2)
+		const numRoutines = 3
+		errChan := make(chan error, numRoutines)
 		userIdChan := make(chan int64)
 		// Create sub-context
 		subctx, cancel := context.WithCancel(r.Context())
@@ -231,6 +233,19 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			// Finally return with no error
 			errChan <- nil
 			userIdChan <- post.UserID
+		}()
+
+		// Get Comments
+		go func() {
+			commentResp, err := dataConnector.GetPostComments(subctx, postSnowflake, 1)
+			commentsModel = datamodels.NewCommentsModel(err, commentResp)
+			if err != nil {
+				// Don't need to cancel other routines as comments are not core content
+				logger.InfoContext(r.Context(), "An error occurred while fetching comments", slog.String("error", err.Error()))
+			} else {
+				logger.DebugContext(r.Context(), "Comments data fetched", slog.Int64("id", int64(postSnowflake.ToInt())))
+			}
+			errChan <- nil
 		}()
 
 		// Get user
@@ -255,7 +270,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 
 		// Wait for goroutines to finish
 		var firstErr error
-		for i := 0; i < 2; i++ {
+		for i := 0; i < numRoutines; i++ {
 			// If the error channel has an error and it is the first error...
 			if err := <-errChan; err != nil && firstErr == nil {
 				logger.InfoContext(r.Context(), "An error occurred while fetching data", slog.String("error", err.Error()))
@@ -307,7 +322,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 		}
 
 		logger.DebugContext(r.Context(), "Setting page content")
-		content.Post = datamodels.NewPost(post, user, html)
+		content.Post = datamodels.NewPost(post, user, html, commentsModel)
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "post.html", t, bufpool, w, content)
 	})
