@@ -14,9 +14,13 @@ UPDATE comments SET content=? WHERE id=?;
 DELETE FROM comments WHERE id = ?;
 
 -- name: FindCommentsAndUserByPostIDPaged :many
-SELECT users.id, users.username, sqlc.embed(comments) FROM comments 
-INNER JOIN users 
-ON comments.user_id = users.id 
-WHERE comments.post_id = ? AND comments.created_at > sqlc.arg(created_after) 
+SELECT 
+    users.id, 
+    users.username, 
+    sqlc.embed(comments),
+    CEIL(COUNT(*) OVER() / 10.0) AS total_pages
+FROM comments
+INNER JOIN users ON comments.user_id = users.id 
+WHERE comments.post_id = ?
 ORDER BY comments.created_at DESC
-LIMIT ?;
+LIMIT 10 OFFSET ?;

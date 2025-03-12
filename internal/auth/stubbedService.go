@@ -9,7 +9,7 @@ import (
 // Implement the auth.Authable interface
 type StubbedAuthService struct {
 	VerifyTokenFn func(ctx context.Context, token string, id snowflake.Identifier) error
-	LoginFn       func(ctx context.Context, id snowflake.Identifier, password string) (string, error)
+	LoginFn       func(ctx context.Context, username, password string) (string, error)
 	SignupFn      func(ctx context.Context, password string) ([]byte, error)
 }
 
@@ -17,8 +17,8 @@ func (m StubbedAuthService) VerifyToken(ctx context.Context, token string, id sn
 	return m.VerifyTokenFn(ctx, token, id)
 }
 
-func (m StubbedAuthService) Login(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
-	return m.LoginFn(ctx, id, password)
+func (m StubbedAuthService) Login(ctx context.Context, username, password string) (string, error) {
+	return m.LoginFn(ctx, username, password)
 }
 
 func (m StubbedAuthService) Signup(ctx context.Context, password string) ([]byte, error) {

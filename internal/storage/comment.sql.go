@@ -71,28 +71,32 @@ func (q *Queries) FindCommentAndUserByID(ctx context.Context, id int64) (FindCom
 }
 
 const findCommentsAndUserByPostIDPaged = `-- name: FindCommentsAndUserByPostIDPaged :many
-SELECT users.id, users.username, comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at FROM comments 
-INNER JOIN users 
-ON comments.user_id = users.id 
-WHERE comments.post_id = ? AND comments.created_at > ? 
+SELECT 
+    users.id, 
+    users.username, 
+    comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at,
+    CEIL(COUNT(*) OVER() / 10.0) AS total_pages
+FROM comments
+INNER JOIN users ON comments.user_id = users.id 
+WHERE comments.post_id = ?
 ORDER BY comments.created_at DESC
-LIMIT ?
+LIMIT 10 OFFSET ?
 `
 
 type FindCommentsAndUserByPostIDPagedParams struct {
-	PostID       int64     `json:"post_id"`
-	CreatedAfter time.Time `json:"created_after"`
-	Limit        int32     `json:"limit"`
+	PostID int64 `json:"post_id"`
+	Offset int32 `json:"offset"`
 }
 
 type FindCommentsAndUserByPostIDPagedRow struct {
-	ID       int64   `json:"id"`
-	Username string  `json:"username"`
-	Comment  Comment `json:"comment"`
+	ID         int64   `json:"id"`
+	Username   string  `json:"username"`
+	Comment    Comment `json:"comment"`
+	TotalPages int32   `json:"total_pages"`
 }
 
 func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error) {
-	rows, err := q.query(ctx, q.findCommentsAndUserByPostIDPagedStmt, findCommentsAndUserByPostIDPaged, arg.PostID, arg.CreatedAfter, arg.Limit)
+	rows, err := q.query(ctx, q.findCommentsAndUserByPostIDPagedStmt, findCommentsAndUserByPostIDPaged, arg.PostID, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +112,7 @@ func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg Find
 			&i.Comment.UserID,
 			&i.Comment.Content,
 			&i.Comment.CreatedAt,
+			&i.TotalPages,
 		); err != nil {
 			return nil, err
 		}

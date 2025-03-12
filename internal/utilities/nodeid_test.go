@@ -9,10 +9,10 @@ import (
 )
 
 func TestGetNodeIDValid(t *testing.T) {
-	hostname := "omni-readapi-deployment-5bd9bcddff-44kfv"
-	expected := uint16(763)
+	nodename := "homelab1"
+	expected := uint16(707)
 
-	nodeID, err := GetNodeIDFromDeployment(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})), hostname)
+	nodeID, err := GetNodeIDFromDeployment(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})), nodename)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

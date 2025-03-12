@@ -304,7 +304,7 @@ func TestUpdatePostValid(t *testing.T) {
 		t.Errorf("handler did not return Location header, got %v, want %v", rr.Header().Get("Location"), "test.com:80/api/post/1796290045997481984")
 	}
 
-	expected := `{"id":1796290045997481984,"user_id":1796290045997481985,"created_at":"2025-01-01T02:30:00Z","title":"test title updated","description":"test description updated","markdown_url":"https://test.com/post1.md"}`
+	expected := `{"id":1796290045997481984,"user_id":1796290045997481985,"created_at":"2025-01-01T02:30:00Z","title":"test title updated","markdown_url":"https://test.com/post1.md","description":"test description updated"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}

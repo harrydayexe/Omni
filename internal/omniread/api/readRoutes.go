@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/omniread/datamodels"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
 )
@@ -157,10 +158,11 @@ func handleReadUserPosts(logger *slog.Logger, db storage.Querier) http.Handler {
 	})
 }
 
-// route: GET /post/{id}/comments?from=2006-01-02T15%3A04%3A05Z07%3A00&limit=10
-// there are two query parameters from and limit
-// from is the date and time to retrieve comments since in RFC3339 format
-// limit is the number of comments to return (default to 10, max is 100)
+/*
+route: GET /post/{id}/comments?page=1
+
+there is one query parameter: page
+*/
 func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "read comments GET request received")
@@ -169,33 +171,23 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 			return
 		}
 
-		fromDate, limit, err := extractPaginationParams(logger, r, w)
+		offset, err := getPageOffset(logger, r, w)
 		if err != nil {
 			return
 		}
 
 		rows, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), storage.FindCommentsAndUserByPostIDPagedParams{
-			PostID:       int64(id.ToInt()),
-			CreatedAfter: fromDate,
-			Limit:        int32(limit),
+			PostID: int64(id.ToInt()),
+			Offset: offset,
 		})
 		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
 
-		type CommentReturn struct {
-			ID        int64     `json:"id"`
-			PostID    int64     `json:"post_id"`
-			UserID    int64     `json:"user_id"`
-			Username  string    `json:"username"`
-			CreatedAt time.Time `json:"created_at"`
-			Content   string    `json:"content"`
-		}
-
 		// Extract the comments from the rows with usernames
-		comments := make([]CommentReturn, len(rows))
+		comments := make([]datamodels.CommentReturn, len(rows))
 		for i, row := range rows {
-			comments[i] = CommentReturn{
+			comments[i] = datamodels.CommentReturn{
 				ID:        row.Comment.ID,
 				PostID:    row.Comment.PostID,
 				UserID:    row.Comment.UserID,
@@ -204,7 +196,11 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 				Content:   row.Comment.Content,
 			}
 		}
-		utilities.MarshallToResponse(r.Context(), logger, w, comments)
+		content := datamodels.CommentsForPostReturn{
+			TotalPages: int(rows[0].TotalPages),
+			Comments:   comments,
+		}
+		utilities.MarshallToResponse(r.Context(), logger, w, content)
 	})
 }
 
@@ -216,26 +212,10 @@ func handleMostRecentPosts(logger *slog.Logger, db storage.Querier) http.Handler
 
 		var pageNum int32
 
-		pageVal := r.URL.Query().Get("page")
-		if pageVal == "" {
-			pageNum = 0
-		} else {
-			var err error
-			pageNumBig, err := strconv.Atoi(pageVal)
-			if err != nil {
-				logger.InfoContext(r.Context(), "failed to parse page from url query param", slog.Any("error", err))
-				errorMessage := "Url parameter could not be parsed properly."
-				http.Error(w, errorMessage, http.StatusBadRequest)
-				return
-			}
-			if pageNumBig < 1 {
-				pageNum = 0
-			} else {
-				pageNum = int32(pageNumBig - 1)
-			}
+		offset, err := getPageOffset(logger, r, w)
+		if err != nil {
+			return
 		}
-
-		var offset = pageNum * 10
 
 		logger.InfoContext(r.Context(), "getting posts from db", slog.Int("offset", int(offset)))
 
@@ -252,4 +232,34 @@ func handleMostRecentPosts(logger *slog.Logger, db storage.Querier) http.Handler
 
 		utilities.MarshallToResponse(r.Context(), logger, w, rows)
 	})
+}
+
+// getPageOffset extracts the page query parameter from the request and returns the offset for the page
+func getPageOffset(
+	logger *slog.Logger,
+	r *http.Request,
+	w http.ResponseWriter,
+) (int32, error) {
+	var pageNum int32
+
+	pageVal := r.URL.Query().Get("page")
+	if pageVal == "" {
+		pageNum = 0
+	} else {
+		var err error
+		pageNumBig, err := strconv.Atoi(pageVal)
+		if err != nil {
+			logger.InfoContext(r.Context(), "failed to parse page from url query param", slog.Any("error", err))
+			errorMessage := "Url parameter could not be parsed properly."
+			http.Error(w, errorMessage, http.StatusBadRequest)
+			return 0, err
+		}
+		if pageNumBig < 1 {
+			pageNum = 0
+		} else {
+			pageNum = int32(pageNumBig - 1)
+		}
+	}
+
+	return pageNum * 10, nil
 }

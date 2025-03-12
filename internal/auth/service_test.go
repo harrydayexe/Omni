@@ -17,18 +17,22 @@ var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})
 func TestLogin(t *testing.T) {
 
 	var cases = []struct {
-		name              string
-		id                snowflake.Identifier
-		password          string
-		secretKey         string
-		GetPasswordByIDFn func(context.Context, int64) (string, error)
-		expectedErr       error
+		name                string
+		username            string
+		password            string
+		secretKey           string
+		GetPasswordByIDFn   func(context.Context, int64) (string, error)
+		GetUserByUsernameFn func(context.Context, string) (int64, error)
+		expectedErr         error
 	}{
 		{
 			name:      "Valid login",
-			id:        snowflake.ParseId(1796290045997481984),
+			username:  "test",
 			password:  "password",
 			secretKey: "omni-secret",
+			GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+				return 1796290045997481984, nil
+			},
 			GetPasswordByIDFn: func(ctx context.Context, id int64) (string, error) {
 				return "$2a$10$RV8G09OWcyqjj6n0S/OZaegrth8X24p5ai/pQMbjZlr.v9iu5QKT6", nil
 			},
@@ -36,9 +40,12 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			name:      "Invalid login",
-			id:        snowflake.ParseId(1796290045997481984),
+			username:  "test",
 			password:  "invalid",
 			secretKey: "omni-secret",
+			GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+				return 1796290045997481984, nil
+			},
 			GetPasswordByIDFn: func(ctx context.Context, id int64) (string, error) {
 				return "$2a$10$RV8G09OWcyqjj6n0S/OZaegrth8X24p5ai/pQMbjZlr.v9iu5QKT6", nil
 			},
@@ -46,19 +53,32 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			name:      "Unknown user",
-			id:        snowflake.ParseId(1796290045997481984),
+			username:  "test",
 			password:  "invalid",
 			secretKey: "omni-secret",
-			GetPasswordByIDFn: func(ctx context.Context, id int64) (string, error) {
-				return "", sql.ErrNoRows
+			GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+				return 0, sql.ErrNoRows
 			},
 			expectedErr: ErrUserNotFound,
 		},
 		{
-			name:      "db error",
-			id:        snowflake.ParseId(1796290045997481984),
+			name:      "db error on user lookup",
+			username:  "test",
 			password:  "invalid",
 			secretKey: "omni-secret",
+			GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+				return 0, fmt.Errorf("db error")
+			},
+			expectedErr: ErrDbFailed,
+		},
+		{
+			name:      "db error on hash lookup",
+			username:  "test",
+			password:  "invalid",
+			secretKey: "omni-secret",
+			GetUserByUsernameFn: func(ctx context.Context, username string) (int64, error) {
+				return 1796290045997481984, nil
+			},
 			GetPasswordByIDFn: func(ctx context.Context, id int64) (string, error) {
 				return "", fmt.Errorf("db error")
 			},
@@ -71,12 +91,13 @@ func TestLogin(t *testing.T) {
 			service := NewAuthService(
 				[]byte(c.secretKey),
 				&storage.StubbedQueries{
-					GetPasswordByIDFn: c.GetPasswordByIDFn,
+					GetUserByUsernameFn: c.GetUserByUsernameFn,
+					GetPasswordByIDFn:   c.GetPasswordByIDFn,
 				},
 				testLogger,
 			)
 
-			_, err := service.Login(context.Background(), c.id, c.password)
+			_, err := service.Login(context.Background(), c.username, c.password)
 			if err != c.expectedErr {
 				t.Errorf("Expected error to be %v, got %v", c.expectedErr, err)
 			}

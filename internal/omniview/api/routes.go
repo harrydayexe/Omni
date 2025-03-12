@@ -32,6 +32,7 @@ func addRoutes(
 	mux.Handle("GET /post/new", stack(handleGetCreatePost(templates, bufpool, logger)))
 	mux.Handle("POST /post/new", stack(handlePostCreatePost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /post/{id}/comments", stack(handleGetComments(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /login", stack(handleGetLogin(templates, bufpool, logger)))
 	mux.Handle("POST /login", stack(handlePostLogin(templates, dataConnector, bufpool, logger)))
 	mux.Handle("DELETE /logout", stack(handleDeleteLogout(logger)))
@@ -79,6 +80,21 @@ func handleGetPost(
 		} else {
 			handleGetPostPage(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
 		}
+	})
+}
+
+func handleGetComments(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isHTMXRequest(r) {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		handleGetCommentsPartial(t, dataConnector, bufpool, logger).ServeHTTP(w, r)
 	})
 }
 
