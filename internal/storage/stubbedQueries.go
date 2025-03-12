@@ -10,7 +10,7 @@ type StubbedQueries struct {
 	DeletePostFn                       func(ctx context.Context, id int64) error
 	DeleteUserFn                       func(ctx context.Context, id int64) error
 	FindCommentAndUserByIDFn           func(ctx context.Context, id int64) (FindCommentAndUserByIDRow, error)
-	FindCommentsAndUserByPostIDPagedFn func(ctx context.Context, offset int32) ([]FindCommentsAndUserByPostIDPagedRow, error)
+	FindCommentsAndUserByPostIDPagedFn func(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error)
 	FindPostByIDFn                     func(ctx context.Context, id int64) (Post, error)
 	GetPasswordByIDFn                  func(ctx context.Context, id int64) (string, error)
 	GetPostsPagedFn                    func(ctx context.Context, offset int32) ([]GetPostsPagedRow, error)
@@ -50,8 +50,8 @@ func (q *StubbedQueries) FindCommentAndUserByID(ctx context.Context, id int64) (
 	return q.FindCommentAndUserByIDFn(ctx, id)
 }
 
-func (q *StubbedQueries) FindCommentsAndUserByPostIDPaged(ctx context.Context, offset int32) ([]FindCommentsAndUserByPostIDPagedRow, error) {
-	return q.FindCommentsAndUserByPostIDPagedFn(ctx, offset)
+func (q *StubbedQueries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error) {
+	return q.FindCommentsAndUserByPostIDPagedFn(ctx, arg)
 }
 
 func (q *StubbedQueries) FindPostByID(ctx context.Context, id int64) (Post, error) {
