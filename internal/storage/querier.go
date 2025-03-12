@@ -16,7 +16,7 @@ type Querier interface {
 	DeletePost(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	FindCommentAndUserByID(ctx context.Context, id int64) (FindCommentAndUserByIDRow, error)
-	FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error)
+	FindCommentsAndUserByPostIDPaged(ctx context.Context, offset int32) ([]FindCommentsAndUserByPostIDPagedRow, error)
 	FindPostByID(ctx context.Context, id int64) (Post, error)
 	GetPasswordByID(ctx context.Context, id int64) (string, error)
 	GetPostsPaged(ctx context.Context, offset int32) ([]GetPostsPagedRow, error)

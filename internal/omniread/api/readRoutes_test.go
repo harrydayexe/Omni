@@ -184,7 +184,7 @@ func TestGetPostKnown(t *testing.T) {
 			rr.Header().Get("Content-Type"), "application/json")
 	}
 
-	expected := `{"id":1796290045997481984,"user_id":1796290045997481985,"created_at":"2021-01-01T11:40:35Z","title":"Hello, World!","description":"Foobarbaz","markdown_url":"https://example.com/foo"}`
+	expected := `{"id":1796290045997481984,"user_id":1796290045997481985,"created_at":"2021-01-01T11:40:35Z","title":"Hello, World!","markdown_url":"https://example.com/foo","description":"Foobarbaz"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
@@ -381,7 +381,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","markdown_url":"https://example.com","description":"Foobarbaz"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.UnixMilli(1704067200000),
 		},
@@ -391,7 +391,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","markdown_url":"https://example.com","description":"Foobarbaz"}]`,
 			expectedRequestedLimit: 10,
 			expectedRequestedFrom:  time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
 		},
@@ -401,7 +401,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{3, 4},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","markdown_url":"https://example.com","description":"Foobarbaz"}]`,
 			expectedRequestedLimit: 2,
 			expectedRequestedFrom:  time.Date(2024, 4, 7, 0, 0, 0, 0, time.UTC),
 		},
@@ -411,7 +411,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","markdown_url":"https://example.com","description":"Foobarbaz"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 2, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -421,7 +421,7 @@ func TestGetPostsForUser(t *testing.T) {
 			errorToReturn:          nil,
 			postsToReturn:          []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","description":"Foobarbaz","markdown_url":"https://example.com"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","description":"Foobarbaz","markdown_url":"https://example.com"}]`,
+			expectedJsonResponse:   `[{"id":1796290045997481985,"user_id":1796290045997481984,"created_at":"2024-04-04T00:00:00Z","title":"Post 0","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481986,"user_id":1796290045997481984,"created_at":"2024-04-05T00:00:00Z","title":"Post 1","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481987,"user_id":1796290045997481984,"created_at":"2024-04-06T00:00:00Z","title":"Post 2","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481988,"user_id":1796290045997481984,"created_at":"2024-04-07T00:00:00Z","title":"Post 3","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481989,"user_id":1796290045997481984,"created_at":"2024-04-08T00:00:00Z","title":"Post 4","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481990,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 5","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481991,"user_id":1796290045997481984,"created_at":"2024-04-09T00:00:00Z","title":"Post 6","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481992,"user_id":1796290045997481984,"created_at":"2024-04-10T00:00:00Z","title":"Post 7","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481993,"user_id":1796290045997481984,"created_at":"2024-05-04T00:00:00Z","title":"Post 8","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481994,"user_id":1796290045997481984,"created_at":"2024-06-04T00:00:00Z","title":"Post 9","markdown_url":"https://example.com","description":"Foobarbaz"},{"id":1796290045997481995,"user_id":1796290045997481984,"created_at":"2024-07-04T00:00:00Z","title":"Post 10","markdown_url":"https://example.com","description":"Foobarbaz"}]`,
 			expectedRequestedLimit: 100,
 			expectedRequestedFrom:  time.Date(2024, 2, 6, 0, 0, 0, 0, time.UTC),
 		},
@@ -615,64 +615,31 @@ func TestGetCommentsForPost(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                   string
-		urlQuery               string
-		errorToReturn          error
-		commentsToReturn       []int
-		expectedStatusCode     int
-		expectedJsonResponse   string
-		expectedRequestedLimit int
-		expectedRequestedFrom  time.Time
+		name                  string
+		urlQuery              string
+		errorToReturn         error
+		commentsToReturn      []int
+		expectedStatusCode    int
+		expectedJsonResponse  string
+		expectedRequestedPage int32
 	}{
 		{
-			name:                   "No parameters",
-			urlQuery:               postIdString + "/comments",
-			errorToReturn:          nil,
-			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
-			expectedRequestedLimit: 10,
-			expectedRequestedFrom:  time.UnixMilli(1704067200000),
+			name:                  "No parameters",
+			urlQuery:              postIdString + "/comments",
+			errorToReturn:         nil,
+			commentsToReturn:      []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedStatusCode:    http.StatusOK,
+			expectedJsonResponse:  `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"}]`,
+			expectedRequestedPage: 0,
 		},
 		{
-			name:                   "From date, limit not specified",
-			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z",
-			errorToReturn:          nil,
-			commentsToReturn:       []int{3, 4, 5, 6, 7, 8, 9, 10},
-			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
-			expectedRequestedLimit: 10,
-			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:                   "From date, limit specified",
-			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=2",
-			errorToReturn:          nil,
-			commentsToReturn:       []int{3, 4},
-			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"}]`,
-			expectedRequestedLimit: 2,
-			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:                   "From date, limit specified, limit is greater than number of comments",
-			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=100",
-			errorToReturn:          nil,
-			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
-			expectedRequestedLimit: 100,
-			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			name:                   "From date, limit specified, limit is greater than 100",
-			urlQuery:               postIdString + "/comments?from=2024-04-06T00%3A00%3A00Z&limit=200",
-			errorToReturn:          nil,
-			commentsToReturn:       []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
-			expectedStatusCode:     http.StatusOK,
-			expectedJsonResponse:   `[{"id":1796290045997481986,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-04T00:00:00Z","content":"Example Comment 1"},{"id":1796290045997481987,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T00:00:00Z","content":"Example Comment 2"},{"id":1796290045997481988,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-05T20:00:00Z","content":"Example Comment 3"},{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
-			expectedRequestedLimit: 100,
-			expectedRequestedFrom:  time.Date(2024, 4, 6, 0, 0, 0, 0, time.UTC),
+			name:                  "Page specified",
+			urlQuery:              postIdString + "/comments?page=2",
+			errorToReturn:         nil,
+			commentsToReturn:      []int{3, 4, 5, 6, 7, 8, 9, 10},
+			expectedStatusCode:    http.StatusOK,
+			expectedJsonResponse:  `[{"id":1796290045997481989,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-06T00:00:00Z","content":"Example Comment 4"},{"id":1796290045997481990,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-07T00:00:00Z","content":"Example Comment 5"},{"id":1796290045997481991,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-08T00:00:00Z","content":"Example Comment 6"},{"id":1796290045997481992,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-04-09T00:00:00Z","content":"Example Comment 7"},{"id":1796290045997481993,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-06T00:00:00Z","content":"Example Comment 8"},{"id":1796290045997481994,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-07T00:00:00Z","content":"Example Comment 9"},{"id":1796290045997481995,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-08T00:00:00Z","content":"Example Comment 10"},{"id":1796290045997481996,"post_id":1796290045997481984,"user_id":1796290045997481985,"username":"johndoe","created_at":"2024-05-09T00:00:00Z","content":"Example Comment 11"}]`,
+			expectedRequestedPage: 10,
 		},
 		{
 			name:                 "Non number post id string",
@@ -681,25 +648,18 @@ func TestGetCommentsForPost(t *testing.T) {
 			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
-			name:                 "Date badly formed",
-			urlQuery:             postIdString + "/comments?from=202406T00%3A00%3A00Z",
-			expectedStatusCode:   http.StatusUnprocessableEntity,
-			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
-		},
-		{
-			name:                 "Limit non integer",
-			urlQuery:             postIdString + "/comments?limit=hello",
+			name:                 "Page non integer",
+			urlQuery:             postIdString + "/comments?page=hello",
 			expectedStatusCode:   http.StatusBadRequest,
 			expectedJsonResponse: "Url parameter could not be parsed properly.\n",
 		},
 		{
-			name:                   "DB error",
-			urlQuery:               postIdString + "/comments?",
-			errorToReturn:          fmt.Errorf("database error"),
-			expectedStatusCode:     http.StatusInternalServerError,
-			expectedJsonResponse:   "internal server error\n",
-			expectedRequestedLimit: 10,
-			expectedRequestedFrom:  time.UnixMilli(1704067200000),
+			name:                  "DB error",
+			urlQuery:              postIdString + "/comments?",
+			errorToReturn:         fmt.Errorf("database error"),
+			expectedStatusCode:    http.StatusInternalServerError,
+			expectedJsonResponse:  "internal server error\n",
+			expectedRequestedPage: 0,
 		},
 	}
 
@@ -712,13 +672,9 @@ func TestGetCommentsForPost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			mockedQueries := &storage.StubbedQueries{
-				FindCommentsAndUserByPostIDPagedFn: func(ctx context.Context, arg storage.FindCommentsAndUserByPostIDPagedParams) ([]storage.FindCommentsAndUserByPostIDPagedRow, error) {
-					if int(arg.Limit) != tt.expectedRequestedLimit {
-						t.Fatal("Expected limit to be", tt.expectedRequestedLimit, "but got", arg.Limit)
-					}
-
-					if arg.CreatedAfter != tt.expectedRequestedFrom {
-						t.Fatal("Expected from to be", tt.expectedRequestedFrom, "but got", arg.CreatedAfter)
+				FindCommentsAndUserByPostIDPagedFn: func(ctx context.Context, offset int32) ([]storage.FindCommentsAndUserByPostIDPagedRow, error) {
+					if offset != tt.expectedRequestedPage {
+						t.Fatal("Expected page to be", tt.expectedRequestedPage, "but got", offset)
 					}
 
 					if tt.errorToReturn != nil {

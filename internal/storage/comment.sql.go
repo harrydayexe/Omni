@@ -72,18 +72,10 @@ func (q *Queries) FindCommentAndUserByID(ctx context.Context, id int64) (FindCom
 
 const findCommentsAndUserByPostIDPaged = `-- name: FindCommentsAndUserByPostIDPaged :many
 SELECT users.id, users.username, comments.id, comments.post_id, comments.user_id, comments.content, comments.created_at FROM comments 
-INNER JOIN users 
-ON comments.user_id = users.id 
-WHERE comments.post_id = ? AND comments.created_at > ? 
+INNER JOIN users ON comments.user_id = users.id 
 ORDER BY comments.created_at DESC
-LIMIT ?
+LIMIT 10 OFFSET ?
 `
-
-type FindCommentsAndUserByPostIDPagedParams struct {
-	PostID       int64     `json:"post_id"`
-	CreatedAfter time.Time `json:"created_after"`
-	Limit        int32     `json:"limit"`
-}
 
 type FindCommentsAndUserByPostIDPagedRow struct {
 	ID       int64   `json:"id"`
@@ -91,8 +83,8 @@ type FindCommentsAndUserByPostIDPagedRow struct {
 	Comment  Comment `json:"comment"`
 }
 
-func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, arg FindCommentsAndUserByPostIDPagedParams) ([]FindCommentsAndUserByPostIDPagedRow, error) {
-	rows, err := q.query(ctx, q.findCommentsAndUserByPostIDPagedStmt, findCommentsAndUserByPostIDPaged, arg.PostID, arg.CreatedAfter, arg.Limit)
+func (q *Queries) FindCommentsAndUserByPostIDPaged(ctx context.Context, offset int32) ([]FindCommentsAndUserByPostIDPagedRow, error) {
+	rows, err := q.query(ctx, q.findCommentsAndUserByPostIDPagedStmt, findCommentsAndUserByPostIDPaged, offset)
 	if err != nil {
 		return nil, err
 	}

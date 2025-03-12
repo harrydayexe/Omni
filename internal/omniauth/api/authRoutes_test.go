@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/harrydayexe/Omni/internal/auth"
-	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
 func TestLogin(t *testing.T) {
@@ -20,7 +18,7 @@ func TestLogin(t *testing.T) {
 
 	var cases = []struct {
 		name         string
-		loginFn      func(ctx context.Context, id snowflake.Identifier, password string) (string, error)
+		loginFn      func(ctx context.Context, username, password string) (string, error)
 		username     string
 		password     string
 		expectedCode int
@@ -28,7 +26,7 @@ func TestLogin(t *testing.T) {
 	}{
 		{
 			name: "valid login",
-			loginFn: func(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
+			loginFn: func(ctx context.Context, username, password string) (string, error) {
 				return "$2a$10$RV8G09OWcyqjj6n0S/OZaegrth8X24p5ai/pQMbjZlr.v9iu5QKT6", nil
 			},
 			username:     "username",
@@ -38,8 +36,8 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			name: "invalid login",
-			loginFn: func(ctx context.Context, id snowflake.Identifier, password string) (string, error) {
-				return "", fmt.Errorf("invalid login")
+			loginFn: func(ctx context.Context, username, password string) (string, error) {
+				return "", auth.ErrUnauthorized
 			},
 			username:     "username",
 			password:     "invalid",
