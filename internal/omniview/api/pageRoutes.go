@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
@@ -29,8 +30,20 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for index")
 
+		// Attempt to get page url query param
+		var pageNum int = 1
+		pageQuery := r.URL.Query().Get("page")
+		if pageQuery != "" {
+			logger.DebugContext(r.Context(), "Page number specified", slog.String("pageQueryParam", pageQuery))
+			pageNumTemp, err := strconv.Atoi(pageQuery)
+			if err == nil {
+				logger.DebugContext(r.Context(), "Page number parsed", slog.Int("pageNum", pageNumTemp))
+				pageNum = pageNumTemp
+			}
+		}
+
 		// Get posts
-		posts, err := dataConnector.GetMostRecentPosts(r.Context(), 0)
+		posts, err := dataConnector.GetMostRecentPosts(r.Context(), pageNum)
 		content := Content{
 			Head: datamodels.Head{
 				Title: "Omni | Home",
