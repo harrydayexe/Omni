@@ -18,7 +18,13 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
+func handleGetIndexPage(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+	isHTMXRequest bool,
+) http.Handler {
 	type Content struct {
 		Head     datamodels.Head
 		NavBar   datamodels.NavBar
@@ -26,7 +32,7 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.InfoContext(r.Context(), "GET request received for index")
+		logger.InfoContext(r.Context(), "GET request received for index", slog.Bool("isHTMXRequest", isHTMXRequest))
 
 		// Attempt to get page url query param
 		var pageNum int = 1
@@ -59,7 +65,11 @@ func handleGetIndexPage(t *templates.Templates, dataConnector connector.Connecto
 		}
 
 		// Write template
-		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts.html", t, bufpool, w, content)
+		if isHTMXRequest {
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts", t, bufpool, w, content.AllPosts)
+		} else {
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "posts.html", t, bufpool, w, content)
+		}
 	})
 }
 

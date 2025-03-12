@@ -46,7 +46,7 @@ func handleGetIndex(
 	logger *slog.Logger,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleGetIndexPage(templates, dataConnector, bufpool, logger).ServeHTTP(w, r)
+		handleGetIndexPage(templates, dataConnector, bufpool, logger, isHTMXRequest(r)).ServeHTTP(w, r)
 	})
 }
 
