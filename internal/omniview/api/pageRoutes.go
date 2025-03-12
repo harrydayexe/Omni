@@ -3,11 +3,9 @@ package api
 import (
 	"context"
 	"errors"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
@@ -186,18 +184,10 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 }
 
 func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector, bufpool *bpool.BufferPool, logger *slog.Logger) http.Handler {
-	type Post struct {
-		Title       string
-		Description string
-		CreatedAt   string
-		Author      string
-		AuthorID    int64
-		Content     template.HTML
-	}
 	type Content struct {
 		Head   datamodels.Head
 		NavBar datamodels.NavBar
-		Post   Post
+		Post   datamodels.Post
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "GET request received for /post", slog.String("id", r.PathValue("id")))
@@ -317,14 +307,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 		}
 
 		logger.DebugContext(r.Context(), "Setting page content")
-		content.Post = Post{
-			Title:       post.Title,
-			Description: post.Description,
-			CreatedAt:   post.CreatedAt.Format(time.DateTime),
-			Author:      user.Username,
-			AuthorID:    user.ID,
-			Content:     template.HTML(html),
-		}
+		content.Post = datamodels.NewPost(post, user, html)
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "post.html", t, bufpool, w, content)
 	})
