@@ -196,8 +196,12 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 				Content:   row.Comment.Content,
 			}
 		}
+		var totalsPages int
+		if len(rows) > 0 {
+			totalsPages = int(rows[0].TotalPages)
+		}
 		content := datamodels.CommentsForPostReturn{
-			TotalPages: int(rows[0].TotalPages),
+			TotalPages: totalsPages,
 			Comments:   comments,
 		}
 		utilities.MarshallToResponse(r.Context(), logger, w, content)
