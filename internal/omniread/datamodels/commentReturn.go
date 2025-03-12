@@ -10,3 +10,8 @@ type CommentReturn struct {
 	CreatedAt time.Time `json:"created_at"`
 	Content   string    `json:"content"`
 }
+
+type CommentsForPostReturn struct {
+	TotalPages int
+	Comments   []CommentReturn
+}

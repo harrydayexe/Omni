@@ -27,7 +27,7 @@ type Connector interface {
 	// GetUserPosts returns all posts by a user
 	GetUserPosts(ctx context.Context, id snowflake.Identifier) ([]storage.Post, error)
 	// GetPostComments returns all comments on a post
-	GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) ([]datamodelsread.CommentReturn, error)
+	GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) (datamodelsread.CommentsForPostReturn, error)
 	// GetMostRecentPosts returns the most recent posts from the page
 	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
 	// Login logs a user in and returns a token
@@ -171,28 +171,28 @@ func (c *APIConnector) GetUserPosts(ctx context.Context, id snowflake.Identifier
 	return posts, nil
 }
 
-func (c *APIConnector) GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) ([]datamodelsread.CommentReturn, error) {
+func (c *APIConnector) GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) (datamodelsread.CommentsForPostReturn, error) {
 	c.logger.InfoContext(ctx, "GetPostComments called", slog.Int64("id", int64(id.Id().ToInt())))
 	postCommentsUrl, err := c.cfg.ReadApiUrl.Parse("/post/" + strconv.FormatUint(id.Id().ToInt(), 10) + "/comments?page=" + strconv.Itoa(pageNum))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative get post comments url", slog.Any("error", err))
-		return nil, NewAPIError(0, err)
+		return datamodelsread.CommentsForPostReturn{}, NewAPIError(0, err)
 	}
 
 	resp, err := c.GetRequest(ctx, postCommentsUrl.String())
 	if err != nil {
-		return nil, err
+		return datamodelsread.CommentsForPostReturn{}, err
 	}
 	defer resp.Body.Close()
 
-	var comments []datamodelsread.CommentReturn
+	var comments datamodelsread.CommentsForPostReturn
 	decoder := json.NewDecoder(resp.Body)
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(&comments)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode comments", slog.Any("error", err))
-		return nil, NewAPIError(0, err)
+		return datamodelsread.CommentsForPostReturn{}, NewAPIError(0, err)
 	}
 
 	return comments, nil

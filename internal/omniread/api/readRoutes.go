@@ -176,7 +176,10 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 			return
 		}
 
-		rows, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), offset)
+		rows, err := db.FindCommentsAndUserByPostIDPaged(r.Context(), storage.FindCommentsAndUserByPostIDPagedParams{
+			PostID: int64(id.ToInt()),
+			Offset: offset,
+		})
 		if utilities.IsDbError(r.Context(), logger, w, id, err) {
 			return
 		}
@@ -193,7 +196,11 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 				Content:   row.Comment.Content,
 			}
 		}
-		utilities.MarshallToResponse(r.Context(), logger, w, comments)
+		content := datamodels.CommentsForPostReturn{
+			TotalPages: int(rows[0].TotalPages),
+			Comments:   comments,
+		}
+		utilities.MarshallToResponse(r.Context(), logger, w, content)
 	})
 }
 

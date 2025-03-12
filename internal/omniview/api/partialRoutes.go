@@ -333,7 +333,7 @@ func handleGetCommentsPartial(
 
 		// Get Comments
 		commentResp, err := dataConnector.GetPostComments(r.Context(), postSnowflake, pageNum)
-		commentModel := datamodels.NewCommentsModel(err, commentResp, int64(postSnowflake.ToInt()), int32(pageNum))
+		commentModel := datamodels.NewCommentsModel(err, commentResp, int64(postSnowflake.ToInt()), pageNum+1)
 		if err != nil {
 			logger.InfoContext(r.Context(), "Error occurred while retrieving comments", slog.String("error", err.Error()))
 		} else {

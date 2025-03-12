@@ -24,27 +24,31 @@ type CommentsModel struct {
 	Error          string
 	Comments       []datamodels.CommentReturn
 	PostID         int64
-	NextPageNumber int32
+	NextPageNumber int
 }
 
 // NewCommentsModel creates the data model from a list of comments and an error
 func NewCommentsModel(
 	err error,
-	comments []datamodels.CommentReturn,
+	comments datamodels.CommentsForPostReturn,
 	postID int64,
-	nextPage int32,
+	nextPage int,
 ) CommentsModel {
+	var np int = 0
+	if nextPage <= comments.TotalPages {
+		np = nextPage
+	}
 	if err != nil {
 		return CommentsModel{
 			Error:          "An error occurred while retrieving the comments",
 			PostID:         postID,
-			NextPageNumber: nextPage,
+			NextPageNumber: np,
 		}
 	} else {
 		return CommentsModel{
-			Comments:       comments,
+			Comments:       comments.Comments,
 			PostID:         postID,
-			NextPageNumber: nextPage,
+			NextPageNumber: np,
 		}
 	}
 }
