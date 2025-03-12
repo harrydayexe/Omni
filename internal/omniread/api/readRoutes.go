@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/omniread/datamodels"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
 )
@@ -183,19 +184,10 @@ func handleReadPostComments(logger *slog.Logger, db storage.Querier) http.Handle
 			return
 		}
 
-		type CommentReturn struct {
-			ID        int64     `json:"id"`
-			PostID    int64     `json:"post_id"`
-			UserID    int64     `json:"user_id"`
-			Username  string    `json:"username"`
-			CreatedAt time.Time `json:"created_at"`
-			Content   string    `json:"content"`
-		}
-
 		// Extract the comments from the rows with usernames
-		comments := make([]CommentReturn, len(rows))
+		comments := make([]datamodels.CommentReturn, len(rows))
 		for i, row := range rows {
-			comments[i] = CommentReturn{
+			comments[i] = datamodels.CommentReturn{
 				ID:        row.Comment.ID,
 				PostID:    row.Comment.PostID,
 				UserID:    row.Comment.UserID,

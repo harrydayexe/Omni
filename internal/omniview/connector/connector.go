@@ -11,7 +11,8 @@ import (
 
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
-	"github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
+	datamodelsread "github.com/harrydayexe/Omni/internal/omniread/datamodels"
+	datamodelswrite "github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 )
@@ -26,15 +27,15 @@ type Connector interface {
 	// GetUserPosts returns all posts by a user
 	GetUserPosts(ctx context.Context, id snowflake.Identifier) ([]storage.Post, error)
 	// GetPostComments returns all comments on a post
-	// GetPostComments(ctx context.Context, id snowflake.Identifier) ([]storage.Comment, error)
+	GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) ([]datamodelsread.CommentReturn, error)
 	// GetMostRecentPosts returns the most recent posts from the page
 	GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error)
 	// Login logs a user in and returns a token
 	Login(ctx context.Context, username, password string) (auth.LoginResponse, error)
 	// Signup signs a user up and returns the user object
-	Signup(ctx context.Context, username, password string) (datamodels.NewUserResponse, error)
+	Signup(ctx context.Context, username, password string) (datamodelswrite.NewUserResponse, error)
 	// CreatePost creates a post and returns the new post
-	CreatePost(ctx context.Context, newPost datamodels.NewPost) (storage.Post, error)
+	CreatePost(ctx context.Context, newPost datamodelswrite.NewPost) (storage.Post, error)
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -170,6 +171,33 @@ func (c *APIConnector) GetUserPosts(ctx context.Context, id snowflake.Identifier
 	return posts, nil
 }
 
+func (c *APIConnector) GetPostComments(ctx context.Context, id snowflake.Identifier, pageNum int) ([]datamodelsread.CommentReturn, error) {
+	c.logger.InfoContext(ctx, "GetPostComments called", slog.Int64("id", int64(id.Id().ToInt())))
+	postCommentsUrl, err := c.cfg.ReadApiUrl.Parse("/post/" + strconv.FormatUint(id.Id().ToInt(), 10) + "/comments?page=" + strconv.Itoa(pageNum))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative get post comments url", slog.Any("error", err))
+		return nil, NewAPIError(0, err)
+	}
+
+	resp, err := c.GetRequest(ctx, postCommentsUrl.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var comments []datamodelsread.CommentReturn
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&comments)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode comments", slog.Any("error", err))
+		return nil, NewAPIError(0, err)
+	}
+
+	return comments, nil
+}
+
 func (c *APIConnector) GetMostRecentPosts(ctx context.Context, page int) ([]storage.GetPostsPagedRow, error) {
 	c.logger.InfoContext(ctx, "GetMostRecentPosts called", slog.Int("page num", page))
 	postsUrl, err := c.cfg.ReadApiUrl.Parse("/posts?page=" + strconv.Itoa(page))
@@ -243,44 +271,44 @@ func (c *APIConnector) Login(ctx context.Context, username, password string) (au
 func (c *APIConnector) Signup(
 	ctx context.Context,
 	username, password string,
-) (datamodels.NewUserResponse, error) {
+) (datamodelswrite.NewUserResponse, error) {
 	c.logger.InfoContext(ctx, "Signup called", slog.String("username", username))
 	signupUrl, err := c.cfg.WriteApiUrl.Parse("/user")
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to parse relative signup url", slog.Any("error", err))
-		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+		return datamodelswrite.NewUserResponse{}, NewAPIError(0, err)
 	}
 
-	postData := datamodels.NewUserRequest{
+	postData := datamodelswrite.NewUserRequest{
 		Username: username,
 		Password: password,
 	}
 	postDataBytes, err := json.Marshal(postData)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to marshal signup request", slog.Any("error", err))
-		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+		return datamodelswrite.NewUserResponse{}, NewAPIError(0, err)
 	}
 
 	resp, err := http.Post(signupUrl.String(), "application/json", bytes.NewBuffer(postDataBytes))
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to send POST request to backend", slog.Any("error", err))
-		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+		return datamodelswrite.NewUserResponse{}, NewAPIError(0, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		c.logger.InfoContext(ctx, "POST request did not return 201", slog.Int("http status", resp.StatusCode))
-		return datamodels.NewUserResponse{}, NewAPIError(resp.StatusCode, nil)
+		return datamodelswrite.NewUserResponse{}, NewAPIError(resp.StatusCode, nil)
 	}
 
-	var signupResponse datamodels.NewUserResponse
+	var signupResponse datamodelswrite.NewUserResponse
 	decoder := json.NewDecoder(resp.Body)
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(&signupResponse)
 	if err != nil {
 		c.logger.ErrorContext(ctx, "failed to decode signup response", slog.Any("error", err))
-		return datamodels.NewUserResponse{}, NewAPIError(0, err)
+		return datamodelswrite.NewUserResponse{}, NewAPIError(0, err)
 	}
 
 	return signupResponse, nil
@@ -288,7 +316,7 @@ func (c *APIConnector) Signup(
 
 func (c *APIConnector) CreatePost(
 	ctx context.Context,
-	newPost datamodels.NewPost,
+	newPost datamodelswrite.NewPost,
 ) (storage.Post, error) {
 	c.logger.InfoContext(ctx, "CreatePost called", slog.Any("newPost", newPost))
 
