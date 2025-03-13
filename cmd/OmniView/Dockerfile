@@ -1,8 +1,13 @@
 # Stage 1: Build stage
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-bookworm AS build
 
 # Set the working directory
 WORKDIR /app
+
+# Download Tailwind CSS
+RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.14/tailwindcss-linux-arm64
+RUN chmod u+x tailwindcss-linux-arm64
+RUN mv tailwindcss-linux-arm64 tailwindcss
 
 # Copy and download dependencies
 COPY go.mod go.sum ./
@@ -10,6 +15,8 @@ RUN go mod download
 
 # Copy the source code
 COPY . .
+
+RUN ./tailwindcss -i "./internal/omniview/templates/custom.css" -o "./internal/omniview/templates/static/style.css"
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=linux go build -o OmniView ./cmd/OmniView
