@@ -241,6 +241,7 @@ func handleGetPostPage(t *templates.Templates, dataConnector connector.Connector
 			commentResp, err := dataConnector.GetPostComments(subctx, postSnowflake, 1)
 			commentsModel = datamodels.NewCommentsModel(
 				err,
+				GetUserIdFromCtx(r.Context()),
 				commentResp,
 				int64(postSnowflake.ToInt()),
 				2,

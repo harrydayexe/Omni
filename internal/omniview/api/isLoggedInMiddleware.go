@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/snowflake"
 )
 
 // IsLoggedInCtxKey is the key used to store the is-logged-in value in the context.
@@ -49,4 +50,13 @@ func newIsLoggedInMiddleware(logger *slog.Logger) middleware.Middleware {
 			}
 		})
 	}
+}
+
+// GetUserIdFromCtx returns the user id from the context if a user is logged in.
+// Otherwise, it returns nil.
+func GetUserIdFromCtx(ctx context.Context) snowflake.Identifier {
+	if ctx.Value(IsLoggedInCtxKey) == true {
+		return snowflake.ParseId(ctx.Value(UserIdCtxKey).(uint64))
+	}
+	return nil
 }
