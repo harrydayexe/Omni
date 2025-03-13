@@ -40,6 +40,8 @@ type Connector interface {
 	DeleteComment(ctx context.Context, id snowflake.Identifier) error
 	// InsertComment inserts a comment into the database
 	InsertComment(ctx context.Context, postID snowflake.Identifier, comment datamodelswrite.NewComment) (storage.Comment, error)
+	// DeletePost deletes a post by its id
+	DeletePost(ctx context.Context, id snowflake.Identifier) error
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -479,4 +481,42 @@ func (c *APIConnector) InsertComment(
 	}
 
 	return newComment, nil
+}
+
+func (c *APIConnector) DeletePost(ctx context.Context, id snowflake.Identifier) error {
+	c.logger.InfoContext(ctx, "DeletePost called", slog.Int64("id", int64(id.Id().ToInt())))
+
+	if ctx.Value("jwt-token") == nil {
+		c.logger.ErrorContext(ctx, "no auth token in context")
+		return NewAPIError(0, fmt.Errorf("no auth token in context"))
+	}
+
+	deletePostUrl, err := c.cfg.WriteApiUrl.Parse("/post/" + strconv.FormatUint(id.Id().ToInt(), 10))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative delete post url", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, deletePostUrl.String(), nil)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to create DELETE request", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send DELETE request to backend", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+	c.logger.DebugContext(ctx, "sent DELETE request successfully")
+
+	if resp.StatusCode != http.StatusNoContent {
+		c.logger.InfoContext(ctx, "DELETE request did not return 204", slog.Int("http status", resp.StatusCode))
+		return NewAPIError(resp.StatusCode, nil)
+	}
+	c.logger.DebugContext(ctx, "DELETE request returned 204")
+
+	return nil
 }
