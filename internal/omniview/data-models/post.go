@@ -5,8 +5,16 @@ import (
 	"time"
 
 	"github.com/harrydayexe/Omni/internal/omniread/datamodels"
+	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
+	"github.com/harrydayexe/Omni/internal/utilities"
 )
+
+type Comment struct {
+	datamodels.CommentReturn
+	IsDeleteable bool
+	IsEditable   bool
+}
 
 // Post is the data model for the "post" partial template
 type Post struct {
@@ -22,7 +30,7 @@ type Post struct {
 // CommentModel is the data model for the "comments" partial template
 type CommentsModel struct {
 	Error          string
-	Comments       []datamodels.CommentReturn
+	Comments       []Comment
 	PostID         int64
 	NextPageNumber int
 }
@@ -30,6 +38,7 @@ type CommentsModel struct {
 // NewCommentsModel creates the data model from a list of comments and an error
 func NewCommentsModel(
 	err error,
+	userID snowflake.Identifier,
 	comments datamodels.CommentsForPostReturn,
 	postID int64,
 	nextPage int,
@@ -38,6 +47,10 @@ func NewCommentsModel(
 	if nextPage <= comments.TotalPages {
 		np = nextPage
 	}
+	var commentsList []Comment = utilities.Map(
+		comments.Comments,
+		convertCommentReturnToComment(userID),
+	)
 	if err != nil {
 		return CommentsModel{
 			Error:          "An error occurred while retrieving the comments",
@@ -46,9 +59,31 @@ func NewCommentsModel(
 		}
 	} else {
 		return CommentsModel{
-			Comments:       comments.Comments,
+			Comments:       commentsList,
 			PostID:         postID,
 			NextPageNumber: np,
+		}
+	}
+}
+
+// convertCommentReturnToComment returns a function which maps a CommentReturn to a Comment
+func convertCommentReturnToComment(
+	userID snowflake.Identifier,
+) func(datamodels.CommentReturn) Comment {
+	if userID == nil {
+		return func(cr datamodels.CommentReturn) Comment {
+			return Comment{
+				CommentReturn: cr,
+				IsDeleteable:  false,
+				IsEditable:    false,
+			}
+		}
+	}
+	return func(cr datamodels.CommentReturn) Comment {
+		return Comment{
+			CommentReturn: cr,
+			IsDeleteable:  cr.UserID == int64(userID.Id().ToInt()),
+			IsEditable:    cr.UserID == int64(userID.Id().ToInt()),
 		}
 	}
 }
