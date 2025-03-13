@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [OmniRead, OmniWrite, OmniAuth, OmniView]
+        image: [omniread, omniwrite, omniauth, omniview]
     permissions:
       packages: write
       contents: read
