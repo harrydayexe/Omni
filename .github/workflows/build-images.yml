@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [omniread, omniwrite, omniauth, omniview]
+        image: [OmniRead, OmniWrite, OmniAuth, OmniView]
     permissions:
       packages: write
       contents: read
@@ -36,5 +36,5 @@ jobs:
           context: .
           file: ./cmd/${{ matrix.image }}/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ toLower(matrix.image) }}:latest
           platforms: linux/amd64,linux/arm64
