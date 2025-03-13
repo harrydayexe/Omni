@@ -36,6 +36,8 @@ type Connector interface {
 	Signup(ctx context.Context, username, password string) (datamodelswrite.NewUserResponse, error)
 	// CreatePost creates a post and returns the new post
 	CreatePost(ctx context.Context, newPost datamodelswrite.NewPost) (storage.Post, error)
+	// DeleteComment deletes a comment by its id
+	DeleteComment(ctx context.Context, id snowflake.Identifier) error
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -375,4 +377,46 @@ func (c *APIConnector) CreatePost(
 	c.logger.DebugContext(ctx, "decoded post", slog.Any("post", post))
 
 	return post, nil
+}
+
+func (c *APIConnector) DeleteComment(
+	ctx context.Context,
+	id snowflake.Identifier,
+) error {
+	c.logger.InfoContext(ctx, "DeleteComment called", slog.Int64("id", int64(id.Id().ToInt())))
+
+	if ctx.Value("jwt-token") == nil {
+		c.logger.ErrorContext(ctx, "no auth token in context")
+		return NewAPIError(0, fmt.Errorf("no auth token in context"))
+	}
+
+	deleteCommentUrl, err := c.cfg.WriteApiUrl.Parse("/comment/" + strconv.FormatUint(id.Id().ToInt(), 10))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative delete comment url", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, deleteCommentUrl.String(), nil)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to create DELETE request", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
+	c.logger.DebugContext(ctx, "created DELETE request")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send DELETE request to backend", slog.Any("error", err))
+		return NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+	c.logger.DebugContext(ctx, "sent DELETE request successfully")
+
+	if resp.StatusCode != http.StatusNoContent {
+		c.logger.InfoContext(ctx, "DELETE request did not return 204", slog.Int("http status", resp.StatusCode))
+		return NewAPIError(resp.StatusCode, nil)
+	}
+	c.logger.DebugContext(ctx, "DELETE request returned 204")
+
+	return nil
 }

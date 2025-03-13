@@ -349,3 +349,30 @@ func handleGetCommentsPartial(
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "comment-list", t, bufpool, w, commentModel)
 	})
 }
+
+func handleDeleteCommentPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "DELETE request received for partial /comment/{id}")
+
+		// Parse comment id
+		commentSnowflake, err := utilities.ExtractIdParam(r, w, logger)
+		if err != nil {
+			return
+		}
+
+		// Request Delete Comment
+		err = dataConnector.DeleteComment(r.Context(), commentSnowflake)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "Error occurred while deleting comment", slog.String("error", err.Error()))
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusInternalServerError, "errorpage.html", t, bufpool, w, nil)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+}
