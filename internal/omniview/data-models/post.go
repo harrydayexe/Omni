@@ -33,6 +33,7 @@ type CommentsModel struct {
 	Comments       []Comment
 	PostID         int64
 	NextPageNumber int
+	IsLoggedIn     bool
 }
 
 // NewCommentsModel creates the data model from a list of comments and an error
@@ -51,17 +52,23 @@ func NewCommentsModel(
 		comments.Comments,
 		convertCommentReturnToComment(userID),
 	)
+	var isLoggedIn bool = false
+	if userID != nil {
+		isLoggedIn = true
+	}
 	if err != nil {
 		return CommentsModel{
 			Error:          "An error occurred while retrieving the comments",
 			PostID:         postID,
 			NextPageNumber: np,
+			IsLoggedIn:     isLoggedIn,
 		}
 	} else {
 		return CommentsModel{
 			Comments:       commentsList,
 			PostID:         postID,
 			NextPageNumber: np,
+			IsLoggedIn:     isLoggedIn,
 		}
 	}
 }
