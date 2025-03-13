@@ -506,3 +506,31 @@ func handleInsertCommentPartial(
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "comment-list", t, bufpool, w, content)
 	})
 }
+
+func handleDeletePostPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "DELETE request received for partial /post/{id}")
+
+		// Parse post id
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			return
+		}
+
+		// Request Delete Post
+		err = dataConnector.DeletePost(r.Context(), postSnowflake)
+		if err != nil {
+			// TODO: Probably a better way to handle this error
+			logger.ErrorContext(r.Context(), "Error occurred while deleting post", slog.String("error", err.Error()))
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusInternalServerError, "errorpage.html", t, bufpool, w, nil)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+}

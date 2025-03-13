@@ -58,7 +58,8 @@ func handleGetIndexPage(
 			},
 			NavBar: datamodels.NewNavBar(r.Context()),
 			AllPosts: datamodels.NewAllPosts(
-				errorMsg, posts, false,
+				errorMsg, GetUserIdFromCtx(r.Context()),
+				posts, false,
 				pageNum-1, pageNum+1,
 			),
 		}
@@ -100,7 +101,9 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			User: datamodels.User{
 				Username: "",
 				AllPosts: datamodels.NewAllPosts(
-					"", datamodelsread.AllPosts{}, true,
+					"",
+					GetUserIdFromCtx(r.Context()),
+					datamodelsread.AllPosts{}, true,
 					0, 0,
 				),
 			},
@@ -139,10 +142,13 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 			logger.DebugContext(r.Context(), "User posts data fetched", slog.Int64("id", int64(snowflake.ToInt())))
 			content.User.AllPosts.Posts = utilities.Map(
 				posts,
-				func(post storage.Post) datamodelsread.PostAndUsername {
-					return datamodelsread.PostAndUsername{
-						Username: "",
-						Post:     post,
+				func(post storage.Post) datamodels.PostListItem {
+					return datamodels.PostListItem{
+						PostAndUsername: datamodelsread.PostAndUsername{
+							Username: "",
+							Post:     post,
+						},
+						IsDeleteable: true,
 					}
 				})
 			errChan <- nil
