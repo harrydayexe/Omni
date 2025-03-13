@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -367,8 +368,54 @@ func handleGetCreatePostPage(
 
 		content := datamodels.NewFormPage(r.Context(), "New Post")
 		content.NavBar.IsLoggedIn = true
+		content.Form.FormMeta["Title"] = "Create A New Post"
+		content.Form.FormMeta["URL"] = "/post/new"
 
 		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost.html", templates, bufpool, w, content)
+	})
+}
+
+func handleGetPostEditPage(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "GET request received for /post/edit", slog.String("id", r.PathValue("id")))
+
+		// Parse post id
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			content := datamodels.NewErrorPageModel(
+				"Post not found",
+				"The post you are looking for does not exist.",
+			)
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "errorpage.html", t, bufpool, w, content)
+			return
+		}
+
+		// Create content variable
+		content := datamodels.NewFormPage(r.Context(), "Edit Post")
+
+		// Get current values
+		post, err := dataConnector.GetPost(r.Context(), postSnowflake)
+		if err != nil {
+			errContent := datamodels.NewErrorPageModel(
+				"Post details could not be fetched",
+				"An error occurred while fetching the post details.",
+			)
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "errorpage.html", t, bufpool, w, errContent)
+			return
+		}
+
+		content.Form.FormMeta["Title"] = "Edit Post"
+		content.Form.FormMeta["URL"] = fmt.Sprintf("/post/%d/edit", postSnowflake.ToInt())
+		content.Form.Values["Title"] = post.Title
+		content.Form.Values["Description"] = post.Description
+		content.Form.Values["URL"] = post.MarkdownUrl
+
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "newpost.html", t, bufpool, w, content)
 	})
 }
 

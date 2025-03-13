@@ -96,11 +96,7 @@ func handleUpdatePost(logger *slog.Logger, db storage.Querier, authService auth.
 			return
 		}
 
-		var p struct {
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			MarkdownUrl string `json:"markdown_url"`
-		}
+		var p datamodels.UpdatedPost
 		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &p)
 		if err != nil {
 			return

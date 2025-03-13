@@ -36,6 +36,8 @@ type Connector interface {
 	Signup(ctx context.Context, username, password string) (datamodelswrite.NewUserResponse, error)
 	// CreatePost creates a post and returns the new post
 	CreatePost(ctx context.Context, newPost datamodelswrite.NewPost) (storage.Post, error)
+	// UpdatePost updates a post and returns the updated post
+	UpdatePost(ctx context.Context, id snowflake.Identifier, updatedPost datamodelswrite.UpdatedPost) (storage.Post, error)
 	// DeleteComment deletes a comment by its id
 	DeleteComment(ctx context.Context, id snowflake.Identifier) error
 	// InsertComment inserts a comment into the database
@@ -519,4 +521,62 @@ func (c *APIConnector) DeletePost(ctx context.Context, id snowflake.Identifier) 
 	c.logger.DebugContext(ctx, "DELETE request returned 204")
 
 	return nil
+}
+
+func (c *APIConnector) UpdatePost(
+	ctx context.Context,
+	id snowflake.Identifier,
+	updatedPost datamodelswrite.UpdatedPost,
+) (storage.Post, error) {
+	c.logger.InfoContext(ctx, "UpdatePost called", slog.Int64("id", int64(id.Id().ToInt())), slog.Any("updatedPost", updatedPost))
+
+	if ctx.Value("jwt-token") == nil {
+		c.logger.ErrorContext(ctx, "no auth token in context")
+		return storage.Post{}, NewAPIError(0, fmt.Errorf("no auth token in context"))
+	}
+
+	updatePostUrl, err := c.cfg.WriteApiUrl.Parse("/post/" + strconv.FormatUint(id.Id().ToInt(), 10))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative update post url", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	bodyData, err := json.Marshal(updatedPost)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to marshal updated post", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, updatePostUrl.String(), bytes.NewBuffer(bodyData))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to create PUT request", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send PUT request to backend", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.logger.InfoContext(ctx, "PUT request did not return 200", slog.Int("http status", resp.StatusCode))
+		return storage.Post{}, NewAPIError(resp.StatusCode, nil)
+	}
+
+	var post storage.Post
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&post)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode post", slog.Any("error", err))
+		return storage.Post{}, NewAPIError(0, err)
+	}
+
+	return post, nil
 }
