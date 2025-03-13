@@ -150,6 +150,7 @@ func handleGetUserPage(t *templates.Templates, dataConnector connector.Connector
 							Post:     post,
 						},
 						IsDeleteable: true,
+						IsEditable:   true,
 					}
 				})
 			errChan <- nil
