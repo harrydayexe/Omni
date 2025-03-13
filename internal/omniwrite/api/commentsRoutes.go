@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/harrydayexe/Omni/internal/auth"
 	"github.com/harrydayexe/Omni/internal/config"
 	"github.com/harrydayexe/Omni/internal/middleware"
+	"github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
 	"github.com/harrydayexe/Omni/internal/snowflake"
 	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
@@ -46,11 +46,7 @@ func handleInsertComment(logger *slog.Logger, db storage.Querier, gen *snowflake
 			return
 		}
 
-		var c struct {
-			UserID    int64     `json:"user_id"`
-			Content   string    `json:"content"`
-			CreatedAt time.Time `json:"created_at"`
-		}
+		var c datamodels.NewComment
 		err = utilities.DecodeJsonBody(r.Context(), logger, w, r, &c)
 		if err != nil {
 			return

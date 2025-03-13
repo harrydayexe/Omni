@@ -1,16 +1,19 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
+	readdatamodels "github.com/harrydayexe/Omni/internal/omniread/datamodels"
 	"github.com/harrydayexe/Omni/internal/omniview/connector"
 	datamodels "github.com/harrydayexe/Omni/internal/omniview/data-models"
 	"github.com/harrydayexe/Omni/internal/omniview/templates"
 	writedatamodels "github.com/harrydayexe/Omni/internal/omniwrite/datamodels"
+	"github.com/harrydayexe/Omni/internal/storage"
 	"github.com/harrydayexe/Omni/internal/utilities"
 	"github.com/oxtoacart/bpool"
 )
@@ -368,11 +371,138 @@ func handleDeleteCommentPartial(
 		// Request Delete Comment
 		err = dataConnector.DeleteComment(r.Context(), commentSnowflake)
 		if err != nil {
+			// TODO: Probably a better way to handle this error
 			logger.ErrorContext(r.Context(), "Error occurred while deleting comment", slog.String("error", err.Error()))
 			writeTemplateWithBuffer(r.Context(), logger, http.StatusInternalServerError, "errorpage.html", t, bufpool, w, nil)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func handleInsertCommentPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "POST request received for partial /post/{id}/comment")
+
+		// Get the post id from the path
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			return
+		}
+		logger.DebugContext(r.Context(), "Post ID extracted", slog.Int64("id", int64(postSnowflake.ToInt())))
+
+		// Create storage for results
+		var username string
+		var comment storage.Comment
+
+		// Decode the form
+		err = r.ParseForm()
+		if err != nil {
+			logger.ErrorContext(r.Context(), "Error occurred while parsing form", slog.String("error", err.Error()))
+			writeTemplateWithBuffer(r.Context(), logger, http.StatusInternalServerError, "errorpage.html", t, bufpool, w, nil)
+			return
+		}
+		logger.DebugContext(r.Context(), "Form parsed")
+
+		commentContent := r.FormValue("comment")
+		if commentContent == "" {
+			logger.InfoContext(r.Context(), "Comment content is empty")
+			http.Error(w, "Comment content is empty", http.StatusBadRequest)
+			return
+		}
+		logger.DebugContext(r.Context(), "Comment content extracted", slog.String("content", commentContent))
+
+		loggedInUserId := GetUserIdFromCtx(r.Context())
+		if loggedInUserId == nil {
+			logger.InfoContext(r.Context(), "User not logged in")
+			http.Error(w, "User not logged in", http.StatusUnauthorized)
+			return
+		}
+		logger.DebugContext(r.Context(), "User ID extracted", slog.Int64("id", int64(loggedInUserId.Id().ToInt())))
+
+		// Create error channels
+		const numGoroutines int = 2
+		errChan := make(chan error, numGoroutines)
+		// Create sub-context
+		subctx, cancel := context.WithCancel(r.Context())
+
+		// Get the username
+		go func() {
+			user, err := dataConnector.GetUser(subctx, loggedInUserId)
+			if err != nil {
+				logger.InfoContext(r.Context(), "Error occurred while fetching user data", slog.String("error", err.Error()))
+				// Cancel other routines
+				cancel()
+				errChan <- err
+				return
+			}
+			logger.DebugContext(r.Context(), "User data fetched", slog.Int64("id", int64(loggedInUserId.Id().ToInt())))
+			username = user.Username
+			errChan <- nil
+		}()
+
+		go func() {
+			// Insert the comment
+			newComment := writedatamodels.NewComment{
+				UserID:    int64(loggedInUserId.Id().ToInt()),
+				Content:   commentContent,
+				CreatedAt: time.Now(),
+			}
+			commentResp, err := dataConnector.InsertComment(r.Context(), postSnowflake, newComment)
+			if err != nil {
+				logger.InfoContext(r.Context(), "Error occurred while inserting comment", slog.String("error", err.Error()))
+				// Cancel other routines
+				cancel()
+				errChan <- err
+				return
+			}
+			logger.DebugContext(r.Context(), "Comment inserted", slog.Int64("id", commentResp.ID))
+			comment = commentResp
+			errChan <- nil
+		}()
+
+		// Wait for goroutines to finish
+		var firstErr error
+		for i := 0; i < numGoroutines; i++ {
+			// If the error channel has an error and it is the first error...
+			if err := <-errChan; err != nil && firstErr == nil {
+				logger.InfoContext(r.Context(), "An error occurred while inserting the comment", slog.String("error", err.Error()))
+				firstErr = err
+			}
+		}
+		logger.DebugContext(r.Context(), "DB Calls completed", slog.String("Handler", "handleGetUser"))
+
+		var userErr error
+		comments := readdatamodels.CommentsForPostReturn{
+			TotalPages: 0,
+			Comments:   make([]readdatamodels.CommentReturn, 0),
+		}
+		// Handle firstErr
+		if firstErr != nil {
+			userErr = errors.New("An error occurred while inserting the comment")
+		} else {
+			// Map comment into comment return
+			comments.Comments = append(comments.Comments, readdatamodels.CommentReturn{
+				ID:        comment.ID,
+				PostID:    comment.PostID,
+				UserID:    comment.UserID,
+				Username:  username,
+				CreatedAt: comment.CreatedAt,
+				Content:   comment.Content,
+			})
+		}
+
+		// Create comment response model
+		content := datamodels.NewCommentsModel(
+			userErr, loggedInUserId, comments, int64(postSnowflake.ToInt()), 0,
+		)
+
+		writeTemplateWithBuffer(r.Context(), logger, http.StatusOK, "comment-list", t, bufpool, w, content)
 	})
 }

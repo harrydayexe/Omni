@@ -38,6 +38,8 @@ type Connector interface {
 	CreatePost(ctx context.Context, newPost datamodelswrite.NewPost) (storage.Post, error)
 	// DeleteComment deletes a comment by its id
 	DeleteComment(ctx context.Context, id snowflake.Identifier) error
+	// InsertComment inserts a comment into the database
+	InsertComment(ctx context.Context, postID snowflake.Identifier, comment datamodelswrite.NewComment) (storage.Comment, error)
 }
 
 // APIConnector is a struct that implements the Connector interface
@@ -419,4 +421,62 @@ func (c *APIConnector) DeleteComment(
 	c.logger.DebugContext(ctx, "DELETE request returned 204")
 
 	return nil
+}
+
+func (c *APIConnector) InsertComment(
+	ctx context.Context,
+	postID snowflake.Identifier,
+	comment datamodelswrite.NewComment,
+) (storage.Comment, error) {
+	c.logger.InfoContext(ctx, "InsertComment called", slog.Int64("postID", int64(postID.Id().ToInt())), slog.Any("comment", comment))
+
+	if ctx.Value("jwt-token") == nil {
+		c.logger.ErrorContext(ctx, "no auth token in context")
+		return storage.Comment{}, NewAPIError(0, fmt.Errorf("no auth token in context"))
+	}
+
+	insertCommentUrl, err := c.cfg.WriteApiUrl.Parse("/post/" + strconv.FormatUint(postID.Id().ToInt(), 10) + "/comment")
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to parse relative insert comment url", slog.Any("error", err))
+		return storage.Comment{}, NewAPIError(0, err)
+	}
+
+	bodyData, err := json.Marshal(comment)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to marshal new comment", slog.Any("error", err))
+		return storage.Comment{}, NewAPIError(0, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, insertCommentUrl.String(), bytes.NewBuffer(bodyData))
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to create POST request", slog.Any("error", err))
+		return storage.Comment{}, NewAPIError(0, err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+ctx.Value("jwt-token").(string))
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to send POST request to backend", slog.Any("error", err))
+		return storage.Comment{}, NewAPIError(0, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		c.logger.InfoContext(ctx, "POST request did not return 201", slog.Int("http status", resp.StatusCode))
+		return storage.Comment{}, NewAPIError(resp.StatusCode, nil)
+	}
+
+	var newComment storage.Comment
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(&newComment)
+	if err != nil {
+		c.logger.ErrorContext(ctx, "failed to decode comment", slog.Any("error", err))
+		return storage.Comment{}, NewAPIError(0, err)
+	}
+
+	return newComment, nil
 }
