@@ -33,6 +33,7 @@ func addRoutes(
 	mux.Handle("POST /post/new", stack(handlePostCreatePost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}", stack(handleGetPost(templates, dataConnector, bufpool, logger)))
 	mux.Handle("DELETE /post/{id}", stack(handleDeletePost(templates, dataConnector, bufpool, logger)))
+	mux.Handle("GET /post/{id}/edit", stack(handleGetPostEdit(templates, dataConnector, bufpool, logger)))
 	mux.Handle("GET /post/{id}/comments", stack(handleGetComments(templates, dataConnector, bufpool, logger)))
 	mux.Handle("POST /post/{id}/comment", stack(handleInsertComment(templates, dataConnector, bufpool, logger)))
 	mux.Handle("DELETE /comment/{id}", stack(handleDeleteComment(templates, dataConnector, bufpool, logger)))
@@ -240,6 +241,21 @@ func handleDeletePost(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isHTMXRequest(r) {
 			handleDeletePostPartial(t, dataConnector, bufpool, logger).ServeHTTP(w, r)
+		} else {
+			http.Error(w, "Not Found", http.StatusNotAcceptable)
+		}
+	})
+}
+
+func handleGetPostEdit(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isHTMXRequest(r) {
+			handleGetPostEditPage(t, dataConnector, bufpool, logger).ServeHTTP(w, r)
 		} else {
 			http.Error(w, "Not Found", http.StatusNotAcceptable)
 		}

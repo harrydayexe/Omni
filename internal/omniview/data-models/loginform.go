@@ -23,15 +23,17 @@ func NewFormPage(ctx context.Context, pageType string) FormPage {
 
 // Form is a struct that holds the values and errors for forms
 type Form struct {
-	Values map[string]string
-	Errors map[string]string
+	FormMeta map[string]string
+	Values   map[string]string
+	Errors   map[string]string
 }
 
 // NewForm creates a new form struct for use in partial forms
 func NewForm() Form {
 	return Form{
-		Values: make(map[string]string),
-		Errors: make(map[string]string),
+		FormMeta: make(map[string]string),
+		Values:   make(map[string]string),
+		Errors:   make(map[string]string),
 	}
 }
 

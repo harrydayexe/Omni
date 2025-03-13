@@ -9,6 +9,7 @@ import (
 type PostListItem struct {
 	datamodels.PostAndUsername
 	IsDeleteable bool
+	IsEditable   bool
 }
 
 // AllPosts contains the data to drive the "posts" template
@@ -71,6 +72,7 @@ func convertPostAndUsernameToPostListItem(
 			return PostListItem{
 				PostAndUsername: p,
 				IsDeleteable:    false,
+				IsEditable:      false,
 			}
 		}
 	}
@@ -78,6 +80,7 @@ func convertPostAndUsernameToPostListItem(
 		return PostListItem{
 			PostAndUsername: p,
 			IsDeleteable:    p.Post.UserID == int64(userID.Id().ToInt()),
+			IsEditable:      p.Post.UserID == int64(userID.Id().ToInt()),
 		}
 	}
 }
