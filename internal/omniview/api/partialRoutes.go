@@ -188,9 +188,110 @@ func handlePostCreatePostPartial(
 			t, bufpool, w, content,
 		)
 		successContent := struct {
-			ID int64
+			ID      int64
+			Message string
 		}{
-			ID: resp.ID,
+			ID:      resp.ID,
+			Message: "Post created successfully",
+		}
+		writeTemplateWithBuffer(r.Context(), logger, 0, "newpost-success", t, bufpool, w, successContent)
+
+	})
+}
+
+func handlePostPostEditPartial(
+	t *templates.Templates,
+	dataConnector connector.Connector,
+	bufpool *bpool.BufferPool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "POST request received for partial /post/{id}")
+
+		// Check that the post request has the correct content-type
+		err := checkContentTypeHeader(logger, r, formUrlEncoded)
+		if err != nil {
+			http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		// Parse post id
+		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
+		if err != nil {
+			return
+		}
+
+		// Create return model
+		content := datamodels.NewForm()
+
+		// Parse form
+		r.ParseForm()
+		isErr := false
+		title, prs1 := r.Form["title"]
+		if !prs1 || len(title) == 0 || len(title[0]) == 0 {
+			logger.DebugContext(r.Context(), "title is empty")
+			content.Errors["Title"] = "Title is required"
+			isErr = true
+		} else {
+			content.Values["Title"] = title[0]
+		}
+		description, prs2 := r.Form["description"]
+		if !prs2 || len(description) == 0 || len(description[0]) == 0 {
+			logger.DebugContext(r.Context(), "description is empty")
+			content.Errors["Description"] = "Description is required"
+			isErr = true
+		} else {
+			content.Values["Description"] = description[0]
+		}
+		url, prs3 := r.Form["url"]
+		if !prs3 || len(url) == 0 || len(url[0]) == 0 {
+			logger.DebugContext(r.Context(), "url is empty")
+			content.Errors["URL"] = "URL is required"
+			isErr = true
+		} else {
+			content.Values["URL"] = url[0]
+		}
+
+		if isErr {
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "Edit Post", true,
+				t, bufpool, w, content,
+			)
+			return
+		}
+
+		updatedPost := writedatamodels.UpdatedPost{
+			Title:       title[0],
+			Description: description[0],
+			MarkdownUrl: url[0],
+		}
+
+		resp, err := dataConnector.UpdatePost(r.Context(), postSnowflake, updatedPost)
+		var ae *connector.APIError
+		if errors.As(err, &ae) {
+			logger.DebugContext(r.Context(), "API error occurred while updating post", slog.String("error", ae.Error()))
+			content.Errors["General"] = "An error occurred while creating the post. Please try again later."
+			writeFormWithErrors(
+				r.Context(), logger,
+				http.StatusUnprocessableEntity, "New Post", true,
+				t, bufpool, w, content,
+			)
+			return
+		}
+
+		// Write the new post form with or without the errors
+		writeFormWithErrors(
+			r.Context(), logger,
+			http.StatusOK, "New Post", true,
+			t, bufpool, w, content,
+		)
+		successContent := struct {
+			ID      int64
+			Message string
+		}{
+			ID:      resp.ID,
+			Message: "Post updated successfully",
 		}
 		writeTemplateWithBuffer(r.Context(), logger, 0, "newpost-success", t, bufpool, w, successContent)
 
@@ -389,6 +490,13 @@ func handleInsertCommentPartial(
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "POST request received for partial /post/{id}/comment")
+
+		// Check that the post request has the correct content-type
+		err := checkContentTypeHeader(logger, r, formUrlEncoded)
+		if err != nil {
+			http.Error(w, "Unsupported Media Type", http.StatusUnsupportedMediaType)
+			return
+		}
 
 		// Get the post id from the path
 		postSnowflake, err := utilities.ExtractIdParam(r, nil, logger)
