@@ -2,7 +2,7 @@ omniread:
   replicaCount: 5
   verbose: true
   image:
-    repository: raspidb.local/harrydayexe/omniread
+    repository: harrydayexe/omniread
     tag: latest
     pullPolicy: Always
 
@@ -10,7 +10,7 @@ omniwrite:
   replicaCount: 3
   verbose: true
   image:
-    repository: raspidb.local/harrydayexe/omniwrite
+    repository: harrydayexe/omniwrite
     tag: latest
     pullPolicy: Always
 
@@ -18,7 +18,7 @@ omniauth:
   replicaCount: 1
   verbose: true
   image:
-    repository: raspidb.local/harrydayexe/omniauth
+    repository: harrydayexe/omniauth
     tag: latest
     pullPolicy: Always
 
@@ -26,7 +26,7 @@ omniview:
   replicaCount: 5
   verbose: true
   image:
-    repository: raspidb.local/harrydayexe/omniview
+    repository: harrydayexe/omniview
     tag: latest
     pullPolicy: Always
 

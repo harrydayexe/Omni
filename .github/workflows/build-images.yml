@@ -40,5 +40,7 @@ jobs:
           context: .
           file: ./cmd/${{ matrix.image }}/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.lower_image.outputs.image }}:latest
+          tags: |
+                ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.lower_image.outputs.image }}:latest
+                ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.lower_image.outputs.image }}:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
