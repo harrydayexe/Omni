@@ -4,10 +4,15 @@ FROM golang:1.24-bookworm AS build
 # Set the working directory
 WORKDIR /app
 
+ARG TARGETPLATFORM
+
+# Set the PLATFORM env variable to TARGETPLATFORM if provided, otherwise default to linux/amd64
+ENV PLATFORM=${TARGETPLATFORM:-linux/arm64}
+
+RUN if [ "$PLATFORM" = "linux/arm64" ]; then curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.14/tailwindcss-linux-arm64; else curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.14/tailwindcss-linux-x64; fi
 # Download Tailwind CSS
-RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.14/tailwindcss-linux-arm64
-RUN chmod u+x tailwindcss-linux-arm64
-RUN mv tailwindcss-linux-arm64 tailwindcss
+RUN if [ "$PLATFORM" = "linux/arm64" ]; then chmod u+x tailwindcss-linux-arm64; else chmod u+x tailwindcss-linux-x64; fi
+RUN if [ "$PLATFORM" = "linux/arm64" ]; then mv tailwindcss-linux-arm64 tailwindcss; else mv tailwindcss-linux-x64 tailwindcss; fi
 
 # Copy and download dependencies
 COPY go.mod go.sum ./
