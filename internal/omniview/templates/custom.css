@@ -1,2 +1,2 @@
-/* Custom CSS rules go in here */
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
