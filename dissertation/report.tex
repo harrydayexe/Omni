@@ -1,7 +1,10 @@
-\documentclass[12pt]{third-rep}
+\documentclass[12pt,a4paper]{report}
 
-\usepackage{url} % typeset URL's sensibly
-\usepackage{hyperref}
+% Packages for spacing, graphics, math, hyperlinks, bibliography, and code listings
+\usepackage{setspace}       % For setting spacing
+\usepackage{graphicx}       % For including images
+\usepackage{amsmath, amssymb}  % Math packages
+\usepackage{hyperref}       % For hyperlinks
 \hypersetup{
     colorlinks,
     citecolor=black,
@@ -9,34 +12,55 @@
     linkcolor=black,
     urlcolor=black
 }
+\usepackage{natbib}         % For bibliography formatting
+\usepackage{listings}       % For source code listings
 
-% \usepackage{pslatex} % Use Postscript fonts
+% Adjust spacing (optional)
+\doublespacing
 
-%% This defines the title (the \\ forces a line break)
+% Define a new command for the supervisor field
+\makeatletter
+\def\supervisor#1{\gdef\@supervisor{#1}}
+\def\@supervisor{}
+
+% Redefine the title page to include a supervisor field
+\renewcommand{\maketitle}{
+  \begin{titlepage}
+    \centering
+    % Title
+    {\Large \bfseries \@title \par}
+    \vskip 1.5cm
+    % Author and Supervisor information
+    {\large \@author \par}
+    \vskip 0.5cm
+    {\large \@supervisor \par}
+    \vskip 0.5cm
+    {\large \@date \par}
+    \vfill
+    % Optionally include a university logo (uncomment and set path if needed)
+    %\includegraphics[width=0.3\textwidth]{university_logo.png}\par
+    %{\large University Name\par}
+  \end{titlepage}
+}
+\makeatother
+
+% Title information
 \title{Building a Social Media Platform Capable of Scaling to a Million Users Overnight}
-%% and author
-\author{Harry Day}
-%% and supervisor
-\supervisor{Dr. Gareth Henshall}
-%% and the year of the report
-\reportyear{2025}
-
-%% this defines the file that contains the text of the abstract, there
-%% must be one of these by the time you submit your report.
-\abstractfile{abstract.tex}
-
-%% Uncomment the following line if you want to change the name of the
-%% Bibliography to References
-\renewcommand{\bibname}{References}
-
-\usepackage{listings}
+\author{Harry Day\\School of Computer Science\\University of Manchester}
+\supervisor{Supervisor: Dr. Gareth Henshall}
+\date{2025}
 
 \begin{document}
 
-%% This actually creates the title and abstract pages
-\dotitleandabstract
+% Generate Title Page
+\maketitle
 
-%% Generate contents etc
+% Abstract
+\begin{abstract}
+  This is a brief summary of your dissertation. It should outline the research question, methodology, results, and conclusions. 
+\end{abstract}
+
+% Table of Contents and Lists of Figures/Tables
 \tableofcontents
 \listoffigures
 \listoftables
@@ -47,16 +71,17 @@
 \include{design}
 \include{implementation}
 \include{testing}
+
+% TODO: Remove this demo citation
+\citep{capinski2012black}.
+
 \include{evaluation}
 
-\bibliography{refs}             % this causes the references to be
-                                % listed
+% Bibliography
+\bibliographystyle{agsm}
+\bibliography{references}
 
-\bibliographystyle{alpha}       % this determines the style in which
-                                % the references are printed, other
-                                % possible values are plain and abbrv
-%% Appendices start here
-\appendix
-\include{appendix1}
+% Appendices (if necessary)
+\include{appendix}
+
 \end{document}
-
