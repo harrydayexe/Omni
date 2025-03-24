@@ -1,0 +1,62 @@
+\documentclass[12pt]{third-rep}
+
+\usepackage{url} % typeset URL's sensibly
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+% \usepackage{pslatex} % Use Postscript fonts
+
+%% This defines the title (the \\ forces a line break)
+\title{Building a Social Media Platform Capable of Scaling to a Million Users Overnight}
+%% and author
+\author{Harry Day}
+%% and supervisor
+\supervisor{Dr. Gareth Henshall}
+%% and the year of the report
+\reportyear{2025}
+
+%% this defines the file that contains the text of the abstract, there
+%% must be one of these by the time you submit your report.
+\abstractfile{abstract.tex}
+
+%% Uncomment the following line if you want to change the name of the
+%% Bibliography to References
+\renewcommand{\bibname}{References}
+
+\usepackage{listings}
+
+\begin{document}
+
+%% This actually creates the title and abstract pages
+\dotitleandabstract
+
+%% Generate contents etc
+\tableofcontents
+\listoffigures
+\listoftables
+
+%% These include the actual text
+\include{introduction}
+\include{background}
+\include{design}
+\include{implementation}
+\include{testing}
+\include{evaluation}
+
+\bibliography{refs}             % this causes the references to be
+                                % listed
+
+\bibliographystyle{alpha}       % this determines the style in which
+                                % the references are printed, other
+                                % possible values are plain and abbrv
+%% Appendices start here
+\appendix
+\include{appendix1}
+\end{document}
+
