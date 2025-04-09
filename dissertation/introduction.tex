@@ -11,14 +11,32 @@ Whilst it is the gold standard, it would be impossible for the network to cater 
 This project aims to create a new social media platform enabling computer science students and software engineers to show off their personal projects to their network, giving them a single place to direct friends, colleagues and recruiters to display their skills and engineering and creative skills. 
 In the software industry, personal projects and past achievements are more valuable than academic grades as they show a willingness to learn and interest in software outside of work, leading to a more overall picture of a candidate than just an assessment centre.
 
-New social media platforms often start out slow but eventually hit a critical mass where growth becomes exponential, as with BeReal.
-In just two years, this pandemic-born platform exploded to an active user base of over 70 million users \citep{curry2025bereal}. One of the key focuses of this project, then, should be to create a social media platform that is highly scalable and can cope with the demands of millions of users overnight. 
+New social media platforms often start slow but eventually hit a critical mass where growth becomes exponential, as with BeReal.
+In just two years, this pandemic-born platform exploded to an active user base of over 70 million \citep{curry2025bereal}. One of the key focuses of this project, then, should be to create a highly scalable social media platform that can cope with the demands of millions of users overnight.
 
 \section{Aims and Objectives}
 \label{sec:intro-aims}
+This project aims to build a highly scalable web application which enables users to share their personal projects online in a single space, creating an online portfolio they can share with friends, family, colleagues, and recruiters.
+Formally:
+\begin{itemize}
+    \item Create a simple-to-use, "clean" web application which users can use to see projects that others have posted.
+    \item To serve this web application, create a highly scalable backend using a microservices architecture.
+    \item Create an API that enables third parties to interact with the platform, backed by scalable microservices.
+    \item Create a database and schema allowing sharding to enable horizontal data storage scaling.
+    \item Follow industry standards for microservices, system design, Kubernetes, and software engineering.
+\end{itemize}
 
 \section{Scope and Limitations}
 \label{sec:intro-scope}
+As this project primarily focuses on creating a highly scalable backend for a web platform, the majority of the focus will be on this section of the project. 
+The front-end website shown to users will contain the minimum viable product to display the backend features but will not have much front-end `magic' to enhance the user experience.
+Additionally, the platform does not contain the attributes commonly associated with social media, such as likes, follows and comments.
+This is an effort to combat "fakeness" on social networks: following someone to boost your social status, posting low-effort and topical content to receive vast numbers of likes.
+This social network intends to function closer to an online blog or portfolio, allowing software engineers to show off the cool projects they are working on without the fear of `creators' dominating the platform. 
+
+The platform will also not have any sort of algorithmic recommendation algorithm, although this would be interesting to explore in the future. 
+Much of the success of modern social media can be associated with the algorithmic suggestion of content for users to consume, as it ``directly impacts user satisfaction, engagement, and retention'' \citep{chen2024algocontent}. 
+Despite the benefits, this type of machine learning algorithm could be a project within itself and falls outside the scope of building a scalable web platform.
 
 \section{Dissertation Structure}
 \label{sec:intro-structure}
