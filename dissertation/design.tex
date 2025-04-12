@@ -1,5 +1,28 @@
 \chapter{Design}
 \label{cha:design}
 
-% TODO Complete the design
-Lorem ipsum dolar
+\section{High-Level System Design}
+\label{sec:design-system}
+Omni will be primarily designed using the microservices architecture. This enables a highly distributed and scalable system, which is able to respond to changes in incoming requests dynamically. 
+The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a "viral" moment.
+
+\subsection{Kubernetes and Containerisation}
+\label{sec:design-system-kubernetes}
+Kubernetes is an orchestration tool which enables the management of pods across clusters. Clusters are defined as one or more nodes (physical machines) connected together, possibly across different data centres or even regions, which run containers known as workloads.
+Kubernetes is designed to manage the lifecycle of pods using the industry standard healthcheck endpoints \texttt{/healthz}, \texttt{/readyz} and \texttt{/livez}. This endpoints for an application tell Kubernetes whether a pod is running (\texttt{/livez}), ready to respond to requests, possibly checking dependencies like a database (\texttt{readyz}), and the general health of a pod through \texttt{/healthz}.
+
+Using these endpoints, Kubernetes deployments are able to moniter the pods (a pod is a running unit containing usually one but sometimes more containers) they have spawned and if any of them die, for example if they crash, auto-heal and spawn a replacement.
+Deployments can also be configured to scale up the number of pods they are running when certain limits are reached. The possibilities are endless but some common examples could be CPU usage on a particular node or number of requests being received per time period.
+
+This is what makes Kubernetes super powerful. Combining the autohealing and management of ephemeral pods with autoscaling leads to solutions which are highly adaptable to any scenario.
+For this reason, I will be utilising Kubernetes in the design of Omni. This means that I will need to create containerised applications to run the platform.
+
+Containerisation is the process of modifying an application to run within a container. A container is a self-contained module which can be run without needing to worry about its dependencies or setup. For example if an application has a dependency on a particular version of Linux with a certain library installed, containerisation will mean that the user running the container can execute the application on any supported OS, without needing to worry about the dependencies.
+
+The other added benefit of containers is that only the compiled binary is needed in the execution environment. Rather than the host machine needing to compile the binary, or a CI/CD pipeline creating many binaries for various different operating systems, we can use one container, which contains only the compiled binary for the OS of the container.
+
+So for Omni, the application(s) should be containerised and ready for deployment to a Kubernetes cluster in any of the major cloud providers (as well as bare-metal solutions).
+
+\subsection{Backend}
+\label{sec:design-system-backend}
+
