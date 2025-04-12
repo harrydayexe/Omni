@@ -1,28 +1,89 @@
 \chapter{Design}
 \label{cha:design}
 
-\section{High-Level System Design}
-\label{sec:design-system}
-Omni will be primarily designed using the microservices architecture. This enables a highly distributed and scalable system, which is able to respond to changes in incoming requests dynamically. 
+\section{High-Level Overview}
+\label{sec:design-overview}
+
+\section{Architecture}
+\label{sec:design-architecture}
+Omni will use a microservices architecture. This enables a highly distributed and scalable system that can respond dynamically to changes in incoming requests.
+The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a "viral" moment.
+mni will be primarily designed using the microservices architecture. This enables a highly distributed and scalable system, which is able to respond to changes in incoming requests dynamically. 
 The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a "viral" moment.
 
 \subsection{Kubernetes and Containerisation}
 \label{sec:design-system-kubernetes}
-Kubernetes is an orchestration tool which enables the management of pods across clusters. Clusters are defined as one or more nodes (physical machines) connected together, possibly across different data centres or even regions, which run containers known as workloads.
-Kubernetes is designed to manage the lifecycle of pods using the industry standard healthcheck endpoints \texttt{/healthz}, \texttt{/readyz} and \texttt{/livez}. This endpoints for an application tell Kubernetes whether a pod is running (\texttt{/livez}), ready to respond to requests, possibly checking dependencies like a database (\texttt{readyz}), and the general health of a pod through \texttt{/healthz}.
+Kubernetes is an orchestration tool which enables the management of pods across clusters. A cluster is one or more nodes (physical machines) connected together, possibly across different data centres or even regions, which run workloads.
+Kubernetes manages the lifecycle of pods using the industry standard health check endpoints \texttt{/healthz}, \texttt{/readyz} and \texttt{/livez}. These endpoints for an application tell Kubernetes whether a pod is running (\texttt{/livez}), ready to respond to requests, possibly checking dependencies like a database (\texttt{/readyz}), and the general health of a pod through \texttt{/healthz}.
 
-Using these endpoints, Kubernetes deployments are able to moniter the pods (a pod is a running unit containing usually one but sometimes more containers) they have spawned and if any of them die, for example if they crash, auto-heal and spawn a replacement.
-Deployments can also be configured to scale up the number of pods they are running when certain limits are reached. The possibilities are endless but some common examples could be CPU usage on a particular node or number of requests being received per time period.
+Using these endpoints, Kubernetes deployments can monitor the pods (a pod is a running unit usually containing one but sometimes more containers) they have spawned and, if any of them die, for example, if they crash, auto-heal and spawn a replacement.
+Deployments can also be configured to scale up the number of pods they run when certain limits are reached. The possibilities are endless, but some common examples could be CPU usage on a particular node or the number of requests received per time period.
 
-This is what makes Kubernetes super powerful. Combining the autohealing and management of ephemeral pods with autoscaling leads to solutions which are highly adaptable to any scenario.
-For this reason, I will be utilising Kubernetes in the design of Omni. This means that I will need to create containerised applications to run the platform.
+This is what makes Kubernetes super powerful. Combining auto-healing and management of ephemeral pods with autoscaling leads to solutions that are highly adaptable to any scenario.
+For this reason, Omni will be designed to run natively in Kubernetes. This means that I will need to create containerised applications to run the platform.
 
-Containerisation is the process of modifying an application to run within a container. A container is a self-contained module which can be run without needing to worry about its dependencies or setup. For example if an application has a dependency on a particular version of Linux with a certain library installed, containerisation will mean that the user running the container can execute the application on any supported OS, without needing to worry about the dependencies.
+Containerisation is the process of modifying an application to run within a container. A container is a self-contained module that can be run without needing to worry about its dependencies or setup. For example, if an application has a dependency on a particular version of Linux with a certain library installed, containerisation will mean that the user running the container can execute the application on any supported OS without needing to worry about the dependencies.
 
-The other added benefit of containers is that only the compiled binary is needed in the execution environment. Rather than the host machine needing to compile the binary, or a CI/CD pipeline creating many binaries for various different operating systems, we can use one container, which contains only the compiled binary for the OS of the container.
+The other added benefit of containers is that the execution environment only needs to contain the compiled binary. Rather than the host machine needing to compile the binary or a CI/CD pipeline creating many binaries for various operating systems, we can use one container, which contains only the compiled binary for the container's OS.
 
-So for Omni, the application(s) should be containerised and ready for deployment to a Kubernetes cluster in any of the major cloud providers (as well as bare-metal solutions).
+So, for Omni, the application(s) should be containerised and ready for deployment to a Kubernetes cluster in any of the major cloud providers (as well as bare-metal solutions).
+Kubernetes is a perfect fit for the microservices architecture described in Section 1: It simplifies the management of individual containers and their lifecycles and provides auto-scaling, rollbacks, service discovery, security and portability. Because of this, Kubernetes is ideal for maintaining scalable and reliable microservice-backed platforms.
+
+\subsection{Database}
+\label{sec:design-system-database}
+Omni's database needs to scale horizontally across many machines to handle potentially hundreds of thousands or even millions of users. Database sharding will be needed to accomplish this. 
+In order to accomplish successful database sharding, one of the problems that needs to be solved is how to locate data. Formally:
+\begin{quotation} % TODO: Make this not indent weirdly
+Given N nodes (where N is sufficiently large), how can a backend locate a specific piece of data whilst preventing a worst case $O(N)$.
+\end{quotation}
+Ideally, we want data retrieval to be of the order $O(1)$, where a backend knows exactly where to look to find a piece of data that we want to retrieve.
+
+\subsubsection{Snowflake IDs} 
+Luckily, this problem has been solved for us. Engineers at Twitter (now X) faced this same problem and came up with an intuitive solution: snowflake IDs. Snowflake IDs are a type of ID that not only uniquely describes a piece of data but also its locality: where it is stored \citep{2010snowflake}. This enables data to be sharded across many database instances whilst retaining a look-up time with a complexity of $O(1)$.
+Snowflake IDs are unique 64-bit integers with the following properties:
+\begin{itemize}
+    \item The first bit is locked to 0, which ensures that all snowflake IDs are positive. Treating them as signed or unsigned does not matter.
+    \item The following 41 bits are dedicated to be a timestamp. This is the time that the ID was created and is based on a custom epoch (rather than the UNIX epoch) to increase the range.
+    \item Following the timestamp, each ID has a 10-bit Node ID. This represents the location where a piece of data has been stored.
+    \item Finally, we have a 12-bit Sequence ID. This prevents collisions between IDs created for the same Node ID and Timestamp.
+\end{itemize}
+\ref{tab:snowflake} shows the final structure of the 64-bit Snowflake ID.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+1 bit unused & 41 bit timestamp & 10 bit node id & 12 bit sequence id \\ \hline
+\end{tabular}
+\caption{Snowflake ID Structure}
+\label{tab:snowflake}
+\end{table}
+
+Using these Snowflake IDs, it becomes obvious how to store data across many nodes while retaining an efficient retrieval mechanism. A backend only needs to inspect the bits representing the snowflake's node to determine where to route its request. Using 10 bits for this value also allows us to scale up to 1024 nodes, which should be plenty for even the largest social media networks.
+
+When using Snowflake IDs, the key concern is ensuring that only a single object in a given backend can create the IDs and that each backend is assigned a unique Node ID (even if multiple Node IDs are stored in the same database shard). 
+This prevents ID collisions during generation, rather than using a 128-bit ID like the one specified in the RFC 4122 UUID specification \citep{rfc4122}.
+% TODO: Add referencing here to back this up
+
+\subsubsection{Database Implementation}
+Given that the data we will be storing in a social media network is mostly structured, a classic SQL database will be suitable for our needs. The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run, when comparing developer experience and stability. % TODO: Am I chatting out of my arse here?
+
+Given this directive, some of the natural choices are SQLite, MySQL/MariaDB, and PostgresSQL. In the case of Omni, I have gone with MySQL/MariaDB, primarily because it is a database I am familiar with. Any of the 3 mentioned would be solid choices, with different trade-offs between each. MySQL is a happy middleground that should be more than capable of handling the data requirements of the platform.
+PostgresSQL would be my favourite choice for a production application due to % TODO: Research and write this
+
+
 
 \subsection{Backend}
 \label{sec:design-system-backend}
+Omni has a couple of requirements for the backend:
+\begin{itemize}
+    \item The platform needs to be able to service both users interacting with the frontend as well as via an API
+    \item The backend must be able to scale to meet the needs of the incoming requests
+\end{itemize}
+Keeping ths in mind, the 
 
+\subsection{Frontend}
+\label{sec:design-system-frontend}
+
+\section{UI Design}
+\label{sec:design-ui}
