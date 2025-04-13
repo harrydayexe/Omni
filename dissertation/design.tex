@@ -1,9 +1,6 @@
 \chapter{Design}
 \label{cha:design}
 
-\section{High-Level Overview}
-\label{sec:design-overview}
-
 \section{Architecture}
 \label{sec:design-architecture}
 Omni will use a microservices architecture. This enables a highly distributed and scalable system that can respond dynamically to changes in incoming requests.
@@ -29,7 +26,7 @@ The other added benefit of containers is that the execution environment only nee
 So, for Omni, the application(s) should be containerised and ready for deployment to a Kubernetes cluster in any of the major cloud providers (as well as bare-metal solutions).
 Kubernetes is a perfect fit for the microservices architecture described in Section 1: It simplifies the management of individual containers and their lifecycles and provides auto-scaling, rollbacks, service discovery, security and portability. Because of this, Kubernetes is ideal for maintaining scalable and reliable microservice-backed platforms.
 
-\subsection{Database}
+\section{Database}
 \label{sec:design-system-database}
 Omni's database needs to scale horizontally across many machines to handle potentially hundreds of thousands or even millions of users. Database sharding will be needed to ``build scalable, fault-tolerant, and efficient database architectures'' \citep{shethiya2025load}.
 In order to accomplish successful database sharding, one of the problems that needs to be solved is how to locate data. Formally:
@@ -38,7 +35,7 @@ Given N nodes (where N is sufficiently large), how can a backend locate a specif
 \end{quotation}
 Ideally, we want data retrieval to be of the order $O(1)$, where a backend knows exactly where to look to find a piece of data that we want to retrieve.
 
-\subsubsection{Snowflake IDs} 
+\subsection{Snowflake IDs} 
 \label{sec:design-system-database-snowflake}
 Luckily, this problem has been solved for us. Engineers at Twitter (now X) faced this same problem and came up with an intuitive solution: snowflake IDs. Snowflake IDs are a type of ID that not only uniquely describes a piece of data but also its locality: where it is stored \citep{2010snowflake}. This enables data to be sharded across many database instances whilst retaining a look-up time with a complexity of $O(1)$.
 Snowflake IDs are unique 64-bit integers with the following properties:
@@ -65,7 +62,7 @@ Using these Snowflake IDs, it becomes obvious how to store data across many node
 When using Snowflake IDs, the key concern is ensuring that only a single object in a given backend can create the IDs and that each backend is assigned a unique Node ID (even if multiple Node IDs are stored in the same database shard). 
 This prevents ID collisions during generation, rather than using a 128-bit ID like the one specified in the RFC 4122 UUID specification \citep{rfc4122}.
 
-\subsubsection{Database Implementation}
+\subsection{Database Implementation}
 A classic SQL database will suit our needs since the data we will store in a social media network is structured, where the relationships between users, posts, and comments are known.
 The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run compared to developer experience and stability.
 
@@ -82,17 +79,35 @@ Overall, sharding is the better option for the Omni platform due to the write bo
 A future improvement would be to use a hybrid approach, where some things, like the user profile data, which is not expected to receive many writes, are stored in a replicated database, whereas post and comment data is stored in a sharded database to prevent a bottleneck when writing.
 
 
-\subsection{Backend}
+\section{Backend}
 \label{sec:design-system-backend}
 Omni has a couple of requirements for the backend:
 \begin{itemize}
-    \item The platform needs to be able to service both users interacting with the frontend as well as via an API
+    \item The backend needs to be able to service both users interacting with the frontend as well as via an API
     \item The backend must be able to scale to meet the needs of the incoming requests
 \end{itemize}
-Keeping ths in mind, the 
+Considering these requirements, the backend must be designed to scale efficiently. A social media platform expects to receive a lot more read requests than write requests.
+Splitting the backend into multiple microservices that can scale to demands independently puts the platform in the best position to maintain availability and reliability. 
+One way to achieve this is to use separate microservices for read and write requests. This allows us to scale the read service to use many more instances than the write service during periods of high usage. 
 
-\subsection{Frontend}
+By adopting this approach, we can also split other sections of the application into separate microservices.
+For example, we could use an authentication service that is only responsible for logging users in and providing them with a JWT token for future requests.
+There is no limit to the granularity of the microservices used.
+However, there will likely be a limit of diminishing returns where further breaking down microservices does not lead to significant performance improvements compared to the effort spent creating them.
+
+\subsection{Omni Microservices}
+\label{sec:design-system-backend-microservices}
+Based on the discussion in Section \ref{sec:design-system-backend} above, Omni's backend is split into three different microservices:
+\begin{itemize}
+    \item OmniRead, which will handle purely read API requests with no side effects
+    \item OmniWrite, which will handle any API request that modifies the \\database
+    \item OmniAuth, which will handle authenticating a user when they log in as well as provisioning JWT tokens
+\end{itemize}
+
+We do not want separate API endpoints for each service. To route requests to the correct microservice, we will use a layer 4 load balancer. Because requests are balanced based on their HTTP method and path (GET requests are for OmniRead, /login requests are for OmniAuth, and everything else is for OmniWrite), a layer 4 load balancer, which operates at the application layer, is preferred over a lower-level layer 7 load balancer, which operates on TCP/UDP packets.
+
+\section{Frontend}
 \label{sec:design-system-frontend}
 
-\section{UI Design}
+\subsection{UI Design}
 \label{sec:design-ui}
