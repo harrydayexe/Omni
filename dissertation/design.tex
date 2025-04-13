@@ -105,7 +105,7 @@ However, there will likely be a limit of diminishing returns where further break
 
 \subsection{Omni Microservices}
 \label{sec:design-system-backend-microservices}
-Based on the discussion in Section \ref{sec:design-system-backend} above, Omni's backend is split into three different microservices:
+Based on the discussion in Section \ref{sec:design-system-backend} above, Omni's backend is split into three different microservices, built using GoLang:
 \begin{itemize}
     \item OmniRead, which will handle purely read API requests with no side effects
     \item OmniWrite, which will handle any API request that modifies the \\database
@@ -116,6 +116,10 @@ We do not want separate API endpoints for each service. To route requests to the
 
 \section{Frontend}
 \label{sec:design-system-frontend}
+Similar to how multiple microservices serve the backend, the website will be served by a separate microservice that is only responsible for rendering page content.
+Any data the frontend service (OmniView) requires will be retrieved by calling the backend inside the Kubernetes cluster. Kubernetes allows pods inside the same cluster to communicate with each other via standard HTTP requests.
+As the website is not the main focus of this project, and a social media platform inherently does not have much onscreen interaction (instead, they are traditionally comprised of many pages linked together), the website will be built with a combination of HTMX (served via the GoLang microservice), TailWindCSS for styling, and AlpineJS for the limited amounts of more complex interaction that is required.
+
 
 \subsection{UI Design}
 \label{sec:design-ui}
