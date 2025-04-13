@@ -11,6 +11,14 @@ The approach should make use of common industry standards and technology as well
 \subsection{Kubernetes and Containerisation}
 \label{sec:design-system-kubernetes}
 Kubernetes is an orchestration tool which enables the management of pods across clusters. A cluster is one or more nodes (physical machines) connected together, possibly across different data centres or even regions, which run workloads.
+
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{k8s-arch.png}
+\centering
+\caption{Kubernetes Architecture}
+\end{figure}
+
 Kubernetes manages the lifecycle of pods using the industry standard health check endpoints \texttt{/healthz}, \texttt{/readyz} and \texttt{/livez}. These endpoints for an application tell Kubernetes whether a pod is running (\texttt{/livez}), ready to respond to requests, possibly checking dependencies like a database (\texttt{/readyz}), and the general health of a pod through \texttt{/healthz}.
 
 Using these endpoints, Kubernetes deployments can monitor the pods (a pod is a running unit usually containing one but sometimes more containers) they have spawned and, if any of them die, for example, if they crash, auto-heal and spawn a replacement.
