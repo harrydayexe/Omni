@@ -71,6 +71,7 @@ When using Snowflake IDs, the key concern is ensuring that only a single object 
 This prevents ID collisions during generation, rather than using a 128-bit ID like the one specified in the RFC 4122 UUID specification \citep{rfc4122}.
 
 \subsection{Database Implementation}
+\label{sec:design-system-database-implementation}
 A classic SQL database will suit our needs since the data we will store in a social media network is structured, where the relationships between users, posts, and comments are known.
 The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run compared to developer experience and stability.
 
@@ -123,3 +124,15 @@ As the website is not the main focus of this project, and a social media platfor
 
 \subsection{UI Design}
 \label{sec:design-ui}
+% TODO: Add images and initial design here
+
+\section{Tech Stack}
+\label{sec:design-review}
+The Omni microservices will be built using GoLang. This is a fast, garbage-collected language with excellent concurrency features, making it ideal for web servers and APIs.
+The SQLc library will automatically generate the database layer from the SQL migrations and queries to connect to the database from within Go.
+Letting a code generation framework create this code automatically ensures that the database and the microservices will always be in sync, and any errors caused by new migrations will be flagged as type errors during building. 
+
+As mentioned in Section \ref{sec:design-system-frontend}, the website will use HTMX, TailwindCSS, and AlpineJS. HTMX is a lightweight JavaScript framework that can be used for client-side interactivity as an alternative to ReactJS or NextJS.
+Using HTMX, you can dynamically update portions of the page by serving partial HTML snippets from the webserver. This can be used, for example, to add a new post to a list of posts dynamically.
+
+MariaDB is the database of choice for the reasons mentioned in Section \ref{sec:design-system-database-implementation}, and Kubernetes will be used to orchestrate the workloads being run. I have built a custom Kubernetes cluster running across 3 Raspberry Pis which will be used for testing, but there is nothing stopping the same deployments to be used in a cloud-based Kubernetes environment like GKE, AKS or EKS (from Google Cloud, Microsoft Azure and Amazon Web Services respectively).
