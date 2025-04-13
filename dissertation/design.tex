@@ -31,7 +31,7 @@ Kubernetes is a perfect fit for the microservices architecture described in Sect
 
 \subsection{Database}
 \label{sec:design-system-database}
-Omni's database needs to scale horizontally across many machines to handle potentially hundreds of thousands or even millions of users. Database sharding will be needed to accomplish this. 
+Omni's database needs to scale horizontally across many machines to handle potentially hundreds of thousands or even millions of users. Database sharding will be needed to ``build scalable, fault-tolerant, and efficient database architectures'' \citep{shethiya2025load}.
 In order to accomplish successful database sharding, one of the problems that needs to be solved is how to locate data. Formally:
 \begin{quotation} % TODO: Make this not indent weirdly
 Given N nodes (where N is sufficiently large), how can a backend locate a specific piece of data whilst preventing a worst case $O(N)$.
@@ -39,6 +39,7 @@ Given N nodes (where N is sufficiently large), how can a backend locate a specif
 Ideally, we want data retrieval to be of the order $O(1)$, where a backend knows exactly where to look to find a piece of data that we want to retrieve.
 
 \subsubsection{Snowflake IDs} 
+\label{sec:design-system-database-snowflake}
 Luckily, this problem has been solved for us. Engineers at Twitter (now X) faced this same problem and came up with an intuitive solution: snowflake IDs. Snowflake IDs are a type of ID that not only uniquely describes a piece of data but also its locality: where it is stored \citep{2010snowflake}. This enables data to be sharded across many database instances whilst retaining a look-up time with a complexity of $O(1)$.
 Snowflake IDs are unique 64-bit integers with the following properties:
 \begin{itemize}
@@ -63,14 +64,22 @@ Using these Snowflake IDs, it becomes obvious how to store data across many node
 
 When using Snowflake IDs, the key concern is ensuring that only a single object in a given backend can create the IDs and that each backend is assigned a unique Node ID (even if multiple Node IDs are stored in the same database shard). 
 This prevents ID collisions during generation, rather than using a 128-bit ID like the one specified in the RFC 4122 UUID specification \citep{rfc4122}.
-% TODO: Add referencing here to back this up
 
 \subsubsection{Database Implementation}
-Given that the data we will be storing in a social media network is mostly structured, a classic SQL database will be suitable for our needs. The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run, when comparing developer experience and stability. % TODO: Am I chatting out of my arse here?
+A classic SQL database will suit our needs since the data we will store in a social media network is structured, where the relationships between users, posts, and comments are known.
+The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run compared to developer experience and stability.
 
-Given this directive, some of the natural choices are SQLite, MySQL/MariaDB, and PostgresSQL. In the case of Omni, I have gone with MySQL/MariaDB, primarily because it is a database I am familiar with. Any of the 3 mentioned would be solid choices, with different trade-offs between each. MySQL is a happy middleground that should be more than capable of handling the data requirements of the platform.
-PostgresSQL would be my favourite choice for a production application due to % TODO: Research and write this
+Given this directive, some natural choices are SQLite and MySQL/MariaDB. They are both simple and robust; however, MySQL/MariaDB is better suited for this particular application with a single (sharded) database. In lightweight/mobile applications, SQLite is the preferred option.
 
+As mentioned above in Section \ref{sec:design-system-database-snowflake}, the database will be sharded so that the load of multiple backends accessing data from the database is balanced across multiple servers. 
+This allows databases to be located in separate regions and balances the load across multiple servers.
+Another option to balance the load on the database is to use read replicas, where there is one primary node and many read replicas, which are a copy of the primary node.
+This setup is perfect for read-heavy applications, as read requests are distributed across the replicas.
+It also brings the benefit of higher availability, as all servers have the same database, so if the primary node fails, other nodes can be promoted to receive write requests.
+Replication does bring a write bottleneck where only one server can process writes to maintain ACID compliance. 
+
+Overall, sharding is the better option for the Omni platform due to the write bottleneck and the potentially massive amount of data that will be stored in the database.
+A future improvement would be to use a hybrid approach, where some things, like the user profile data, which is not expected to receive many writes, are stored in a replicated database, whereas post and comment data is stored in a sharded database to prevent a bottleneck when writing.
 
 
 \subsection{Backend}
