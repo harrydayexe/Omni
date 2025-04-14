@@ -19,7 +19,12 @@ Kubernetes is an orchestration tool which enables the management of pods across 
 \caption{Kubernetes Architecture}
 \end{figure}
 
-Kubernetes manages the lifecycle of pods using the industry standard health check endpoints \texttt{/healthz}, \texttt{/readyz} and \texttt{/livez}. These endpoints for an application tell Kubernetes whether a pod is running (\texttt{/livez}), ready to respond to requests, possibly checking dependencies like a database (\texttt{/readyz}), and the general health of a pod through \texttt{/healthz}.
+Kubernetes manages the lifecycle of pods using the industry standard health check endpoints:
+\begin{itemize}
+    \item \texttt{/healthz} - General health of the pod
+    \item \texttt{/readyz} - Whether the pod is ready to receive requests
+    \item \texttt{/livez} - Whether the pod is alive and should be running
+\end{itemize}
 
 Using these endpoints, Kubernetes deployments can monitor the pods (a pod is a running unit usually containing one but sometimes more containers) they have spawned and, if any of them die, for example, if they crash, auto-heal and spawn a replacement.
 Deployments can also be configured to scale up the number of pods they run when certain limits are reached. The possibilities are endless, but some common examples could be CPU usage on a particular node or the number of requests received per time period.
@@ -128,7 +133,7 @@ As the website is not the main focus of this project, and a social media platfor
 
 \section{Tech Stack}
 \label{sec:design-review}
-The Omni microservices will be built using GoLang. This is a fast, garbage-collected language with excellent concurrency features, making it ideal for web servers and APIs.
+The Omni microservices will be built using GoLang. This is a fast language with excellent concurrency features, making it ideal for web servers and APIs.
 The SQLc library will automatically generate the database layer from the SQL migrations and queries to connect to the database from within Go.
 Letting a code generation framework create this code automatically ensures that the database and the microservices will always be in sync, and any errors caused by new migrations will be flagged as type errors during building. 
 
