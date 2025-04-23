@@ -24,6 +24,40 @@ The second method will be used as Omni is designed for Kubernetes. To enable the
 Defined in the applications are different configuration objects with the required configuration items included, along with some special tags that indicate the name of the related environment variable.
 On start-up, a call to the package automatically creates the configuration objects based on the values from the environment. The config objects can then be passed around the application to the sections of code that require them.
 
+\section{Observability}
+Logging and observability are vital to the ongoing stability of any production system. ``The distributed nature of microservices also introduces complexity, making  it  challenging  to  ensure  the  reliability,  performance,  and  security  of  the  system'' \citep{chinamanagonda2022observability}.
+Clear and consistent logs are crucial for developers to be able to debug faulty platforms quickly. 
+
+Logging is not the only facet of observability. However, metrics and tracing are also key to building a holistic view of a platform's health.
+Metrics are the key numerical data points representing a system's health and behaviour over time.
+Metrics often include requests per second, latency and CPU usage. These can be easily aggregated, structured, and visualised in top-level dashboards to provide a glanceable overview of how a platform is performing.
+They are the first level of reporting an operations team will monitor.
+
+Traces, on the other hand, record the path that requests take through a platform. They often capture the logs each system produces along the way and measure latencies across the system.
+Traces are ideal for identifying bottlenecks and pinpointing failures within a larger microservices architecture. Tracing is often handled by a framework called \underline{\href{https://opentelemetry.io}{Open Telemetry}} \nocite{opentel}, a standardised way of collecting and exporting traces from many different applications.
+Figure \ref{fig:opentel-overview} shows an overview of the structure of Open Telemetry.
+
+Finally, logs are the lowest level of the three fundamental observability pillars. Logs are immutable, and applications emit timestamped events to process incoming requests.
+Developers with a fine-grained understanding of how the system functions best use logs, which are extremely useful for pinpointing the exact line where a system has failed. 
+
+\subsection{Observability in Omni}
+In Omni, the Go standard library's structured logger emits logs, allowing each log to contain extra information, such as variables.
+The structured logger can output logs in various formats, the most common being text-based (for console logs) and JSON-based (for consumption into an observability pipeline).
+
+\lstinputlisting[language=Go, caption=Example of Structured Logging]{code-snippets/go-logger-example.go}
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{otel-diagram.png}
+\centering
+\caption{An Overview of the Structure of Open Telemetry}
+\label{fig:opentel-overview}
+\end{figure}
+
+Whilst tracing using a framework such as Open Telemetry would be helpful in a larger production environment, Omni currently only has four microservices.
+Tracing has been ignored for the initial product but could easily be retrofitted around the existing logging infrastructure.
+An OpenTel Exporter would then consume these traces from many different applications and publish them to a single location, for example, \underline{\href{https://prometheus.io}{Prometheus}} \nocite{prometheus}. 
+The Kubernetes cluster provides top-level metrics covering basic needs, while load balancers provide more in-depth metrics, such as requests per second.
+
 \section{Database}
 \label{sec:impl-database}
 Data is at the centre of every social media platform. The first step in creating Omni should be to build the database in which its data will be stored.
