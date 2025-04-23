@@ -119,3 +119,43 @@ As mentioned above in Section \ref{sec:impl-auth-signup}, the \underline{\href{h
 If the passwords match, the authentication request is valid. If they do not match, the request returns a 401 Unauthorised HTTP error.
 
 Given that the passwords match, OmniAuth will create a JSON Web Token (JWT) that can be used to authenticate the user for subsequent requests to restricted endpoints.
+
+\subsection{OmniRead}
+OmniRead, as described in Section \ref{sec:design-system-backend}, is responsible for handling any HTTP Get requests. This allows us to scale read requests separately from the scaling of backend services that handle write requests.
+In the initial version of Omni, the data that users need to be able to read is: 
+\begin{itemize}
+    \item Posts
+    \item Users
+    \item Comments
+\end{itemize}
+However, we have more than three endpoints, as users may want to access different data sections differently. For example, a user may want to retrieve all the posts a user has created and the most recent posts by any user. 
+
+All the API endpoints served by OmniRead are unauthorised, meaning that anybody can access them without a JWT token. This simplifies the service regarding the middleware required for each endpoint and its runtime configuration in the Kubernetes environment. 
+
+For some endpoints that could return infinite amounts of data, such as retrieving comments on a post or posts by a particular user, paging is needed.
+This ensures that the database and the backend service are not overwhelmed by a denial-of-service attack, where a malicious request can cause the entire service to hang or run out of memory while processing it. 
+Paging ensures that the data returned has a maximum size of ten items. Users who wish to see more items can request the next page, which will return the following ten items.
+
+Achieving this paging in the application layer is trivial, but it still leaves the attack vector open. In this scenario, the application layer would still require all the data from the database, even if it only returned a subset to the user. 
+Luckily, popular SQL databases already have this paging feature built-in through the \verb|LIMIT| and \verb|OFFSET| keywords.
+\verb|LIMIT|, as the name suggests, limits the number of rows of data returned, and \verb|OFFSET| skips the number of rows specified.
+For example, with a \verb|LIMIT| of 10 and \verb|OFFSET| of 0, the first 10 rows will be returned. With an \verb|OFFSET| of 10, rows 11-20 are returned. 
+
+Other paging strategies also exist. For example, in the context of comments, a user may prefer to page by time, finding all the comments before or after a timestamp.
+This paging application is more useful for other applications that use the API, perhaps for research purposes.
+In contrast, users interacting with the Omni platform via the website will likely want to read the most recent comments on a post or the highest-rated comments if a liking system is introduced.
+The \verb|LIMIT| and \verb|OFFSET| approach is more efficient for these cases when compared to the client specifying a timestamp or other parameter to find comments before or after, with different sorts applied to the query. 
+
+OmniRead returns data in the response body in a JSON format. JSON is the standard format for transmitting data in APIs on the web.
+Whilst other more efficient formats exist, such as \underline{\href{https://protobuf.dev}{ProtoBuf}} \nocite{protobuf}, JSON is ubiquitous and well-supported by most languages' standard libraries.
+GoLang has powerful, built-in tooling to encode and decode to and from the JSON format into standard GoLang structs.
+As part of a set of helper functions for all the backend services, Omni has a helper function that takes an object and an HTTP Response Writer object and writes the JSON encoding of the object to the response along with a 200 Success HTTP code.
+This helper function is used across all the backend services to transmit data to the request sender. 
+
+Throughout the OmniRead service (and all the backend services), Omni attempts to reflect as much information as possible through HTTP Status Codes.
+Some examples include 200 Success and 201 No Content when requests are successful, with the former indicating there is some returned content in the body of the response, whilst the latter means nothing was returned.
+When a request is malformed or otherwise incorrect, status codes in the range 4XX are returned depending on the type of error.
+Finally, the service returns 500 Internal Server Error and 503 Service Unavailable errors when the backend encounters errors it cannot recover from, such as the database being down. 
+
+Consumers of the API should be able to use HTTP Status Codes as the first port of call to immediately know if a request was successful, rather than the way that some more modern JavaScript frameworks hide errors inside of 200 Success messages.
+The practice of hiding errors inside responses that return with a 200 code can lead to poor error handling and unexpected fatal crashes.
