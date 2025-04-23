@@ -15,6 +15,10 @@
 }
 \usepackage{natbib}         % For bibliography formatting
 \usepackage{listings}       % For source code listings
+\usepackage{microtype}      % For better typography (especially with hyphenation)
+\usepackage{etoolbox}
+\apptocmd{\thebibliography}{\raggedright}{}{} % Remove underfull \hbox warnings
+
 
 % Adjust spacing (optional)
 \doublespacing
