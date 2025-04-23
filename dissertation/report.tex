@@ -15,6 +15,33 @@
 }
 \usepackage{natbib}         % For bibliography formatting
 \usepackage{listings}       % For source code listings
+\usepackage{xcolor}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    literate={`}{\textasciigrave}1
+}
+
+\lstset{style=mystyle}
+
 \usepackage{microtype}      % For better typography (especially with hyphenation)
 \usepackage{etoolbox}
 \apptocmd{\thebibliography}{\raggedright}{}{} % Remove underfull \hbox warnings
@@ -69,6 +96,7 @@
 \tableofcontents
 \listoffigures
 \listoftables
+\lstlistoflistings
 
 %% These include the actual text
 \include{introduction}

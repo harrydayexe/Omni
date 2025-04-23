@@ -3,6 +3,27 @@
 
 This chapter will describe in detail the technical implementation of the Omni platform.
 
+\section{Configuration}
+Configuration is an important part of any production application. It is any data required by the application for it to run.
+Configuration may need to change, and it should be able to do so without requiring developers to rebuild the application.
+Allowing configuration to be ephemeral enables companies with separate teams that manage a platform's operations to make configuration changes without the need for intervention by a software developer.
+
+Configuration items should be passed to the application via its environment rather than compiled into its binary.
+One method for specifying configuration is through a configuration file. This file (normally JSON or YAML) contains key-value pairs of data for the application to consume at start-up.
+Some frameworks even enable the file to be monitored for changes so that the most up-to-date values can be used without requiring a restart. 
+
+Another method preferred in Kubernetes and containerised environments is using environment variables.
+These are variables set in the bash environment that the application is executed from. The application can then read the values of these variables and use them for its own configuration.
+
+Kubernetes allows environment variables to be specified in the workload manifests for each application.
+This means that if the configuration changes, a new manifest can be loaded to bring new pods online with the updated config. Once the new pods are available and responding to requests, the old pods can be scaled down and removed.
+
+\lstinputlisting[language=Go, caption=Example of Parsing Environment Variables, label={lst:go-env}]{code-snippets/go-env-example.go}
+
+The second method will be used as Omni is designed for Kubernetes. To enable the use of environment variables for configuration, an open-source package called \underline{\href{https://github.com/caarlos0/env}{Caarlos0/env}} \nocite{env} will automatically pull these values from the environment (shown in Listing \ref{lst:go-env}).
+Defined in the applications are different configuration objects with the required configuration items included, along with some special tags that indicate the name of the related environment variable.
+On start-up, a call to the package automatically creates the configuration objects based on the values from the environment. The config objects can then be passed around the application to the sections of code that require them.
+
 \section{Database}
 \label{sec:impl-database}
 Data is at the centre of every social media platform. The first step in creating Omni should be to build the database in which its data will be stored.
@@ -60,6 +81,8 @@ It then compiles these inputs into type-safe code. There are multiple benefits t
 Using this approach, SQLc has generated objects for users, posts, and comments, as well as other objects used when retrieving smaller data sections from each table.
 Helpfully, the library generates an interface used within the code to access the database and an implementation of the interface for accessing the database.
 However, this interface enables developers to write custom implementations, for example, to be used during unit testing. 
+
+\lstinputlisting[language=Go, caption=The Generated GoLang Post Struct]{code-snippets/sqlc-go-models.go}
 
 All the backend services share this database layer as there is no need to write the queries separately for each one, as operations like retrieving a user profile happen in all the services.
 
@@ -140,6 +163,8 @@ Achieving this paging in the application layer is trivial, but it still leaves t
 Luckily, popular SQL databases already have this paging feature built-in through the \verb|LIMIT| and \verb|OFFSET| keywords.
 \verb|LIMIT|, as the name suggests, limits the number of rows of data returned, and \verb|OFFSET| skips the number of rows specified.
 For example, with a \verb|LIMIT| of 10 and \verb|OFFSET| of 0, the first 10 rows will be returned. With an \verb|OFFSET| of 10, rows 11-20 are returned. 
+
+\lstinputlisting[language=SQL, caption=Example of SQLc Query with LIMIT and OFFSET]{code-snippets/sql-limit-example.sql}
 
 Other paging strategies also exist. For example, in the context of comments, a user may prefer to page by time, finding all the comments before or after a timestamp.
 This paging application is more useful for other applications that use the API, perhaps for research purposes.
