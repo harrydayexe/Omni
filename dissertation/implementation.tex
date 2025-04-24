@@ -222,10 +222,15 @@ This helper function is used across all the backend services to transmit data to
 
 \lstinputlisting[language=Go, caption=Example of Writing JSON to the Response, label={lst:go-json}]{code-snippets/encode-json-helper.go}
 
-Throughout the OmniRead service (and all the backend services), Omni attempts to reflect as much information as possible through HTTP Status Codes.
+\subsubsection{Conforming to the HTTP Specification}
+Throughout the OmniRead service (and all the backend services), Omni attempts to conform as much as possible to the uniform HTTP interface defined by \citeauthor{fielding1999rfc2616}.
+In practice, this means reflecting as much information as possible through HTTP Status Codes and adopting the correct HTTP verbs.
 Some examples include 200 Success and 201 No Content when requests are successful, with the former indicating there is some returned content in the body of the response, whilst the latter means nothing was returned.
 When a request is malformed or otherwise incorrect, status codes in the range 4XX are returned depending on the type of error.
 Finally, the service returns 500 Internal Server Error and 503 Service Unavailable errors when the backend encounters errors it cannot recover from, such as the database being down. 
 
 Consumers of the API should be able to use HTTP Status Codes as the first port of call to immediately know if a request was successful, rather than the way that some more modern JavaScript frameworks hide errors inside of 200 Success messages.
 The practice of hiding errors inside responses that return with a 200 code can lead to poor error handling and unexpected fatal crashes.
+
+As discussed by \citeauthor{richardson2008restful}, ``when the method information isn’t found in the HTTP method, the interface stops being uniform.''
+It is important to conform as much as possible to the specifications that underpin the modern web; otherwise, the tooling and developers working on the web will have to work harder to achieve the same baseline of safety.
