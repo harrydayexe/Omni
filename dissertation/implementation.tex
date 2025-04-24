@@ -143,7 +143,6 @@ The Bcrypt algorithm stores all the information required to verify a password at
 \includegraphics[width=12cm]{bcrypt-parts.png}
 \centering
 \caption{Sections of the Bcrypt Hash}
-\label{fig:bcrypt-parts}
 \end{figure}
 
 The first section of the hash contains the algorithm used to create it. Bcrypt uses a version of the Blowfish cypher, denoted by the hash \verb|$2b$|.
@@ -160,6 +159,14 @@ JWTs are the industry standard for ongoing authentication. They can contain many
 In particular, Omni uses the \verb|exp| and \verb|sub| claims (standing for expires at and subject, respectively). 
 
 After a JWT body is generated, applications hash it using a secret key, which is appended to the JWT to ensure that the body is not modified by anyone other than the authorised applications. 
+Figure \ref{fig:jwt-parts} shows the three sections of a JWT.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{jwt-parts.png}
+\centering
+\caption{Sections of a JSON Web Token}
+\label{fig:jwt-parts}
+\end{figure}
 
 In subsequent requests to restricted endpoints, clients attach their JWT in the Authorization header of the HTTP request.
 The relevant backend, which handles requests to that particular endpoint, can then verify the claims in the JWT.
