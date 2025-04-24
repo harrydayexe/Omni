@@ -18,7 +18,7 @@ These are variables set in the bash environment that the application is executed
 Kubernetes allows environment variables to be specified in the workload manifests for each application.
 This means that if the configuration changes, a new manifest can be loaded to bring new pods online with the updated config. Once the new pods are available and responding to requests, the old pods can be scaled down and removed.
 
-\lstinputlisting[language=Go, caption=Example of Parsing Environment Variables, label={lst:go-env}]{code-snippets/go-env-example.go}
+\lstinputlisting[language=Go, caption=Example of Parsing Environment Variables, label={lst:go-env}]{code-snippets/go-env-example.go.bak}
 
 The second method will be used as Omni is designed for Kubernetes. To enable the use of environment variables for configuration, an open-source package called \underline{\href{https://github.com/caarlos0/env}{Caarlos0/env}} \nocite{env} will automatically pull these values from the environment (shown in Listing \ref{lst:go-env}).
 Defined in the applications are different configuration objects with the required configuration items included, along with some special tags that indicate the name of the related environment variable.
@@ -43,7 +43,7 @@ Developers with a fine-grained understanding of how the system functions best us
 In Omni, the Go standard library's structured logger emits logs, allowing each log to contain extra information, such as variables.
 The structured logger can output logs in various formats, the most common being text-based (for console logs) and JSON-based (for consumption into an observability pipeline).
 
-\lstinputlisting[language=Go, caption=Example of Structured Logging]{code-snippets/go-logger-example.go}
+\lstinputlisting[language=Go, caption=Example of Structured Logging]{code-snippets/go-logger-example.go.bak}
 
 \begin{figure}[htbp]
 \includegraphics[width=12cm]{otel-diagram.png}
@@ -116,7 +116,7 @@ Using this approach, SQLc has generated objects for users, posts, and comments, 
 Helpfully, the library generates an interface used within the code to access the database and an implementation of the interface for accessing the database.
 However, this interface enables developers to write custom implementations, for example, to be used during unit testing. 
 
-\lstinputlisting[language=Go, caption=The Generated GoLang Post Struct]{code-snippets/sqlc-go-models.go}
+\lstinputlisting[language=Go, caption=The Generated GoLang Post Struct]{code-snippets/sqlc-go-models.go.bak}
 
 All the backend services share this database layer as there is no need to write the queries separately for each one, as operations like retrieving a user profile happen in all the services.
 
@@ -201,7 +201,7 @@ If the passwords match, the authentication request is valid. If they do not matc
 
 Given that the passwords match, OmniAuth will create a JSON Web Token (JWT) (code shown in Listing \ref{lst:go-jwt}) that can be used to authenticate the user for subsequent requests to restricted endpoints.
 
-\lstinputlisting[language=Go, caption=Example of Creating a JWT, label={lst:go-jwt}]{code-snippets/go-jwt-creation.go}
+\lstinputlisting[language=Go, caption=Example of Creating a JWT, label={lst:go-jwt}]{code-snippets/go-jwt-creation.go.bak}
 
 \subsection{OmniRead}
 OmniRead, as described in Section \ref{sec:design-system-backend}, is responsible for handling any HTTP Get requests. This allows us to scale read requests separately from the scaling of backend services that handle write requests.
@@ -237,7 +237,7 @@ GoLang has powerful, built-in tooling to encode and decode to and from the JSON 
 As part of a set of helper functions for all the backend services, Omni has a helper function that takes an object and an HTTP Response Writer object and writes the JSON encoding of the object to the response along with a 200 Success HTTP code.
 This helper function is used across all the backend services to transmit data to the request sender. 
 
-\lstinputlisting[language=Go, caption=Example of Writing JSON to the Response, label={lst:go-json}]{code-snippets/encode-json-helper.go}
+\lstinputlisting[language=Go, caption=Example of Writing JSON to the Response, label={lst:go-json}]{code-snippets/encode-json-helper.go.bak}
 
 \subsubsection{Conforming to the HTTP Specification}
 Throughout the OmniRead service (and all the backend services), Omni attempts to conform as much as possible to the uniform HTTP interface defined by \citeauthor{fielding1999rfc2616}.
