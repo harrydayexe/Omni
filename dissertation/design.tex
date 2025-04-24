@@ -33,7 +33,7 @@ Deployments can also be configured to scale up the number of pods they run when 
 This is what makes Kubernetes super powerful. Combining auto-healing and management of ephemeral pods with autoscaling leads to solutions that are highly adaptable to any scenario.
 For this reason, Omni will be designed to run natively in Kubernetes, meaning that containerised applications will need to be created to run the platform.
 
-Containerisation is the process of modifying an application to run within a container. A container is a self-contained module that can be run without needing to worry about its dependencies or setup. For example, if an application has a dependency on a particular version of Linux with a certain library installed, containerisation will mean that the user running the container can execute the application on any supported OS without needing to worry about the dependencies.
+Containerisation is the process of modifying an application to run within a container. A container is a self-contained module that can be run without needing to worry about its dependencies or setup. For example, if an application has a dependency on a particular version of Linux with a specific library installed, containerisation will mean that the user running the container can execute the application on any supported OS without needing to worry about the dependencies.
 
 The other added benefit of containers is that the execution environment only needs to contain the compiled binary. Rather than the host machine needing to compile the binary or a CI/CD pipeline creating many binaries for various operating systems, we can use one container, which contains only the compiled binary for the container's OS.
 
@@ -47,7 +47,7 @@ In order to accomplish successful database sharding, one of the problems that ne
 \begin{quotation} % TODO: Make this not indent weirdly
 Given N nodes (where N is sufficiently large), how can a backend locate a specific piece of data whilst preventing a worst case $O(N)$.
 \end{quotation}
-Ideally, we want data retrieval to be of the order $O(1)$, where a backend knows exactly where to look to find a piece of data that we want to retrieve.
+Ideally, we want data retrieval to be of the order $O(1)$, where a backend knows precisely where to look to find a piece of data that we want to retrieve.
 
 \subsection{Snowflake IDs} 
 \label{sec:design-system-database-snowflake}
@@ -81,7 +81,7 @@ This prevents ID collisions during generation, rather than using a 128-bit ID li
 A classic SQL database will suit our needs since the data we will store in a social media network is structured, where the relationships between users, posts, and comments are known.
 The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run compared to developer experience and stability.
 
-Given this directive, some natural choices are SQLite and MySQL/MariaDB. They are both simple and robust; however, MySQL/MariaDB is better suited for this particular application with a single (sharded) database. In lightweight/mobile applications, SQLite is the preferred option.
+Given this directive, some natural choices are SQLite and MySQL/MariaDB. They are both robust and straightforward; however, MySQL/MariaDB is better suited for this particular application with a single (sharded) database. In lightweight/mobile applications, SQLite is the preferred option.
 
 As mentioned above in Section \ref{sec:design-system-database-snowflake}, the database will be sharded so that the load of multiple backends accessing data from the database is balanced across multiple servers. 
 This allows databases to be located in separate regions and balances the load across multiple servers.
