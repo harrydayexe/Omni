@@ -182,7 +182,9 @@ The returned data from the database includes the Bcrypt hash of the user's passw
 As mentioned above in Section \ref{sec:impl-auth-signup}, the \underline{\href{https://pkg.go.dev/golang.org/x/crypto/bcrypt}{crypto/bcrypt}} \nocite{gobcryptpkg} package compares the password sent in the request to the hashed password stored in the database.
 If the passwords match, the authentication request is valid. If they do not match, the request returns a 401 Unauthorised HTTP error.
 
-Given that the passwords match, OmniAuth will create a JSON Web Token (JWT) that can be used to authenticate the user for subsequent requests to restricted endpoints.
+Given that the passwords match, OmniAuth will create a JSON Web Token (JWT) (code shown in Listing \ref{lst:go-jwt}) that can be used to authenticate the user for subsequent requests to restricted endpoints.
+
+\lstinputlisting[language=Go, caption=Example of Creating a JWT, label={lst:go-jwt}]{code-snippets/go-jwt-creation.go}
 
 \subsection{OmniRead}
 OmniRead, as described in Section \ref{sec:design-system-backend}, is responsible for handling any HTTP Get requests. This allows us to scale read requests separately from the scaling of backend services that handle write requests.
@@ -217,6 +219,8 @@ Whilst other more efficient formats exist, such as \underline{\href{https://prot
 GoLang has powerful, built-in tooling to encode and decode to and from the JSON format into standard GoLang structs.
 As part of a set of helper functions for all the backend services, Omni has a helper function that takes an object and an HTTP Response Writer object and writes the JSON encoding of the object to the response along with a 200 Success HTTP code.
 This helper function is used across all the backend services to transmit data to the request sender. 
+
+\lstinputlisting[language=Go, caption=Example of Writing JSON to the Response, label={lst:go-json}]{code-snippets/encode-json-helper.go}
 
 Throughout the OmniRead service (and all the backend services), Omni attempts to reflect as much information as possible through HTTP Status Codes.
 Some examples include 200 Success and 201 No Content when requests are successful, with the former indicating there is some returned content in the body of the response, whilst the latter means nothing was returned.
