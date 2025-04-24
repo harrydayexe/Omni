@@ -173,6 +173,23 @@ The relevant backend, which handles requests to that particular endpoint, can th
 Based on the subject claim of the JWT, the backend can decide if the client making the request is authorised to do so for the particular action they are performing.
 For example, a user can delete a post they have created but cannot delete posts from other users.
 
+\subsection{Middleware}
+Middleware is software that sits between the client request and the final logic that handles that request.
+It can achieve various effects, from modifying the request to rejecting it altogether (due to a lack of authentication, for example). 
+
+Middleware is crucial in modern web services, even more so in a microservices architecture.
+Omni utilises middleware for safety, stability, and functionality. 
+
+The most crucial and ubiquitous of Omni's middleware is the logging middleware.
+This middleware records each incoming request as a log, and after the request is processed, it logs the amount of time taken to serve that request. 
+These logs follow a structured format, allowing external monitoring tools to use them to build a better understanding of how long requests take to process on average and which types of requests take the longest.
+This allows bottlenecks to be identified. Appendix \ref{sec:apdx-middleware-implementations} shows the implementation of this simple yet powerful middleware.
+
+Another important middleware that Omni takes advantage of is MaxBytesReader.
+This middleware sets the maximum number of bytes that can be read from the body of an HTTP request to be 1 MiB.
+The middleware prevents DDOS attacks using vast HTTP request bodies, where the application may run out of memory trying to decode all the information in the body.
+For all the Omni endpoints, the expected amount of data should never exceed 1 MiB, so any request with a body larger than that should be rejected with an error.
+
 \subsection{OmniAuth}
 The simplest of the backend services is OmniAuth, which authenticates an existing user to access restricted endpoints.
 OmniAuth serves just one endpoint: \verb|POST /api/login|. The handler expects the request to have a JSON body with the fields \verb|username| and \verb|password|. 
