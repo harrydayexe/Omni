@@ -31,7 +31,7 @@ Using these endpoints, Kubernetes deployments can monitor the pods (a pod is a r
 Deployments can also be configured to scale up the number of pods they run when certain limits are reached. The possibilities are endless, but some common examples could be CPU usage on a particular node or the number of requests received per time period.
 
 This is what makes Kubernetes super powerful. Combining auto-healing and management of ephemeral pods with autoscaling leads to solutions that are highly adaptable to any scenario.
-For this reason, Omni will be designed to run natively in Kubernetes. This means that I will need to create containerised applications to run the platform.
+For this reason, Omni will be designed to run natively in Kubernetes, meaning that containerised applications will need to be created to run the platform.
 
 Containerisation is the process of modifying an application to run within a container. A container is a self-contained module that can be run without needing to worry about its dependencies or setup. For example, if an application has a dependency on a particular version of Linux with a certain library installed, containerisation will mean that the user running the container can execute the application on any supported OS without needing to worry about the dependencies.
 
@@ -147,6 +147,6 @@ The SQLc library will automatically generate the database layer from the SQL mig
 Letting a code generation framework create this code automatically ensures that the database and the microservices will always be in sync, and any errors caused by new migrations will be flagged as type errors during building. 
 
 As mentioned in Section \ref{sec:design-system-frontend}, the website will use HTMX, TailwindCSS, and AlpineJS. HTMX is a lightweight JavaScript framework that can be used for client-side interactivity as an alternative to ReactJS or NextJS.
-Using HTMX, you can dynamically update portions of the page by serving partial HTML snippets from the webserver. This can be used, for example, to add a new post to a list of posts dynamically.
+Using HTMX, one can dynamically update portions of the page by serving partial HTML snippets from the webserver. This can be used, for example, to add a new post to a list of posts dynamically.
 
 MariaDB is the database of choice for the reasons mentioned in Section \ref{sec:design-system-database-implementation}, and Kubernetes will be used to orchestrate the workloads being run. I have built a custom Kubernetes cluster running across 3 Raspberry Pis which will be used for testing, but there is nothing stopping the same deployments to be used in a cloud-based Kubernetes environment like GKE, AKS or EKS (from Google Cloud, Microsoft Azure and Amazon Web Services respectively).
