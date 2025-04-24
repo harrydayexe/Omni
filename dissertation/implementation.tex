@@ -251,3 +251,28 @@ The practice of hiding errors inside responses that return with a 200 code can l
 
 As discussed by \citeauthor{richardson2008restful}, ``when the method information isn’t found in the HTTP method, the interface stops being uniform.''
 It is important to conform as much as possible to the specifications that underpin the modern web; otherwise, the tooling and developers working on the web will have to work harder to achieve the same baseline of safety.
+
+\subsection{OmniWrite}
+OmniWrite handles requests that could modify the database, such as creating a post or adding a new user. 
+For each class of resource, user, post, and comment, OmniWrite handles three endpoints:
+\begin{itemize}
+    \item POST - Creates a new object
+    \item PUT - Updates an existing object by its ID
+    \item DELETE - Deletes an existing object by its ID
+\end{itemize}
+The implementation for each class is mostly the same, with the only difference being the data associated with each resource in the class.
+For example, the implementation of creating a new comment or post is almost the same, except for the data expected in the request body and the database calls made. 
+
+The general skeleton for the implementation of each handler for this service follows the following blueprint:
+\begin{enumerate}
+    \item For PUT and DELETE requests, parse the ID parameter from the request's path and check if the resource exists in the database.
+    \item For POST and PUT requests, decode the request's body to find the new parameters.
+    \item Call the relevant function in the database layer.
+    \item Check for errors and return the response to the client.
+\end{enumerate}
+Before modifying the database, the handler must also verify that the caller provided a valid JWT for the request.
+The only exception is when creating a new user (as the user will not yet have created their password or possess a JWT). 
+
+A JWT is valid for a PUT or DELETE request if the resource owner matches the user ID in the subject field and the token has not expired.
+The only other thing that complicates the request handlers in OmniWrite is the amount of places where errors can arise. 
+The error handling logic is responsible for over half of the code in each handler, ensuring that each response receives the correct HTTP status code, depending on the type of error.
