@@ -117,8 +117,16 @@ Based on the discussion in Section \ref{sec:design-system-backend} above, Omni's
     \item OmniWrite, which will handle any API request that modifies the \\database
     \item OmniAuth, which will handle authenticating a user when they log in as well as provisioning JWT tokens
 \end{itemize}
+Figure \ref{fig:system-design} shows the architecture of the Omni platform, including the microservices and database.
 
 We do not want separate API endpoints for each service. To route requests to the correct microservice, we will use a layer 4 load balancer. Because requests are balanced based on their HTTP method and path (GET requests are for OmniRead, /login requests are for OmniAuth, and everything else is for OmniWrite), a layer 4 load balancer, which operates at the application layer, is preferred over a lower-level layer 7 load balancer, which operates on TCP/UDP packets.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{system-design.png}
+\centering
+\caption{System Design of Omni Platform}
+\label{fig:system-design}
+\end{figure}
 
 \section{Frontend}
 \label{sec:design-system-frontend}
