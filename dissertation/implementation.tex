@@ -35,7 +35,6 @@ They are the first level of reporting an operations team will monitor.
 
 Traces, on the other hand, record the path that requests take through a platform. They often capture the logs each system produces along the way and measure latencies across the system.
 Traces are ideal for identifying bottlenecks and pinpointing failures within a larger microservices architecture. Tracing is often handled by a framework called \underline{\href{https://opentelemetry.io}{Open Telemetry}} \nocite{opentel}, a standardised way of collecting and exporting traces from many different applications.
-Figure \ref{fig:opentel-overview} shows an overview of the structure of Open Telemetry.
 
 Finally, logs are the lowest level of the three fundamental observability pillars. Logs are immutable, and applications emit timestamped events to process incoming requests.
 Developers with a fine-grained understanding of how the system functions best use logs, which are extremely useful for pinpointing the exact line where a system has failed. 
@@ -49,14 +48,15 @@ The structured logger can output logs in various formats, the most common being 
 \begin{figure}[htbp]
 \includegraphics[width=12cm]{otel-diagram.png}
 \centering
-\caption{An Overview of the Structure of Open Telemetry}
+\caption{OpenTelemetry Reference Architecture.}
 \label{fig:opentel-overview}
 \end{figure}
 
-Whilst tracing using a framework such as Open Telemetry would be helpful in a larger production environment, Omni currently only has four microservices.
+Whilst tracing using a framework such as OpenTelemetry would be helpful in a larger production environment (Figure \ref{fig:opentel-overview} shows the architecture of OpenTelemetry\footnotemark{}), Omni currently only has four microservices.
 Tracing has been ignored for the initial product but could easily be retrofitted around the existing logging infrastructure.
 An OpenTel Exporter would then consume these traces from many different applications and publish them to a single location, for example, \underline{\href{https://prometheus.io}{Prometheus}} \nocite{prometheus}. 
 The Kubernetes cluster provides top-level metrics covering basic needs, while load balancers provide more in-depth metrics, such as requests per second.
+\footnotetext{`OpenTelemetry Reference Architecture' by OpenTelemetry Authors, from \url{https://opentelemetry.io/docs/}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.}
 
 \section{Database}
 \label{sec:impl-database}

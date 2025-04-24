@@ -11,12 +11,13 @@ The approach should make use of common industry standards and technology as well
 \subsection{Kubernetes and Containerisation}
 \label{sec:design-system-kubernetes}
 Kubernetes is an orchestration tool which enables the management of pods across clusters. A cluster is one or more nodes (physical machines) connected together, possibly across different data centres or even regions, which run workloads.
-
+Figure \ref{fig:k8s-arch} shows the architecture of a Kubernetes cluster\footnote{`Kubernetes cluster components' by The Kubernetes Authors, from \url{https://kubernetes.io/docs/concepts/architecture/}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.}.
 
 \begin{figure}[htbp]
 \includegraphics[width=12cm]{k8s-arch.png}
 \centering
 \caption{Kubernetes Architecture}
+\label{fig:k8s-arch}
 \end{figure}
 
 Kubernetes manages the lifecycle of pods using the industry standard health check endpoints:
