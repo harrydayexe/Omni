@@ -363,10 +363,24 @@ Two other endpoints are also exposed: \verb|addz| and \verb|removez|. The backen
 When a backend adds itself to the load-balancing pool, a reverse proxy is created for the backend's IP address and added to the pool.
 When a client sends a request via the load balancer, the new backend will be available for the selected algorithm to choose from.
 
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{loadbalancer-design.png}
+\centering
+\caption{Load Balancer Design Overview}
+\label{fig:loadbalancer-design}
+\end{figure}
+
 Once the chosen algorithm has picked a backend to serve the user's request, the load balancer forwards the request to the backend using its direct IP address.
 The request is also modified to include the \verb|X-Real-IP| and \verb|X-Proxy| headers to indicate to the backend nodes that the load balancer has forwarded this request and from whom the request originated. 
 
 The load balancer is also responsible for regularly checking that the registered backends are still alive and healthy. When a backend does not respond before the timeout, it is removed from the healthy pool of nodes until it responds again or is removed from the load-balancing pool altogether.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{load-balancer-flow.png}
+\centering
+\caption{Load Balancer Flow}
+\label{fig:loadbalancer-flow}
+\end{figure}
 
 \subsection{Load-Balancing Algorithms}
 Many different load-balancing algorithms exist, and this report does not discuss the benefits and drawbacks of each.
