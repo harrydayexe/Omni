@@ -276,3 +276,31 @@ The only exception is when creating a new user (as the user will not yet have cr
 A JWT is valid for a PUT or DELETE request if the resource owner matches the user ID in the subject field and the token has not expired.
 The only other thing that complicates the request handlers in OmniWrite is the amount of places where errors can arise. 
 The error handling logic is responsible for over half of the code in each handler, ensuring that each response receives the correct HTTP status code, depending on the type of error.
+
+\section{Testing}
+\label{sec:impl-testing}
+
+Testing is an important facet of any programming. It ensures that the code is functional and free from logical errors.
+Test-driven development (TDD) is the practice of writing unit tests before implementing a feature or bug fix, allowing developers to define exactly how a specific function is expected to work given a set of inputs before focusing on how the function achieves the correct outputs.
+Defect rates have been shown to decrease by around 50\% when following TDD, compared to a traditional style of testing, where tests are written after the fact \citep{maximilien2003assessing}.
+
+\subsection{Unit Testing}
+Unit tests are a fundamental form of testing for all applications. They are small, focused tests that verify the correctness of individual components of a system.
+Each test checks whether a specific function produces the expected outputs, given a set of inputs.
+Unit tests are reusable by design, building into a suite of tests that are quick to run over time and ensure regressions do not occur.
+Regression tests are particularly valuable as they increase confidence that new changes do not break existing features unexpectedly.
+The field of regression testing and minimisation of regression tests is vast.
+However, much work has been done to automate the selection of regression tests to keep overall costs (time and energy) down whilst still providing a comprehensive suite of tests which aim to cover as much of the application as possible \citep{wong1997study}. 
+
+Omni utilises unit tests to cover most of the codebase, aiming for code coverage of over 70\% but achieving close to 100\% across the key, testable areas of the codebase (shown in Figure \ref{fig:test-coverage}).
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{test-coverage.png}
+\centering
+\caption{Omni Test Coverage Report}
+\label{fig:test-coverage}
+\end{figure}
+
+Demanding code coverage requirements (such as enforcing all code to be at least 70\% covered) is less effective and even detrimental to the actual defect rates of codebases.
+Instead, it is more effective to encourage practitioners to focus on more in-depth code coverage metrics such as Modified Condition-Decision (MC/DC) coverage, which is much more effective at highlighting faults before they become user-facing errors \citep{hemmati2015effective}. 
+
