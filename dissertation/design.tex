@@ -93,6 +93,18 @@ Replication does bring a write bottleneck where only one server can process writ
 Overall, sharding is the better option for the Omni platform due to the write bottleneck and the potentially massive amount of data that will be stored in the database.
 A future improvement would be to use a hybrid approach, where some things, like the user profile data, which is not expected to receive many writes, are stored in a replicated database, whereas post and comment data is stored in a sharded database to prevent a bottleneck when writing.
 
+\subsection{Resources}
+The core of the Omni platform revolves around the posts that users produce. Any user can create a post and comment on other users' posts.
+This brief description shows three clear resources: users, posts, and comments.
+Figure \ref{fig:db-erd-design} shows the entity relationship diagram for the relationships between these three resources, where one user may create many posts and many comments, and one post may have many comments.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{design-db-erd.png}
+\centering
+\caption{Entity Relationship Diagram of Omni Database}
+\label{fig:db-erd-design}
+\end{figure}
+
 
 \section{Backend}
 \label{sec:design-system-backend}
