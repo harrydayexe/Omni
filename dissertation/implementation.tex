@@ -366,4 +366,13 @@ The second part of the puzzle is the HTTPRoute. Again, the documentation defines
 The HTTPRoutes specify the destination for an incoming request. 
 For instance, GET requests to a path beginning \verb|/api/| should be sent to the OmniRead service. 
 
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{gateway-request-flow.png}
+\centering
+\caption{Flow of a Request through the Gateway}
+\label{fig:k8s-gateway-flow}
+\end{figure}
+
 Combining the HTTPRoute and Gateway allows Omni to communicate via a single external IP while sharing requests across many backend applications to balance the load and service the requests.
+Figure \ref{fig:k8s-gateway-flow} \footnote{`Kubernetes Gateway Flow' by The Kubernetes Authors, from \url{https://kubernetes.io/docs/concepts/services-networking/gateway/}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.} shows the flow of a request through the Gateway and HTTPRoutes.
+
