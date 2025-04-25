@@ -324,10 +324,3 @@ Many different load-balancing algorithms exist, and this report does not discuss
 For the first implementation of the load balancer, a simple round-robin algorithm was implemented; however, much more complex and efficient approaches are available, such as the least connections and least response time algorithms.
 The study by \citeauthor{sharma2008performance} into the performance of different load-balancing algorithms is particularly informative.
 
-\subsection{Testing of the Load Balancer}
-Integration tests were needed to test the load balancers' ability to add and remove backends based on their health checks.
-However Testcontainers also uses these health checks to ensure a container is ready before allowing a test to run.
-In order to combat this, a custom health check container was built which exposes its actual health check on the non-standard endpoint \verb|testcontainersz|.
-Using the non-standard endpoint allows the standard endpoints \verb|healthz|, \verb|livez|, and \verb|readyz| to be configured for testing purposes, precisely what is needed for the load balancer integration tests. 
-
-The code for the health check tester application can be found at \underline{\href{https://github.com/harrydayexe/healthcheck-tester}{GitHub}} and the image is available on \underline{\href{https://hub.docker.com}{DockerHub}} for anyone to use.
