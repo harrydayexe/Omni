@@ -277,6 +277,68 @@ A JWT is valid for a PUT or DELETE request if the resource owner matches the use
 The only other thing that complicates the request handlers in OmniWrite is the amount of places where errors can arise. 
 The error handling logic is responsible for over half of the code in each handler, ensuring that each response receives the correct HTTP status code, depending on the type of error.
 
+\subsection{OmniView}
+Writing static HTML pages which are served to browsers is not very common in the industry now, with contemporary solutions (even those with static sites with no dynamic content) use frameworks to generate the HTML from an easier language to work with. 
+
+Given that the web pages OmniView will be serving have dynamic designs but limited complex user interaction, HTMX and TailwindCSS will be used to render the HTML content that will be sent to browsers.
+HTMX is a lightweight JavaScript library that enables dynamic web interactions through HTML attributes.
+It allows parts of a page to be updated dynamically in response to events without writing any custom JavaScript. It keeps the rendering of HTML on the server side while maintaining the state through the URL of a webpage. 
+
+Some modern JavaScript frameworks prefer to use a single-page application, where the URL does not change when navigating to entirely new pages, instead powering all interaction through client-side rendering.
+However, this can lead to much more complex JavaScript running on the client than is necessary, increasing the amount of data that needs to be sent when the page is loaded.
+By keeping this processing on the server, OmniView only needs to send each client the rendered page for them to view, lowering the network cost of each request. 
+
+TailwindCSS on the other hand, is a CSS framework that provides low-level utility classes to build custom, responsive designs quickly.
+Rather than writing custom classes for each component, Tailwind allows for the composition of utilities directly on HTML elements, increasing the locality of code and enabling rapid development and consistent styling. 
+
+\lstinputlisting[language=HTML, caption=Example of TailwindCSS Classes]{code-snippets/tailwind-example.html}
+
+The combination of GoLang, HTMX, and TailwindCSS will enable Omni to serve fast, beautiful, and responsive web pages even with limited bandwidth. 
+
+The first step in creating OmniView is to set up the web server and ensure that it is serving static content.
+The CSS file each page will reference is the static content to be served in the case of OmniView.
+The Tailwind command line tool generates this content by scanning all the project's HTML files, extracting the Tailwind classes used, and compiling the styling for each one into a minified CSS file.
+Generating the CSS file this way ensures that only the Tailwind styles the website uses are sent to the client, keeping response sizes low.
+
+The second step is to produce the website's HTML.
+The HTML is produced using GoLangs built-in templating language, enabling the reuse of standard sections like the navigation bar or footer and dynamic insertion of variables from the application, such as post titles.
+The templates also include HTMX in the elements to enable dynamic content updates, for example, when a new comment is added.
+Rather than reloading the whole page when a user adds a comment, we can dynamically insert the new comment at the top of the list so that the user can see the result of their interaction straight away, with a minimal impact on the network.
+
+While the frontend design is not the primary focus of this project, efforts were made to create a responsive, accessible design which is easy for users to navigate.
+Some screenshots can be found in Appendix \ref{sec:apdx-screenshots}.
+
+\subsection{Serving Content}
+With these basic components in place, the next stage of development is to start creating the handlers for each application endpoint.
+Most pages require a database call to retrieve the content that will be displayed. This is handled by making a request to the relevant backend service so as not to duplicate work already done. 
+
+In cases where multiple pieces of data are needed, such as viewing a user's page (which requires a call to load the information about the user and a separate call to load all the posts by that user), OmniView leverages GoLangs' concurrency features.
+These features enable both requests to be made concurrently with full cancellation support.
+Appendix \ref{sec:apdx-concurrency-omni-view} contains a shortened example of this code.
+
+Once all the required requests have been completed, the code stops waiting and the response data object is formed.
+The template renderer receives this data object as input so that it can replace any fields in the template with the relevant data, before sending the rendered HTML in the response of the HTTP request.
+
+\subsection{Authentication in OmniView}
+Authentication needs to be handled slightly differently in OmniView compared to OmniWrite.
+This need is because the browser does not have a way to automatically set the Authorisation header when it makes requests to the web server.
+Instead, authentication data is transmitted and stored in a cookie. The browser knows to send cookies related to a website with every request it makes. 
+
+When a user signs into Omni via the website, the same JWT is produced by the backend.
+However, before the response is sent to the user via OmniView, the JWT is set as the value of a cookie, which is also sent back to the browser.
+When the browser receives this response, it saves the cookie to its local storage and transmits it along with every subsequent request it makes before the cookie's expiry timestamp. 
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{cookie.png}
+\centering
+\caption{Authentication Cookie Set by OmniView}
+\label{fig:auth-cookie}
+\end{figure}
+
+When OmniView receives a request, middleware checks if the cookie is present and that the JWT inside the cookie is valid for the request.
+If both of these checks are true, the request is processed as it would be normally, and the response is sent.
+If the cookie is not present or is not valid, OmniView sends a redirection status code and redirects the browser to the login page, where the user can enter their credentials to receive a new cookie.
+
 \section{Load Balancer}
 Many backend services are required to handle the load for a platform to scale efficiently.
 Requests should be distributed evenly across each service for a platform to work optimally. A load balancer is required to achieve optimal performance.
