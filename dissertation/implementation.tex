@@ -278,6 +278,10 @@ The only other thing that complicates the request handlers in OmniWrite is the a
 The error handling logic is responsible for over half of the code in each handler, ensuring that each response receives the correct HTTP status code, depending on the type of error.
 
 \subsection{OmniView}
+OmniView is the application responsible for serving HTML to browsers when a user navigates to the Omni website.
+Whereas the other three services all serve JSON content in their responses, OmniView responds with HTML, CSS, and JS, which the browser can use to render content on screen for a user.
+There are many different methods, tools, and frameworks for building a website, such as ReactJS, NextJS, Java Spring Boot, and plain HTML \citep{StackOverflow2024}
+
 Writing static HTML pages which are served to browsers is not very common in the industry now, with contemporary solutions (even those with static sites with no dynamic content) use frameworks to generate the HTML from an easier language to work with. 
 
 Given that the web pages OmniView will be serving have dynamic designs but limited complex user interaction, HTMX and TailwindCSS will be used to render the HTML content that will be sent to browsers.
