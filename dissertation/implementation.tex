@@ -324,3 +324,46 @@ Many different load-balancing algorithms exist, and this report does not discuss
 For the first implementation of the load balancer, a simple round-robin algorithm was implemented; however, much more complex and efficient approaches are available, such as the least connections and least response time algorithms.
 The study by \citeauthor{sharma2008performance} into the performance of different load-balancing algorithms is particularly informative.
 
+\section{Kubernetes and Deployment}
+Now that each platform component is built, it needs to be deployed to work in unison. As mentioned in Section \ref{sec:design-system-kubernetes}, the microservices will be deployed into a Kubernetes cluster to enable easy inter-pod communication, autoscaling, deployment rollouts with zero downtime, and more.
+The database will not be deployed into Kubernetes as this does not follow the industry standard practices surrounding data storage. 
+
+Kubernetes pods are ephemeral, meaning they should be stateless themselves and able to be killed and restarted without interrupting the application they serve. 
+This design contradicts the stateful design of databases (otherwise, they would not be helpful) that should be resilient to failure. 
+
+\subsection{Kubernetes Manifests}
+Whilst Kubernetes clusters can be configured and interacted with via a command-line tool, the industry leans towards using Infrastructure-as-Code (IAC for short), which allows infrastructure to be version-controlled using Git like the applications it hosts.
+IAC brings a whole host of benefits other than version control, such as the ability to tear down and rebuild environments quickly and easily through virtualisation \citep{huttermann2012infrastructure}.
+
+Two main parts are needed to deploy the services to Kubernetes: a deployment and a service. The \underline{\href{https://kubernetes.io/docs/home/}{Kubernetes Official Documentation}} \nocite{kubernetesdocs} describes each best:
+\begin{itemize}
+    \item ``A Deployment manages a set of Pods to run an application workload, usually one that doesn't maintain state.''
+    \item A service allows one to ``expose an application running in your cluster behind a single outward-facing endpoint, even when the workload is split across multiple backends.''
+\end{itemize}
+
+In layman's terms, a deployment manages a set of pods, ensuring that if one dies, another takes its place, whilst a service allows the outside (or inside) world to communicate with said pods through a single interface.
+Services are the key to communication between different backends inside of a cluster.
+Rather than a backend needing to find the IP of a specific pod to serve its request, it can send the request to the service, which, in turn, will forward it to the pods it manages. 
+
+A deployment and service manifest has been created to manage the underlying pods for each Omni service: OmniRead, OmniWrite, OmniView, and OmniAuth.
+The deployment manifest also includes the environment variables that power each service's configuration, including the database connection URL and the port via which to connect.
+
+\subsubsection{A Word on Helm}
+Helm is an open-source package manager which simplifies the management of Kubernetes deployments. It allows for the installation of predefined standalone units into a cluster. 
+The configuration of Omni's deployment into Kubernetes has been written as a Helm chart, allowing for easy deployment and upgrade during its development lifecycle. 
+Charts are written using the GoLang templating language, allowing the same chart to be reused across multiple environments (say, a test cluster versus a production cluster).
+Variables defined in the chart are replaced with different values.
+
+\subsubsection{Cluster Ingress}
+By default, services use the ClusterIP type, which exposes the service internally to other members of the cluster.
+While this may be perfect for some applications, Omni needs some sort of connection to the outside world to be functional.
+Traditionally, a Kubernetes Ingress would be used; however, the new Gateway API allows for a more portable definition. 
+
+Alongside the Deployment and Service for each backend application, Omni's Chart includes Gateway and HTTPRoute manifests.
+The documentation defines the Gateway as ``an instance of traffic handling infrastructure, such as cloud load balancer.''
+In the case of the bare-metal cluster Omni has been tested on, under the hood, this will link through the NGINX Gateway Fabric to the MetalLB load balancer, providing an external IP address to the Gateway. 
+The second part of the puzzle is the HTTPRoute. Again, the documentation defines this as ``HTTP-specific rules for mapping traffic from a Gateway listener to a representation of backend network endpoints. These endpoints are often represented as a Service.''
+The HTTPRoutes specify the destination for an incoming request. 
+For instance, GET requests to a path beginning \verb|/api/| should be sent to the OmniRead service. 
+
+Combining the HTTPRoute and Gateway allows Omni to communicate via a single external IP while sharing requests across many backend applications to balance the load and service the requests.
