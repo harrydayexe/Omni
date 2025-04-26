@@ -36,6 +36,13 @@ spec:
               value: "http://{{ .Chart.Name }}-authapi-service:80"
             - name: JWT_SECRET
               value: "{{ .Values.jwt }}"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

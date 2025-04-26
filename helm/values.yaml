@@ -1,5 +1,5 @@
 omniread:
-  replicaCount: 5
+  replicaCount: 2
   verbose: true
   image:
     repository: harrydayexe/omniread
@@ -7,7 +7,7 @@ omniread:
     pullPolicy: Always
 
 omniwrite:
-  replicaCount: 3
+  replicaCount: 2
   verbose: true
   image:
     repository: harrydayexe/omniwrite
@@ -23,7 +23,7 @@ omniauth:
     pullPolicy: Always
 
 omniview:
-  replicaCount: 5
+  replicaCount: 2
   verbose: true
   image:
     repository: harrydayexe/omniview
