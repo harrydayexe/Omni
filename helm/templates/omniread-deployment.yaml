@@ -33,7 +33,7 @@ spec:
             - name: CONNECTION_MAX_LIFETIME
               value: "3"
             - name: MAX_OPEN_CONNECTIONS
-              value: "10"
+              value: "100"
             - name: MAX_IDLE_CONNECTIONS
               value: "10"
           resources:

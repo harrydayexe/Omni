@@ -15,7 +15,7 @@ func GetDBConnection(config config.DatabaseConfig) (*sql.DB, error) {
 	}
 	// See "Important settings" section.
 	db.SetConnMaxLifetime(time.Minute * time.Duration(config.ConnMaxLifetime))
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(config.MaxOpenConns)
+	db.SetMaxIdleConns(config.MaxIdleConns)
 	return db, nil
 }
