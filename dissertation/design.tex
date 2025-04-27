@@ -147,10 +147,14 @@ Similar to how multiple microservices serve the backend, the website will be ser
 Any data the frontend service (OmniView) requires will be retrieved by calling the backend inside the Kubernetes cluster. Kubernetes allows pods inside the same cluster to communicate with each other via standard HTTP requests.
 As the website is not the main focus of this project, and a social media platform inherently does not have much onscreen interaction (instead, they are traditionally comprised of many pages linked together), the website will be built with a combination of HTMX (served via the GoLang microservice), TailWindCSS for styling, and AlpineJS for the limited amounts of more complex interaction that is required.
 
+\subsection{Posts}
+Omni's target audience is junior software engineers who want to showcase their latest projects and act as an online portfolio of projects.
+It is commonplace for engineers to add a link to their GitHub page on CVs and applications to show hiring managers the projects they have built.
+However, GitHub can be confusing to navigate, and often, the project name is not enough to understand what an engineer has achieved in building something.
 
-\subsection{UI Design}
-\label{sec:design-ui}
-% TODO: Add images and initial design here
+Omni looks to rethink how engineers show off their portfolio of projects. The key to this is to make posting new projects as simple as possible; rather than making engineers write a whole blog post about a project, Omni will utilise the README files they have already created for their projects as the body content of a post.
+Users can add a more descriptive title and description to each post and then link their README file from elsewhere on the internet, such as GitHub or GitLab.
+Omni will parse the README files markdown and present it on each post page for users to read.
 
 \section{Tech Stack}
 \label{sec:design-review}

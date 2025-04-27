@@ -343,6 +343,16 @@ When OmniView receives a request, middleware checks if the cookie is present and
 If both of these checks are true, the request is processed as it would be normally, and the response is sent.
 If the cookie is not present or is not valid, OmniView sends a redirection status code and redirects the browser to the login page, where the user can enter their credentials to receive a new cookie.
 
+\subsection{Parsing Markdown from External Sources}
+As each post's core content is an external markdown file, it must be processed into HTML, which can be embedded on each post page.  
+
+When a post is processed, Omni downloads the data at the URL submitted as the post body. It attempts to convert the markdown it receives into HTML elements.
+However, embedding this raw HTML into a template and sending it back to the user is potentially dangerous.
+Before it is embedded into a template, the HTML is passed through a sanitiser, which removes any potentially dangerous HTML elements and attributes. 
+Omni uses the \underline{\href{https://github.com/microcosm-cc/bluemonday}{bluemonday}} \nocite{bluemonday} sanitiser to scrub any cross-site scripting data from the HTML.
+
+The sanitised HTML is then inserted into the post page template and returned to the user, free of any potential ill-intended code.
+
 \section{Load Balancer}
 Many backend services are required to handle the load for a platform to scale efficiently.
 Requests should be distributed evenly across each service for a platform to work optimally. A load balancer is required to achieve optimal performance.
