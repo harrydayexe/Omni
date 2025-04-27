@@ -442,3 +442,20 @@ For instance, GET requests to a path beginning \verb|/api/| should be sent to th
 Combining the HTTPRoute and Gateway allows Omni to communicate via a single external IP while sharing requests across many backend applications to balance the load and service the requests.
 Figure \ref{fig:k8s-gateway-flow} \footnote{`Kubernetes Gateway Flow' by The Kubernetes Authors, from \url{https://kubernetes.io/docs/concepts/services-networking/gateway/}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.} shows the flow of a request through the Gateway and HTTPRoutes.
 
+\subsubsection{Automatic Horizontal Scaling}
+The final piece of the Kubernetes puzzle is configuring the deployments to automatically scale horizontally (create new pods) as load increases.
+The key to this is using a \underline{\href{https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/}{HorizontalPodAutoScaler}} \nocite{horizontalpodautoscaler} manifest, which defines the rules for how deployments should scale their pods.
+In the case of Omni, using CPU utilisation is the simplest solution. However, more complicated metrics, such as requests per second, could be used.
+The auto-scaler targets a CPU utilisation of 50\% for each pod. The deployment specifies the minimum amount of CPU and memory that a pod requires to run and the maximum a pod can use.
+The utilisation of each pod is calculated based on the limits specified.
+As utilisation increases over 50\%, the auto-scaler triggers the creation of more pods.
+Once the period of high load ends, the auto-scaler waits for a specified period before scaling the pods down to their nominal amount again.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{horizontalpodscaling.png}
+\centering
+\caption{HorizontalPodAutoscaler controls the scale of a Deployment and its ReplicaSet}
+\label{fig:horizontalpodscaling}
+\end{figure}
+
+Figure \ref{fig:horizontalpodscaling} \footnote{`HorizontalPodAutoscaler' by The Kubernetes Authors, from \url{https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/}, licensed under \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}.} demonstrates how the HorizontalPodAutoscaler works with the Deployment and ReplicaSet to scale the number of pods up and down as required.
