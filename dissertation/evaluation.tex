@@ -1,5 +1,40 @@
 \chapter{Reflection and Evaluation}
 \label{cha:evaluation}
 
-% TODO Complete the reflection and evaluation
-Lorem ipsum dolar
+\section{Evaluation of Initial Aims}
+Reflecting on the initial objectives in Section \ref{sec:intro-aims}, the user feedback and load testing indicate that these have been met.
+Objective 1 aimed to create a highly rated platform that allows users to view posts made by others and share their own projects.
+The user feedback received indicates that the participants all enjoyed the site's design and were able to successfully create an account and post a project they had been working on. 
+
+Objectives 2 and 3 related to the scalability of the platform and its APIs.
+The load testing performed in Section \ref{sec:load-testing} proved that the platform could scale up in response to `viral moments' where the load massively increased. 
+
+Objective 4 discusses sharding and horizontal scaling of the database.
+Whilst multiple databases were not created due to hardware constraints, the schema and snowflake IDs were created to easily enable this once loads demanded a need for this feature.
+Forward planning in the design of the database schema and its IDs allows for future expansion when the user base grows while still allowing a simple one-node solution to keep costs low during the platform's initial launch phase. 
+
+The final objective related to the coding style and practices used.
+Wherever possible, Omni utilised standard industry practices, whether that be with security (sanitisation of cross-site scripting from external markdown) or HTTP responses from the API. 
+
+Omni meets or exceeds expectations across every domain based on these initial objectives.
+
+\section{Future Work}
+Omni is by no means a finished product. It represents an initial offering that could be launched into production tomorrow, with the expectation that development will continue. 
+
+Based on user feedback, the first issue to fix is to make linking to READMEs in standard locations (such as GitHub or GitLab) easier by automatically parsing the correct URL to a README from any link to a project.
+This pain point represents the importance of user testing. 
+
+Currently, Omni requests the markdown data every time a post is loaded.
+A better solution might be to cache this data in a database or other cache so that it does not need to be requested every time the post is loaded.
+Some design choices around this decision are needed: For example, should a post be updated if the underlying markdown file is updated?
+
+Other improvements include a custom recommendation algorithm, possibly based on tags on each post.
+This would power a more intelligent list of posts on the homepage for logged-in users, surfacing popular content around the topics they are interested in.
+For example, an engineer interested in low-level systems programming may not be interested in seeing posts about web projects. 
+
+Following on from above, a Kafka queue could provide a real-time stream of updates, such as new comments on a post or new posts onto the main feed.
+When OmniWrite receives a request to add a new comment or post, it publishes this into the Kafka stream and writes it to the database.
+The consumers of the Kafka stream (the user's browser) would then stream in new content and dynamically insert them into the current page. 
+
+Finally, a cache should be added between the backends and the database to decrease the access time for the most popular posts.
+Again, this introduces complexity surrounding which items should be cached and how the cache should be invalidated; however, given a significant user base, the data to be able to make these technical decisions should exist.
