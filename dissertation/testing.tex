@@ -79,3 +79,37 @@ This survey included the following questions about the functionality and usabili
 \end{itemize}
 These questions were designed to identify the opinions of potential site users, particularly regarding the frontend design.
 The full responses are in Appendix \ref{sec:apdx-user-survey}.
+
+\section{Scalability and Load Testing}
+A load test was conducted to prove the platform's scalability. A simple program was written that continuously sends many requests to the Omni API.
+This program was run until the load was saturated and throughput plateaued. 
+
+\subsection{Test Platform}
+The platform used for load testing was a dual-node Kubernetes cluster running Talos Linux.
+Each node was a Raspberry Pi 4 Model B with 4GB of memory. The MariaDB database was hosted by a Raspberry Pi 3 Model B+ running Raspberry Pi OS.
+
+\subsection{Test Results}
+Figure \ref{fig:load-test-results} shows the results of the load test. Initially, the throughput of requests was very low (around 160 requests per second) as the baseline number of pods for OmniRead (the service under test) is 2.
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{scaling.png}
+\centering
+\caption{Load Test Results}
+\label{fig:load-test-results}
+\end{figure}
+
+As the load increased, Kubernetes scaled the number of pods to meet demand. Once these pods came online, the load plateaued again at the new ceiling before more pods were scaled up.
+At this point, the cluster's hardware limits any more pods from being created (as not enough memory or CPU is available to be allocated to new pods), where the throughput once again plateaus in the range of 450-500 requests per second. 
+
+\begin{figure}[htbp]
+\includegraphics[width=12cm]{pods-scaling.png}
+\centering
+\caption{Pods being created while the load test progressed}
+\label{fig:load-test-pods-scaling}
+\end{figure}
+
+Overall, the load test proved that the platform is able to scale each aspect of the backend independently.
+During the load test, which was performed specifically on reading data from the API, OmniRead was scaled up to meet demand, whilst OmniAuth and OmniWrite maintained their baseline number of pods, which were more than capable of handling the demand on these aspects of the API. 
+
+Even on low-end hardware, the API efficiently handled 450+ requests per second.
+If Omni were deployed into a cloud environment with much smaller hardware limitations, it would be able to continue scaling to meet thousands or millions of requests per second.
