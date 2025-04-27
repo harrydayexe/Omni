@@ -80,6 +80,16 @@ This survey included the following questions about the functionality and usabili
 These questions were designed to identify the opinions of potential site users, particularly regarding the frontend design.
 The full responses are in Appendix \ref{sec:apdx-user-survey}.
 
+\subsection{Analysis of User Feedback}
+Overall, the feedback from the survey participants was positive.
+The participants enjoyed the website's design and UI and found it easy to navigate, sign up, and create and view posts. 
+
+Most participants also mentioned they would primarily consume content, lining up with the expectation that the OmniRead service would receive much more traffic than OmniWrite.
+However, the participants did mention that they thought the idea of having a single place to share and discuss their projects would be beneficial for their careers and personal growth. 
+
+One gripe was the difficulty of linking to a README on GitHub, which required the user to manually copy the link for the raw content of the markdown file rather than just linking to the homepage of their product.
+Because most users will be linking to either GitHub or GitLab, future versions of Omni could automatically parse this correct URL rather than forcing users to find it themselves.
+
 \section{Scalability and Load Testing}
 A load test was conducted to prove the platform's scalability.
 A simple program that continuously sends many requests to the Omni API was written and run until the load was saturated and throughput plateaued.
