@@ -4,9 +4,8 @@
 \section{Architecture}
 \label{sec:design-architecture}
 Omni will use a microservices architecture. This enables a highly distributed and scalable system that can respond dynamically to changes in incoming requests.
-The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a "viral" moment.
-mni will be primarily designed using the microservices architecture. This enables a highly distributed and scalable system, which is able to respond to changes in incoming requests dynamically. 
-The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a "viral" moment.
+The approach should make use of common industry standards and technology as well as be portable across cloud providers. The aim is to build Omni cloud-natively so that it could scale exponentially in the case of a `viral' moment.
+Omni will be primarily designed using the microservices architecture. This enables a highly distributed and scalable system, which is able to respond to changes in incoming requests dynamically. 
 
 \subsection{Kubernetes and Containerisation}
 \label{sec:design-system-kubernetes}
@@ -59,7 +58,7 @@ Snowflake IDs are unique 64-bit integers with the following properties:
     \item Following the timestamp, each ID has a 10-bit Node ID. This represents the location where a piece of data has been stored.
     \item Finally, we have a 12-bit Sequence ID. This prevents collisions between IDs created for the same Node ID and Timestamp.
 \end{itemize}
-\ref{tab:snowflake} shows the final structure of the 64-bit Snowflake ID.
+Table \ref{tab:snowflake} shows the final structure of the 64-bit Snowflake ID.
 
 \begin{table}[htbp]
 \centering
@@ -79,16 +78,17 @@ This prevents ID collisions during generation, rather than using a 128-bit ID li
 \subsection{Database Implementation}
 \label{sec:design-system-database-implementation}
 A classic SQL database will suit our needs since the data we will store in a social media network is structured, where the relationships between users, posts, and comments are known.
-The added flexibility of a NoSQL database, whilst attractive for sharding, is not warranted for such a platform, and a more strict and structured scheme should bring benefits in the long run compared to developer experience and stability.
+The added flexibility of a NoSQL database, whilst attractive for sharding \citep{gupta2017nosql}, is not warranted for such a platform, and a more strict and structured schema should bring benefits in the long run when comparing developer experience and stability.
 
-Given this directive, some natural choices are SQLite and MySQL/MariaDB. They are both robust and straightforward; however, MySQL/MariaDB is better suited for this particular application with a single (sharded) database. In lightweight/mobile applications, SQLite is the preferred option.
+Given this directive, some natural choices are SQLite and MySQL/MariaDB. They are both robust and straightforward; however, MySQL/MariaDB is better suited for this particular application with a single (sharded) database. 
+In lightweight/mobile applications, SQLite is the preferred option \citep{feiler2015understanding}.
 
 As mentioned above in Section \ref{sec:design-system-database-snowflake}, the database will be sharded so that the load of multiple backends accessing data from the database is balanced across multiple servers. 
 This allows databases to be located in separate regions and balances the load across multiple servers.
 Another option to balance the load on the database is to use read replicas, where there is one primary node and many read replicas, which are a copy of the primary node.
 This setup is perfect for read-heavy applications, as read requests are distributed across the replicas.
 It also brings the benefit of higher availability, as all servers have the same database, so if the primary node fails, other nodes can be promoted to receive write requests.
-Replication does bring a write bottleneck where only one server can process writes to maintain ACID compliance. 
+Replication does however bring a write bottleneck where only one server can process writes, in order to maintain ACID compliance. 
 
 Overall, sharding is the better option for the Omni platform due to the write bottleneck and the potentially massive amount of data that will be stored in the database.
 A future improvement would be to use a hybrid approach, where some things, like the user profile data, which is not expected to receive many writes, are stored in a replicated database, whereas post and comment data is stored in a sharded database to prevent a bottleneck when writing.
@@ -148,7 +148,7 @@ Any data the frontend service (OmniView) requires will be retrieved by calling t
 As the website is not the main focus of this project, and a social media platform inherently does not have much onscreen interaction (instead, they are traditionally comprised of many pages linked together), the website will be built with a combination of HTMX (served via the GoLang microservice), TailWindCSS for styling, and AlpineJS for the limited amounts of more complex interaction that is required.
 
 \subsection{Posts}
-Omni's target audience is junior software engineers who want to showcase their latest projects and act as an online portfolio of projects.
+Omni's target audience is junior software engineers who want to showcase their latest projects and act as an online portfolio.
 It is commonplace for engineers to add a link to their GitHub page on CVs and applications to show hiring managers the projects they have built.
 However, GitHub can be confusing to navigate, and often, the project name is not enough to understand what an engineer has achieved in building something.
 
@@ -160,7 +160,7 @@ Omni will parse the README files markdown and present it on each post page for u
 \label{sec:design-review}
 The Omni microservices will be built using GoLang. This is a fast language with excellent concurrency features, making it ideal for web servers and APIs.
 The SQLc library will automatically generate the database layer from the SQL migrations and queries to connect to the database from within Go.
-Letting a code generation framework create this code automatically ensures that the database and the microservices will always be in sync, and any errors caused by new migrations will be flagged as type errors during building. 
+Letting a code generation framework create this code automatically, ensures that the database and the microservices will always be in sync, and any errors caused by new migrations will be flagged as type errors when compiling. 
 
 As mentioned in Section \ref{sec:design-system-frontend}, the website will use HTMX, TailwindCSS, and AlpineJS. HTMX is a lightweight JavaScript framework that can be used for client-side interactivity as an alternative to ReactJS or NextJS.
 Using HTMX, one can dynamically update portions of the page by serving partial HTML snippets from the webserver. This can be used, for example, to add a new post to a list of posts dynamically.

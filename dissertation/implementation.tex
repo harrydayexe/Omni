@@ -8,15 +8,15 @@ Configuration is an important part of any production application. It is any data
 Configuration may need to change, and it should be able to do so without requiring developers to rebuild the application.
 Allowing configuration to be ephemeral enables companies with separate teams that manage a platform's operations to make configuration changes without the need for intervention by a software developer.
 
-Configuration items should be passed to the application via its environment rather than compiled into its binary.
+Configuration items should be passed to the application via its environment rather than compiled into its binary \citep{12factorapp}.
 One method for specifying configuration is through a configuration file. This file (normally JSON or YAML) contains key-value pairs of data for the application to consume at start-up.
 Some frameworks even enable the file to be monitored for changes so that the most up-to-date values can be used without requiring a restart. 
 
 Another method preferred in Kubernetes and containerised environments is using environment variables.
-These are variables set in the bash environment that the application is executed from. The application can then read the values of these variables and use them for its own configuration.
+These are variables set in the environment that the application is executed from. The application can then read the values of these variables and use them for its own configuration.
 
 Kubernetes allows environment variables to be specified in the workload manifests for each application.
-This means that if the configuration changes, a new manifest can be loaded to bring new pods online with the updated config. Once the new pods are available and responding to requests, the old pods can be scaled down and removed.
+This means that if the configuration changes, a new manifest can be loaded to bring new pods online with the updated config. Once the new pods are available and responding to requests, the old pods are scaled down and removed.
 
 \lstinputlisting[language=Go, caption=Example of Parsing Environment Variables, label={lst:go-env}]{code-snippets/go-env-example.go.bak}
 
@@ -34,10 +34,10 @@ Metrics often include requests per second, latency and CPU usage. These can be e
 They are the first level of reporting an operations team will monitor.
 
 Traces, on the other hand, record the path that requests take through a platform. They often capture the logs each system produces along the way and measure latencies across the system.
-Traces are ideal for identifying bottlenecks and pinpointing failures within a larger microservices architecture. Tracing is often handled by a framework called \underline{\href{https://opentelemetry.io}{Open Telemetry}} \nocite{opentel}, a standardised way of collecting and exporting traces from many different applications.
+Traces are ideal for identifying bottlenecks and pinpointing failures within a larger microservices architecture. Tracing is often handled by a framework called \underline{\href{https://opentelemetry.io}{Open Telemetry}}\nocite{opentel}, a standardised way of collecting and exporting traces from many different applications.
 
-Finally, logs are the lowest level of the three fundamental observability pillars. Logs are immutable, and applications emit timestamped events to process incoming requests.
-Developers with a fine-grained understanding of how the system functions best use logs, which are extremely useful for pinpointing the exact line where a system has failed. 
+Finally, logs are the lowest level of the three fundamental observability pillars. Logs are immutable, timestamped events that applications emit when processing incoming requests.
+Developers, with a fine-grained understanding of how the system functions, can best use logs, which are extremely useful for pinpointing the exact line where a system has failed. 
 
 \subsection{Observability in Omni}
 In Omni, the Go standard library's structured logger emits logs, allowing each log to contain extra information, such as variables.
@@ -75,7 +75,7 @@ Figure \ref{fig:db-erd} shows the final design of the tables. The Omni platform 
 \end{figure}
 
 Information about each user needs to be stored, so a user table is naturally required. This includes any information about the user, such as username and password hash.
-In the MVP of Omni, there is not much additional information stored about each user, but we could feasibly expand to store much more data for new features, such as storing a user's birthday.
+In the MVP of Omni, there is not much additional information stored about each user, but this could feasibly be expanded to store much more data for new features, such as storing a user's birthday.
 In the future, if a hybrid approach for database distribution is used, a separate table to hold authentication data may be better to store this on a replicated database cluster rather than a sharded one.
 
 The second easy-to-see table holds information about each post. It must store the creator's ID, title, description, link to the markdown file, timestamp, and more.
@@ -88,7 +88,7 @@ This limits the load on the microservices, ensuring they are not overwhelmed by 
 
 \subsection{Discussion on Sharding}
 As discussed in Section \ref{sec:design-system-database}, the design of the database and Snowflake IDs enable easy sharding of the database, whilst maintaining fast access times by backend microservices.
-A single database has been used to maintain simplicity for the initial implementation and testing of the platform. The only difference this has in the code is that the logic for selecting which database node to retrieve data from is removed (as only one node contains all data).
+A single database has been used to maintain simplicity for the initial implementation and testing of the platform. The only difference this has in the code is that the logic for selecting which database node to retrieve data from is removed (as all the data is contained in only one node).
 
 
 \section{Backend Microservices}
@@ -155,7 +155,7 @@ Finally, the encrypted password is stored as the last part of the hash, which is
 Checking a password involves deriving the encryption key from the given algorithm, cost factor and salt, using that key to encrypt the given password and then comparing it against the valid password hash. If the hashes match, the password is valid.
 
 \subsubsection{JSON Web Tokens}
-JWTs are the industry standard for ongoing authentication. They can contain many standard or custom `claims', which the application uses to determine whether the JWT is valid.
+JWTs are the industry standard for ongoing authentication \citep{ahmed2019authentication}. They can contain many standard or custom `claims', which the application uses to determine whether the JWT is valid.
 In particular, Omni uses the \verb|exp| and \verb|sub| claims (standing for expires at and subject, respectively). 
 
 After a JWT body is generated, applications hash it using a secret key, which is appended to the JWT to ensure that the body is not modified by anyone other than the authorised applications. 
@@ -215,6 +215,7 @@ However, we have more than three endpoints, as users may want to access differen
 
 All the API endpoints served by OmniRead are unauthorised, meaning that anybody can access them without a JWT token. This simplifies the service regarding the middleware required for each endpoint and its runtime configuration in the Kubernetes environment. 
 
+\subsubsection{Paging}
 For some endpoints that could return infinite amounts of data, such as retrieving comments on a post or posts by a particular user, paging is needed.
 This ensures that the database and the backend service are not overwhelmed by a denial-of-service attack, where a malicious request can cause the entire service to hang or run out of memory while processing it. 
 Paging ensures that the data returned has a maximum size of ten items. Users who wish to see more items can request the next page, which will return the following ten items.
@@ -231,11 +232,13 @@ This paging application is more useful for other applications that use the API, 
 In contrast, users interacting with the Omni platform via the website will likely want to read the most recent comments on a post or the highest-rated comments if a liking system is introduced.
 The \verb|LIMIT| and \verb|OFFSET| approach is more efficient for these cases when compared to the client specifying a timestamp or other parameter to find comments before or after, with different sorts applied to the query. 
 
+\subsubsection{Response Format}
 OmniRead returns data in the response body in a JSON format. JSON is the standard format for transmitting data in APIs on the web.
 Whilst other more efficient formats exist, such as \underline{\href{https://protobuf.dev}{ProtoBuf}} \nocite{protobuf}, JSON is ubiquitous and well-supported by most languages' standard libraries.
-GoLang has powerful, built-in tooling to encode and decode to and from the JSON format into standard GoLang structs.
+GoLang has powerful, built-in tooling to encode and decode the JSON format into standard GoLang structs.
 As part of a set of helper functions for all the backend services, Omni has a helper function that takes an object and an HTTP Response Writer object and writes the JSON encoding of the object to the response along with a 200 Success HTTP code.
 This helper function is used across all the backend services to transmit data to the request sender. 
+\newpage
 
 \lstinputlisting[language=Go, caption=Example of Writing JSON to the Response, label={lst:go-json}]{code-snippets/encode-json-helper.go.bak}
 
@@ -282,7 +285,7 @@ OmniView is the application responsible for serving HTML to browsers when a user
 Whereas the other three services all serve JSON content in their responses, OmniView responds with HTML, CSS, and JS, which the browser can use to render content on screen for a user.
 There are many different methods, tools, and frameworks for building a website, such as ReactJS, NextJS, Java Spring Boot, and plain HTML \citep{StackOverflow2024}
 
-Writing static HTML pages which are served to browsers is not very common in the industry now, with contemporary solutions (even those with static sites with no dynamic content) use frameworks to generate the HTML from an easier language to work with. 
+Writing static HTML pages which are served to browsers is not very common in the industry now, with contemporary solutions (even those with static sites and no dynamic content) use frameworks to generate the HTML from an easier language to work with. 
 
 Given that the web pages OmniView will be serving have dynamic designs but limited complex user interaction, HTMX and TailwindCSS will be used to render the HTML content that will be sent to browsers.
 HTMX is a lightweight JavaScript library that enables dynamic web interactions through HTML attributes.
@@ -294,6 +297,7 @@ By keeping this processing on the server, OmniView only needs to send each clien
 
 TailwindCSS on the other hand, is a CSS framework that provides low-level utility classes to build custom, responsive designs quickly.
 Rather than writing custom classes for each component, Tailwind allows for the composition of utilities directly on HTML elements, increasing the locality of code and enabling rapid development and consistent styling. 
+``The primary feature for easy maintenance is locality: Locality is that characteristic of source code that enables a programmer to understand that source by looking at only a small portion of it'' \citep{gabriel1996patterns}.
 
 \lstinputlisting[language=HTML, caption=Example of TailwindCSS Classes]{code-snippets/tailwind-example.html}
 
@@ -347,7 +351,7 @@ If the cookie is not present or is not valid, OmniView sends a redirection statu
 As each post's core content is an external markdown file, it must be processed into HTML, which can be embedded on each post page.  
 
 When a post is processed, Omni downloads the data at the URL submitted as the post body. It attempts to convert the markdown it receives into HTML elements.
-However, embedding this raw HTML into a template and sending it back to the user is potentially dangerous.
+However, embedding this raw HTML into a template and sending it back to the user is potentially dangerous \citep{singh2020analytical}.
 Before it is embedded into a template, the HTML is passed through a sanitiser, which removes any potentially dangerous HTML elements and attributes. 
 Omni uses the \underline{\href{https://github.com/microcosm-cc/bluemonday}{bluemonday}} \nocite{bluemonday} sanitiser to scrub any cross-site scripting data from the HTML.
 
@@ -404,7 +408,7 @@ The study by \citeauthor{sharma2008performance} into the performance of differen
 Now that each platform component is built, it needs to be deployed to work in unison. As mentioned in Section \ref{sec:design-system-kubernetes}, the microservices will be deployed into a Kubernetes cluster to enable easy inter-pod communication, autoscaling, deployment rollouts with zero downtime, and more.
 The database will not be deployed into Kubernetes as this does not follow the industry standard practices surrounding data storage. 
 
-Kubernetes pods are ephemeral, meaning they should be stateless themselves and able to be killed and restarted without interrupting the application they serve. 
+Kubernetes pods are ephemeral, meaning they should be stateless and able to be killed and restarted without interrupting the application they serve. 
 This design contradicts the stateful design of databases (otherwise, they would not be helpful) that should be resilient to failure. 
 
 \subsection{Kubernetes Manifests}
@@ -428,7 +432,7 @@ The deployment manifest also includes the environment variables that power each 
 Helm is an open-source package manager which simplifies the management of Kubernetes deployments. It allows for the installation of predefined standalone units into a cluster. 
 The configuration of Omni's deployment into Kubernetes has been written as a Helm chart, allowing for easy deployment and upgrade during its development lifecycle. 
 Charts are written using the GoLang templating language, allowing the same chart to be reused across multiple environments (say, a test cluster versus a production cluster).
-Variables defined in the chart are replaced with different values.
+Variables defined in the chart are replaced with different values, suited to each service.
 
 \subsubsection{Cluster Ingress}
 By default, services use the ClusterIP type, which exposes the service internally to other members of the cluster.
